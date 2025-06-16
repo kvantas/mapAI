@@ -3,6 +3,9 @@ library(sf)
 library(dplyr)
 library(mapAI) # Assuming mapAI package is loaded for read_data function
 
+# Source the functions directly for testing
+source("../../R/read_data.R")
+
 # Helper function to create a dummy shapefile for testing
 create_dummy_shapefile <- function(temp_dir) {
   # Create a simple point feature
@@ -34,7 +37,7 @@ create_dummy_polygon_shapefile <- function(temp_dir) {
 }
 
 # Helper function to create a dummy GCP CSV for testing
-create_dummy_gcp_csv <- function(temp_dir, valid = TRUE) {
+create_dummy_gcp_csv <- function(temp_dir, valid = TRUE, missing_col = NULL) {
   if (valid) {
     gcp_data <- data.frame(
       source_x = c(10, 11, 12),
@@ -43,12 +46,14 @@ create_dummy_gcp_csv <- function(temp_dir, valid = TRUE) {
       target_y = c(20.1, 21.2, 22.3)
     )
   } else {
-    # Invalid GCP data (missing target_y)
     gcp_data <- data.frame(
       source_x = c(10, 11, 12),
       source_y = c(20, 21, 22),
       target_x = c(10.1, 11.2, 12.3)
     )
+    if (!is.null(missing_col)) {
+      gcp_data[[missing_col]] <- NULL
+    }
   }
   csv_path <- file.path(temp_dir, "dummy_gcp.csv")
   write.csv(gcp_data, csv_path, row.names = FALSE)
@@ -161,6 +166,137 @@ test_that("read_data issues warning when no CRS and none provided", {
   gcp_path <- create_dummy_gcp_csv(temp_dir)
 
   expect_warning(read_data(shp_path_no_crs, gcp_path), "Input shapefile has no CRS and none was provided.")
+
+  unlink(temp_dir, recursive = TRUE)
+})
+
+# --- New tests for read_gcps function ---
+test_that("read_gcps reads valid CSV and calculates dx/dy correctly", {
+  temp_dir <- tempdir()
+  gcp_path <- create_dummy_gcp_csv(temp_dir)
+  crs_val <- 3857 # Example CRS
+
+  gcp_sf <- read_gcps(gcp_path = gcp_path, crs = crs_val)
+
+  expect_s3_class(gcp_sf, "sf")
+  expect_true("dx" %in% names(gcp_sf))
+  expect_true("dy" %in% names(gcp_sf))
+  expect_equal(gcp_sf$dx, c(0.1, 0.2, 0.3))
+  expect_equal(gcp_sf$dy, c(0.1, 0.2, 0.3))
+  expect_equal(sf::st_crs(gcp_sf)$epsg, crs_val)
+
+  unlink(temp_dir, recursive = TRUE)
+})
+
+test_that("read_gcps throws error for non-existent file", {
+  temp_dir <- tempdir()
+  non_existent_path <- file.path(temp_dir, "non_existent_gcp.csv")
+  expect_error(read_gcps(gcp_path = non_existent_path, crs = 3857), "GCP file not found")
+  unlink(temp_dir, recursive = TRUE)
+})
+
+test_that("read_gcps throws error for missing or NA CRS", {
+  temp_dir <- tempdir()
+  gcp_path <- create_dummy_gcp_csv(temp_dir)
+
+  expect_error(read_gcps(gcp_path = gcp_path), "A coordinate reference system \\(CRS\\) must be provided for the GCPs.")
+  expect_error(read_gcps(gcp_path = gcp_path, crs = NA), "A coordinate reference system \\(CRS\\) must be provided for the GCPs.")
+
+  unlink(temp_dir, recursive = TRUE)
+})
+
+test_that("read_gcps throws error for missing required columns", {
+  temp_dir <- tempdir()
+  # Test with missing source_x
+  gcp_path_missing_sx <- create_dummy_gcp_csv(temp_dir, valid = FALSE, missing_col = "source_x")
+  expect_error(read_gcps(gcp_path = gcp_path_missing_sx, crs = 3857), "GCP file must contain columns: source_x, source_y, target_x, target_y")
+
+  # Test with missing target_y (already handled by valid = FALSE)
+  gcp_path_missing_ty <- create_dummy_gcp_csv(temp_dir, valid = FALSE)
+  expect_error(read_gcps(gcp_path = gcp_path_missing_ty, crs = 3857), "GCP file must contain columns: source_x, source_y, target_x, target_y")
+
+  unlink(temp_dir, recursive = TRUE)
+})
+
+test_that("read_gcps throws error for invalid CSV format", {
+  temp_dir <- tempdir()
+  invalid_csv_path <- file.path(temp_dir, "invalid.txt")
+  writeLines("This is not a CSV file", invalid_csv_path)
+  # Adjusted expectation: the column validation catches it first
+  expect_error(read_gcps(gcp_path = invalid_csv_path, crs = 3857), "GCP file must contain columns: source_x, source_y, target_x, target_y")
+  unlink(temp_dir, recursive = TRUE)
+})
+
+# --- New tests for read_map function ---
+# Helper function to create a dummy shapefile for testing (modified to explicitly set CRS to NA)
+create_dummy_shapefile <- function(temp_dir) {
+  # Create a simple point feature
+  point <- st_point(c(10, 20))
+  sfc <- st_sfc(point) # No CRS initially
+  sf_obj <- st_sf(data.frame(id = 1), geometry = sfc)
+  sf::st_crs(sf_obj) <- NA # Explicitly set CRS to NA
+
+  # Define shapefile path
+  shp_path <- file.path(temp_dir, "dummy_map.shp")
+
+  # Write shapefile
+  st_write(sf_obj, shp_path, quiet = TRUE, delete_layer = TRUE)
+  return(shp_path)
+}
+
+test_that("read_map reads valid shapefile (point) correctly", {
+  temp_dir <- tempdir()
+  shp_path <- create_dummy_shapefile(temp_dir)
+
+  map_sf <- read_map(shp_path = shp_path)
+
+  expect_s3_class(map_sf, "sf")
+  expect_equal(as.character(sf::st_geometry_type(map_sf)[1]), "POINT")
+  # No CRS expected initially from create_dummy_shapefile
+  expect_true(is.na(sf::st_crs(map_sf)$epsg))
+
+  unlink(temp_dir, recursive = TRUE)
+})
+
+test_that("read_map reads valid shapefile (polygon) and calculates area", {
+  temp_dir <- tempdir()
+  shp_path <- create_dummy_polygon_shapefile(temp_dir)
+
+  map_sf <- read_map(shp_path = shp_path)
+
+  expect_s3_class(map_sf, "sf")
+  expect_equal(as.character(sf::st_geometry_type(map_sf)[1]), "POLYGON")
+  expect_true("area_old" %in% names(map_sf))
+  expect_s3_class(map_sf$area_old, "units")
+  expect_true(as.numeric(map_sf$area_old) > 0) # Area should be positive
+
+  unlink(temp_dir, recursive = TRUE)
+})
+
+test_that("read_map throws error for non-existent file", {
+  temp_dir <- tempdir()
+  non_existent_path <- file.path(temp_dir, "non_existent_map.shp")
+  expect_error(read_map(shp_path = non_existent_path), "Map file not found")
+  unlink(temp_dir, recursive = TRUE)
+})
+
+test_that("read_map assigns CRS when input lacks one but provided", {
+  temp_dir <- tempdir()
+  shp_path_no_crs <- create_dummy_shapefile(temp_dir) # This creates a shapefile without CRS
+  crs_val <- 32632 # WGS 84 / UTM zone 32N
+
+  map_sf <- read_map(shp_path = shp_path_no_crs, crs = crs_val)
+
+  expect_equal(sf::st_crs(map_sf)$epsg, crs_val)
+
+  unlink(temp_dir, recursive = TRUE)
+})
+
+test_that("read_map issues warning when no CRS and none provided", {
+  temp_dir <- tempdir()
+  shp_path_no_crs <- create_dummy_shapefile(temp_dir) # This creates a shapefile without CRS
+
+  expect_warning(read_map(shp_path = shp_path_no_crs), "Input map has no CRS and none was provided.")
 
   unlink(temp_dir, recursive = TRUE)
 })
