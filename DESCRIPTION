@@ -20,8 +20,10 @@ Suggests:
 Config/testthat/edition: 3
 Imports: 
     dplyr,
+    mgcv,
     rlang,
     sf,
+    ranger,
     units
 Depends: 
     R (>= 3.5)
