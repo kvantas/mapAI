@@ -2,7 +2,7 @@
 % Please edit documentation in R/train_pai_model.R
 \name{train_pai_model}
 \alias{train_pai_model}
-\title{Train a Spatial Correction Model}
+\title{Train a PAI Model}
 \usage{
 train_pai_model(gcp_data, method, seed = 123, ...)
 }
@@ -22,5 +22,5 @@ A trained model object of class \code{pai_model}.
 }
 \description{
 Trains a supervised learning model to predict spatial
-displacements usingcrandom forests, linear regression, or GAMs.
+displacements using random forests, linear regression, or bivariate GAMs.
 }

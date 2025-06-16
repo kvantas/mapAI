@@ -1,12 +1,12 @@
-#' @title Train a Spatial Correction Model
+#' @title Train a PAI Model
 #' @description Trains a supervised learning model to predict spatial
-#' displacements usingcrandom forests, linear regression, or GAMs.
+#' displacements using random forests, linear regression, or bivariate GAMs.
 #' @param gcp_data An `sf` object of homologous points from `read_gcps()`.
 #' @param method A character string specifying the algorithm. One of:
-#'   "lm", "gam", "rf".
+#'    "lm", "gam", "rf".
 #' @param seed An integer for setting the random seed for reproducibility.
 #' @param ... Additional arguments passed to the underlying model fitting
-#' functions (`mgcv::gam`, `stats::lm`, `ranger::ranger`).
+#'    functions (`mgcv::gam`, `stats::lm`, `ranger::ranger`).
 #'
 #' @return A trained model object of class `pai_model`.
 #'
