@@ -9,11 +9,12 @@ devtools::load_all()
 
 
 # Read and prepare the data using the read_data function
-kastoria <- read_data(shp_path = "./data_raw/cad1925.shp",
-                      gcp_path = "./data_raw/homologous.csv",
+gcps <- read_gcps(gcp_path = "./data_raw/homologous.csv", crs = 2100)
+parcels <- read_map(shp_path = "./data_raw/cad1925.shp",
                       crs = 2100)
 
-# Save the 'kastoria' object as internal package data
-use_data(kastoria, overwrite = TRUE)
+# Save the objects as internal package data
+use_data(parcels, overwrite = TRUE)
+use_data(gcps, overwrite = TRUE)
 
-message("kastoria.rdata created successfully in the data/ directory.")
+message("data were created successfully in the data/ directory.")

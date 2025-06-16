@@ -8,7 +8,9 @@ Authors@R:
            email = "kon.vantas@gmail.com",
            comment = c(ORCID = "0000-0001-6387-8791"))
 Description: An R package for Positional Accuracy  Improvement of Historical 
-    Maps that uses supervised learning algorithms.
+    Maps that uses supervised learning algorithms. It uses as input a csv file
+    with homologous points and a vector map of the area of interest in order to
+    correct it.
 License: MIT + file LICENSE
 Encoding: UTF-8
 Roxygen: list(markdown = TRUE)
@@ -17,10 +19,6 @@ Suggests:
     testthat (>= 3.0.0)
 Config/testthat/edition: 3
 Imports: 
-    caret,
-    mgcv,
-    ranger,
-    kernlab,
     dplyr,
     rlang,
     sf,
