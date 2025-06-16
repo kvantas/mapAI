@@ -7,12 +7,14 @@
 #'   displacement vectors (dx, dy) which become the target variables for the models.
 #' @param shp_path A character string specifying the path to the input shapefile.
 #' @param gcp_path A character string specifying the path to the CSV file of homologous points.
-#' @param crs The coordinate reference system (CRS) to assign if the input shapefile lacks one. Can be an EPSG code (e.g., `32632`) or a WKT string.
+#' @param crs The coordinate reference system (CRS) to assign if the input shapefile lacks one.
+#'        Can be an EPSG code (e.g., `32632`) or a WKT string.
 #' @return A list object of class `pai_data` containing:
 #'   \item{map_to_correct}{An `sf` object of the original map.}
 #'   \item{gcp_data}{An `sf` object of the homologous points with `dx` and `dy` displacements.}
 #' @import sf
 #' @import dplyr
+#' @import units
 #' @importFrom utils read.csv
 #' @importFrom rlang .data
 #' @export
@@ -24,7 +26,20 @@ read_data <- function(shp_path, gcp_path, crs = NA) {
 
   # --- Read Data ---
   map_to_correct <- sf::st_read(shp_path, quiet = TRUE)
-  gcp_df <- read.csv(gcp_path)
+
+  # Check if map_to_correct contains polygon geometries and add area
+  if (any(grepl("POLYGON", sf::st_geometry_type(map_to_correct), ignore.case = TRUE)) &&
+      !("area_old" %in% names(map_to_correct))) {
+    map_to_correct$area_old <- sf::st_area(map_to_correct)
+  }
+
+  # Try to read csv file, fail gracefully if not a valid CSV
+  gcp_df <- tryCatch(
+    read.csv(gcp_path),
+    error = function(e) {
+      stop("Failed to read GCP file as CSV: ", conditionMessage(e))
+    }
+  )
 
   # --- Validate GCP columns ---
   required_cols <- c("source_x", "source_y", "target_x", "target_y")

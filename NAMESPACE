@@ -3,5 +3,6 @@
 export(read_data)
 import(dplyr)
 import(sf)
+import(units)
 importFrom(rlang,.data)
 importFrom(utils,read.csv)

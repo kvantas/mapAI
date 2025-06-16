@@ -11,7 +11,8 @@ read_data(shp_path, gcp_path, crs = NA)
 
 \item{gcp_path}{A character string specifying the path to the CSV file of homologous points.}
 
-\item{crs}{The coordinate reference system (CRS) to assign if the input shapefile lacks one. Can be an EPSG code (e.g., \code{32632}) or a WKT string.}
+\item{crs}{The coordinate reference system (CRS) to assign if the input shapefile lacks one.
+Can be an EPSG code (e.g., \code{32632}) or a WKT string.}
 }
 \value{
 A list object of class \code{pai_data} containing:

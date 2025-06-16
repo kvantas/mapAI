@@ -19,4 +19,8 @@ Config/testthat/edition: 3
 Imports: 
     dplyr,
     rlang,
-    sf
+    sf,
+    units
+Depends: 
+    R (>= 3.5)
+LazyData: true
