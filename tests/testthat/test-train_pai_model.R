@@ -15,7 +15,7 @@ create_dummy_gcp_data <- function(n = 200) {
     dx = rnorm(n, 0, 0.1),
     dy = rnorm(n, 0, 0.1)
   ) %>%
-    sf::st_as_sf(coords = c("source_x", "source_y"), crs = 4326)
+    sf::st_as_sf(coords = c("source_x", "source_y"), crs = 4326, remove = FALSE)
 }
 
 test_that("train_pai_model returns a pai_model object for 'gam' method", {
