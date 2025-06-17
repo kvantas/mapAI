@@ -1,0 +1,171 @@
+---
+title: "Use mapAI with synthetic data"
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{Use mapAI with synthetic data}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+```{r, include = FALSE}
+knitr::opts_chunk$set(
+  collapse = TRUE,
+  comment = "#>"
+)
+```
+
+This vignette demonstrates a complete, basic workflow for using the mapAI package. We will start by generating a synthetic dataset with known distortions, and then use the package's functions to correct it and assess the improvement in positional accuracy.
+
+
+```{r setup}
+library(mapAI)
+library(ggplot2)
+library(sf)
+library(dplyr)
+```
+
+## Step 1: Generate Synthetic Data
+
+First, we use `create_demo_data()` to create our test case. We'll choose the "complex" distortion type, as it represents a challenging combination of linear and non-linear errors, making it a good showcase for the package's capabilities.
+
+We set a seed to ensure this example is fully reproducible.
+
+```{r create synthetic data}
+# Generate the shapefile and GCPs CSV in a temporary directory
+demo_files <- create_demo_data(
+  type = "complex",
+  noise_sd = 0.5,
+  seed = 123
+)
+```
+
+## Step 2: Load Data
+
+Next, we load the distorted map and the Ground Control Points (GCPs) using the package's reading functions. It is crucial to specify a Coordinate Reference System (CRS). For this synthetic data, we'll use the common placeholder CRS 3857 (the projected coordinate system used for rendering maps in Google Maps, OpenStreetMap, etc.).
+
+```{r load data}
+
+# Load the GCPs (homologous points)
+gcp_data <- read_gcps(gcp_path = demo_files$gcp_path, crs = 3857)
+
+# Load the vector map that needs correction
+map_to_correct <- read_map(shp_path = demo_files$shp_path, crs = 3857)
+
+# Inspect the GCP data - note the dx and dy columns
+head(gcp_data)
+
+```
+
+## Step 3: Assess the Initial Error
+
+Before we apply any correction, let's quantify the problem. We can visualize the distortion by plotting displacement vectors from the "source" (distorted) to the "target" (true) locations. We also calculate the Identity 2D RMSE, which is the baseline error of the uncorrected map.
+
+```{r visulize displacement, fig.dim = c(6, 6)}
+# Visualize the displacement vectors
+ggplot(gcp_data) +
+  geom_segment(
+    aes(x = source_x, y = source_y, xend = target_x, yend = target_y),
+    arrow = arrow(length = unit(0.1, "cm")),
+    color = "darkred", alpha = 0.6
+  ) +
+  geom_point(aes(x = source_x, y = source_y), color = "red", size = 0.5) +
+  labs(
+    title = "Distortion Displacement Vectors",
+    subtitle = "Arrows point from distorted to true locations",
+    x = "Source X", y = "Source Y"
+  ) +
+  coord_equal() +
+  theme_minimal()
+
+# Calculate the Identity RMSE (the error before correction)
+# This is the RMSE between the source and target coordinates.
+identity_rmse <- sqrt(mean((gcp_data$source_x - gcp_data$target_x)^2 + (gcp_data$source_y - gcp_data$target_y)^2))
+# Or, more simply, using the pre-calculated dx/dy columns:
+identity_rmse <- sqrt(mean(gcp_data$dx^2 + gcp_data$dy^2))
+
+print(paste("Initial (Identity) 2D RMSE:", round(identity_rmse, 4)))
+
+```
+
+## Step 4: Train the PAI Model
+
+With a clear baseline, we can now train a model to learn the distortion pattern. We will use the *Generalized Additive Model (GAM)*, a flexible model that is well-suited for capturing non-linear spatial trends.
+
+```{r}
+# Train the GAM model using the GCP data
+pai_model_gam <- train_pai_model(gcp_data, method = "gam")
+
+summary(pai_model_gam$model)
+
+```
+
+## Step 5: Apply Correction and Assess Improvement
+
+Now, we apply our trained model to the map. The `apply_pai_model` function corrects the coordinates of every vertex in the map's geometry.
+To quantify the improvement, we will use our trained model to predict the corrected coordinates for our GCPs and then calculate a new *Corrected RMSE*.
+
+```{r}
+# Apply the trained model to the full map
+corrected_map <- apply_pai_model(pai_model = pai_model_gam, map = map_to_correct)
+
+# Assess the improvement on our known GCPs
+# 1. Predict the corrections for the GCP locations
+predicted_corrections <- predict(pai_model_gam, newdata = sf::st_drop_geometry(gcp_data))
+
+# 2. Calculate the corrected coordinates for the GCPs
+gcp_corrected_x <- gcp_data$source_x + predicted_corrections$dx
+gcp_corrected_y <- gcp_data$source_y + predicted_corrections$dy
+
+# 3. Calculate the new RMSE between our corrected points and the true target points
+corrected_rmse <- sqrt(mean((gcp_corrected_x - gcp_data$target_x)^2 + (gcp_corrected_y - gcp_data$target_y)^2))
+
+# Print the comparison
+print(paste("Initial (Identity) RMSE:", round(identity_rmse, 4)))
+print(paste("Corrected (GAM) RMSE:", round(corrected_rmse, 4)))
+improvement <- (1 - (corrected_rmse / identity_rmse)) * 100
+print(paste("Positional accuracy improvement (%):", round(improvement, 2)))
+
+```
+
+## Step 6: Visualize the Final Results
+
+Visualizations are key to understanding the effect of the correction.
+
+First, we can plot the *correction surface* learned by the GAM. This diagnostic plot shows us the magnitude of the dx and dy adjustments that the model applies across the map area.
+
+```{r Visualize corrections, warning=FALSE, fig.dim = c(7, 4), out.width="100%"}
+plot_correction_surface(pai_model_gam, gcp_data) +
+  patchwork::plot_annotation(title = "Correction Surface Learned by the GAM Model")
+
+```
+
+Finally, the most intuitive visualization is a direct comparison of the original distorted map and the final corrected map.
+
+```{r comparisons of maps, fig.dim = c(6, 6)}
+# We combine the two sf objects for plotting with ggplot2
+map_to_correct$status <- "Original (Distorted)"
+corrected_map$status <- "Corrected"
+
+# The `id` column may have different names if the source was not a shapefile.
+# We will drop all columns except the status and geometry for a clean bind.
+map_to_correct_plt <- map_to_correct %>% select(status, geometry)
+corrected_map_plt <- corrected_map %>% select(status, geometry)
+
+comparison_data <- rbind(map_to_correct_plt, corrected_map_plt)
+
+ggplot(comparison_data) +
+  geom_sf(aes(color = status, linetype = status), fill = NA, linewidth = 0.8) +
+  scale_color_manual(values = c("Original (Distorted)" = "grey50", "Corrected" = "red")) +
+  scale_linetype_manual(values = c("Original (Distorted)" = "dashed", "Corrected" = "solid")) +
+  labs(
+    title = "Map Correction Comparison",
+    subtitle = "Overlay of the original and corrected map grids",
+    color = "Map Status",
+    linetype = "Map Status"
+  ) +
+  theme_minimal()
+
+```
+
+The plot clearly shows how the warped, distorted grid has been adjusted to be much more regular and closer to the true geography, demonstrating the success of the Positional Accuracy Improvement process.
+

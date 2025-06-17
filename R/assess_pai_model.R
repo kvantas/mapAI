@@ -70,7 +70,7 @@
 #' #>   Method ValidationType Mean_RMSE_2D SD_RMSE_2D
 #' #> 1     rf        spatial    0.6983421  0.1194389
 #' }
-assess_pai_model <- function(gcp_data, method, validation_type = "random", k_folds = NULL, seed = 123, ...) {
+assess_pai_model <- function(gcp_data, method, validation_type = "random", k_folds = 5, seed = 123, ...) {
 
   # --- 1. Input Validation ---
   if (!inherits(gcp_data, "sf")) {
@@ -89,6 +89,7 @@ assess_pai_model <- function(gcp_data, method, validation_type = "random", k_fol
   }
 
   # --- Sanitize data once at the beginning ---
+
   gcp_df <- sf::st_drop_geometry(gcp_data)
   complete_rows <- stats::complete.cases(gcp_df[, c("source_x", "source_y", "dx", "dy")])
   if (any(!complete_rows)) {
@@ -125,6 +126,7 @@ assess_pai_model <- function(gcp_data, method, validation_type = "random", k_fol
     test_data <- gcp_data[test_indices, ]
 
     temp_model <- train_pai_model(gcp_data = train_data, method = method, seed = seed + i, ...)
+    #temp_model <- train_pai_model(gcp_data = train_data, method = method, seed = seed + i)
 
     # Predict on the test data
     predictions <- predict(temp_model, newdata = sf::st_drop_geometry(test_data))
