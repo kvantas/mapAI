@@ -163,6 +163,7 @@ ggplot(comparison_data) +
     color = "Map Status",
     linetype = "Map Status"
   ) +
+    coord_sf(datum = sf::st_crs(3857)) +
   theme_minimal()
 
 ```
