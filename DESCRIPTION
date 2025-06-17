@@ -24,7 +24,10 @@ Imports:
     rlang,
     sf,
     ranger,
-    units
+    units,
+    ggplot2,
+    patchwork,
+    viridis
 Depends: 
     R (>= 3.5)
 LazyData: true

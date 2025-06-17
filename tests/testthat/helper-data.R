@@ -14,7 +14,7 @@ create_test_polygon <- function(path) {
 }
 
 # Helper function to create dummy gcp_data
-create_dummy_gcp_data <- function(n = 1000) { # Increased n further for more robust GAM fitting
+create_dummy_gcp_data <- function(n = 1000) {
   set.seed(123) # for reproducibility of dummy data
   data.frame(
     source_x = runif(n, 0, 1000), # Increased range for source_x and source_y

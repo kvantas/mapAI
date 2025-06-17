@@ -1,7 +1,7 @@
 #' @title Create a Simulated Historical Map Dataset for Demonstration
 #' @description Generates a simulated dataset representing a distorted historical map
 #'   and a corresponding set of homologous points (GCPs), saving them as files.
-#' @details This function implements the simulation framework described in [Your Name et al., Year].
+#' @details This function implements the simulation framework described in Vantas and Mirkopoulou, 2025.
 #'   It first creates a regular grid of points representing the "true" geography.
 #'   It then applies one of three distortion types from the paper:
 #'   \itemize{
@@ -29,8 +29,9 @@
 #'
 #' @import sf
 #' @import dplyr
+#' @importFrom stats predict rnorm
+#' @importFrom utils write.csv
 #' @export
-#' @examples
 #' @examples
 #' \dontrun{
 #' # --- 1. Generate the demonstration data ---
@@ -61,7 +62,7 @@ create_demo_data <- function(type = "complex", noise_sd = 0.5, n_points = 15, ou
     expand.grid(
       x_true = seq(0, 100, length.out = n_pts),
       y_true = seq(0, 100, length.out = n_pts)
-    ) %>% tibble::as_tibble()
+    )
   }
 
   # 2. Distortion functions

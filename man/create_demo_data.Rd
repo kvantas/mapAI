@@ -37,7 +37,7 @@ Generates a simulated dataset representing a distorted historical map
 and a corresponding set of homologous points (GCPs), saving them as files.
 }
 \details{
-This function implements the simulation framework described in \link{Your Name et al., Year}.
+This function implements the simulation framework described in Vantas and Mirkopoulou, 2025.
 It first creates a regular grid of points representing the "true" geography.
 It then applies one of three distortion types from the paper:
 \itemize{

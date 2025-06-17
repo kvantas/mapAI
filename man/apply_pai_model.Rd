@@ -21,39 +21,8 @@ correcting the position of all its vertices based on the learned transformation.
 }
 \details{
 This function is the final step in the PAI workflow. It iterates through
-each feature of the input \code{map}, uses the trained \code{pai_model} to predict the
-necessary \code{dx} and \code{dy} correction for each vertex, and then reconstructs the
-map's geometry with the corrected coordinates. This feature-by-feature approach
-is robust and correctly handles simple and complex geometries (e.g., MULTIPOLYGON).
-
-The prediction logic correctly handles the different output structures of the
-supported model types:
-\itemize{
-\item \strong{\code{gam}}: Predicts \code{dx} and \code{dy} simultaneously from the bivariate model.
-\item \strong{\code{lm}}: Predicts \code{dx} and \code{dy} from two separate linear models.
-\item \strong{\code{rf}}: Predicts \code{dx} and \code{dy} from two separate \code{ranger} models.
-}
-
-If the input \code{map} contains \code{POLYGON} or \code{MULTIPOLYGON} geometries, the function
-also calculates the area of the newly corrected features and adds it to a column
-named \code{area_new}.
-}
-\examples{
-\dontrun{
-# --- 1. Generate demo data and read it into R ---
-demo_files <- create_demo_data(type = "complex", seed = 123)
-gcp_data <- read_gcps(gcp_path = demo_files$gcp_path, crs = 3857)
-map_to_correct <- read_map(shp_path = demo_files$shp_path)
-
-# --- 2. Train a PAI model ---
-rf_model <- train_pai_model(gcp_data, method = "rf")
-
-# --- 3. Apply the trained model to the map ---
-corrected_map <- apply_pai_model(pai_model = rf_model, map = map_to_correct)
-
-# --- 4. Visualize the results ---
-plot(sf::st_geometry(map_to_correct), border = 'grey', lty = 2,
-     main = "Original (Grey) vs. Corrected (Red)")
-plot(sf::st_geometry(corrected_map), border = 'red', add = TRUE)
-}
+each feature of the input \code{map}, uses a recursive method to handle arbitrarily
+complex geometries (e.g., MULTIPOLYGON with holes), predicts the necessary \code{dx}
+and \code{dy} correction for each vertex, and then reconstructs the map's geometry
+with the corrected coordinates.
 }
