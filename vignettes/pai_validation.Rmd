@@ -1,0 +1,152 @@
+---
+title: "Comparing PAI Methods and Validation Strategies"
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{Comparing PAI Methods and Validation Strategies}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+```{r, include = FALSE}
+knitr::opts_chunk$set(
+  collapse = TRUE,
+  comment = "#>"
+)
+```
+
+This vignette is for users who are comfortable with the basic workflow of `mapAI` and want to explore more advanced topics. Here, we will address two key questions that arise in any real-world project:
+
+
+1. Which PAI model (`lm`, `rf`, or `gam`) is best for my data?
+2. How do I reliably estimate the accuracy of my chosen model?
+
+To answer these, we will use a real-world dataset from the 1925 Kastoria Cadastral Map, which is included with the package. We will focus on comparing the performance of the three main correction methods and demonstrate the crucial difference between standard random cross-validation and spatial cross-validation.
+
+```{r setup}
+# Load the necessary libraries
+library(mapAI)
+library(sf)
+library(dplyr)
+library(ggplot2)
+library(patchwork)
+```
+
+## Step 1: Load and Explore the Package Data
+
+The `mapAI` package comes with two datasets from the Kastoria study:
+
+* `parcels`: An sf object of cadastral polygons from the 1925 map.
+* `gcps`: An sf object of the homologous points (GCPs) for this map, including the calculated dx and dy displacements.
+
+Since this data is already included in the package, we can load it directly with the data() function.
+
+```{r load data}
+# Load the built-in datasets
+data(parcels)
+data(gcps)
+
+# Let's calculate the baseline error of the uncorrected map
+# This "Identity RMSE" is our starting point.
+identity_rmse <- sqrt(mean(gcps$dx^2 + gcps$dy^2))
+print(paste("Initial average error (RMSE) of the Kastoria map:", round(identity_rmse, 2), "meters"))
+
+```
+
+
+## Step 2: Comparing Validation Strategies
+
+A key challenge in spatial data science is *spatial autocorrelation*, which means that points closer together are more likely to be similar than points farther apart. Standard *random cross-validation* ignores this. It might randomly put a test point right next to a training point, leading to an overly optimistic (and misleadingly low) error estimate.
+
+*Spatial Cross-Validation (SCV)* solves this by creating validation folds that are geographically separate blocks. This provides a more realistic estimate of how the model will perform when predicting for entirely new areas.
+
+Let's compare the results from both methods for all three models (`lm`, `rf`, and `gam`).
+
+```{r validate models}
+# Helper function to run validation for all models
+validate_all_methods <- function(gcp_data, validation_type) {
+  message(paste("\nRunning", validation_type, "cross-validation..."))
+  
+  # Validate each model type
+  lm_results <- assess_pai_model(gcp_data, method = "lm",k_folds = 10, seed = 1, validation_type = validation_type)
+  rf_results <- assess_pai_model(gcp_data, method = "rf",k_folds = 10, seed = 1, validation_type = validation_type)
+  gam_results <- assess_pai_model(gcp_data, method = "gam",k_folds = 10, seed = 1, validation_type = validation_type)
+  
+  # Combine and return the results
+  rbind(lm_results, rf_results, gam_results)
+}
+
+# Run both random and spatial cross-validation
+random_cv_results <- validate_all_methods(gcps, "random")
+spatial_cv_results <- validate_all_methods(gcps, "spatial")
+
+# Combine into one table for comparison
+all_results <- rbind(random_cv_results, spatial_cv_results)
+
+# Print the results table
+knitr::kable(all_results, caption = "Comparison of Validation Results")
+```
+
+Now, let's visualize these results to make the comparison clear.
+
+```{r r plot validation results, fig.dim = c(7, 5)}
+ggplot(all_results, aes(x = Method, y = Mean_RMSE_2D, fill = ValidationType)) +
+  geom_col(position = "dodge") +
+  geom_errorbar(
+    aes(ymin = Mean_RMSE_2D - SD_RMSE_2D, ymax = Mean_RMSE_2D + SD_RMSE_2D),
+    width = 0.2, position = position_dodge(0.9)
+  ) +
+  labs(
+    title = "Random vs. Spatial Cross-Validation Results",
+    subtitle = "Note how spatial CV provides a higher error estimate",
+    x = "Correction Model",
+    y = "Mean 2D RMSE (meters)",
+    fill = "Validation Type"
+  ) +
+  theme_minimal()
+```
+
+## Step 3: Train the Final Model and Analyze It
+
+Based on our validation, we choose `rf` as our final model and train it on the **entire** set of GCPs.
+
+```{r train final model}
+
+# Train the final GAM model on all available data
+pai_model_gam <- train_pai_model(gcps, method = "gam")
+
+# Let's look at the statistical summary of our trained model
+model_summary <- summary(pai_model_gam$model)
+print(model_summary)
+
+```
+
+## Step 4: Apply and Visualize the Final Correction
+
+Finally, we apply our chosen and analyzed gam model to the Kastoria parcels data.
+
+```{r apply and visualize, fig.dim=c(8,6)}
+# Apply the model to the parcel polygons
+corrected_parcels <- apply_pai_model(pai_model = pai_model_gam, map = parcels)
+
+# Inspect the output - note the new 'area_new' column
+print("Original vs. Corrected Dataframe Head:")
+head(corrected_parcels)
+
+# Create the final comparison plot
+ggplot() +
+  geom_sf(data = parcels, aes(color = "Original"), fill = "grey75", linetype = "dashed") +
+  geom_sf(data = corrected_parcels, aes(color = "Corrected"), fill = NA) +
+  scale_color_manual(
+    name = "Parcel Status",
+    values = c("Original" = "grey25", "Corrected" = "#e41a1c")
+  ) +
+  labs(
+    title = "Positional Correction of 1925 Kastoria Parcels",
+    subtitle = "Overlay of original (dashed) and corrected (solid) polygons"
+  ) +
+    coord_sf(datum = sf::st_crs(2100)) +
+  theme_minimal()
+```
+
+This final plot shows the tangible result of our work: the corrected parcels are shifted and slightly reshaped, representing a more accurate historical reality. This vignette has demonstrated how to move from a basic workflow to a robust comparative analysis, giving you confidence in both your choice of model and its final accuracy.
+
