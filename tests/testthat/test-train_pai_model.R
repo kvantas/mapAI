@@ -1,19 +1,3 @@
-library(dplyr)
-library(sf)
-library(testthat)
-
-# Helper function to create dummy gcp_data
-create_dummy_gcp_data <- function(n = 1000) { # Increased n further for more robust GAM fitting
-  set.seed(123) # for reproducibility of dummy data
-  data.frame(
-    source_x = runif(n, 0, 1000), # Increased range for source_x and source_y
-    source_y = runif(n, 0, 1000),
-    dx = rnorm(n, 0, 5), # Increased variance for dx and dy
-    dy = rnorm(n, 0, 5)
-  ) %>%
-    sf::st_as_sf(coords = c("source_x", "source_y"), crs = 4326, remove = FALSE)
-}
-
 # Test cases for train_pai_model
 
 # Test 1: lm method
