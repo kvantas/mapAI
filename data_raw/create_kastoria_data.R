@@ -13,6 +13,8 @@ gcps <- read_gcps(gcp_path = "./data_raw/homologous.csv", crs = 2100)
 parcels <- read_map(shp_path = "./data_raw/cad1925.shp",
                       crs = 2100)
 
+gcps <- gcps[sample(1:300),]
+
 # Save the objects as internal package data
 use_data(parcels, overwrite = TRUE)
 use_data(gcps, overwrite = TRUE)

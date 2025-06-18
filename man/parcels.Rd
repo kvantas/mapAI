@@ -15,14 +15,14 @@ representing the parcels in the target CRS (EPSG:2100).}
 }
 }
 \source{
-Generated from \code{data_raw/cad1925.shp} using \code{read_map()} in
-\code{data_raw/create_kastoria_data.R}.
+Part from the dataset of the 1925 urban cadastral map of Kastoria,
+Greece as used in http://dx.doi.org/10.1111/tgis.70076
 }
 \usage{
 parcels
 }
 \description{
-A dataset containing vector map parcels (e.g., from a cadastral map)
+A dataset containing vector map parcels (polygons from a cadastral map)
 that are intended to be corrected using geospatial transformation methods.
 }
 \examples{

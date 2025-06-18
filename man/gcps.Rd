@@ -5,7 +5,7 @@
 \alias{gcps}
 \title{Ground Control Points (GCPs) for Map Correction}
 \format{
-An \code{sf} object with 1106 features and 6 variables:
+An \code{sf} object with 300 features and 6 variables:
 \describe{
 \item{source_x}{Numeric. The X-coordinate of the GCP on the source map.}
 \item{source_y}{Numeric. The Y-coordinate of the GCP on the source map.}
@@ -18,20 +18,21 @@ in the target CRS (EPSG:2100).}
 }
 }
 \source{
-Generated from \code{data_raw/homologous.csv} using \code{read_gcps()} in
-\code{data_raw/create_kastoria_data.R}.
+Part of the dataset
 }
 \usage{
 gcps
 }
 \description{
 A dataset containing Ground Control Points (GCPs) used for correcting
-a vector map. These points represent homologous locations identified on both
-the source (uncorrected) map and the target (reference) map.
+the vector map parcels of the package. These points represent homologous
+locations identified on both the source (uncorrected) map and a modern
+land survey.
 }
 \examples{
 if (interactive()) {
-  plot(sf::st_geometry(gcps))
+  # plot the difference in X-coordinates dx
+  plot((gcps["dx"]))
 }
 }
 \keyword{datasets}

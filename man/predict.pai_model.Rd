@@ -2,22 +2,83 @@
 % Please edit documentation in R/predict.R
 \name{predict.pai_model}
 \alias{predict.pai_model}
-\title{Predict method for pai_model objects}
+\title{Predict Method for pai_model Objects}
 \usage{
 \method{predict}{pai_model}(object, newdata, ...)
 }
 \arguments{
-\item{object}{A trained model object of class \code{pai_model}.}
+\item{object}{A trained model object of class \code{pai_model} returned by \code{train_pai_model()}.}
 
-\item{newdata}{A data frame with \code{source_x} and \code{source_y} columns for which
+\item{newdata}{A \code{data.frame} with \code{source_x} and \code{source_y} columns for which
 to generate predictions.}
 
-\item{...}{Additional arguments (not used).}
+\item{...}{Additional arguments passed on to the underlying predict methods
+(e.g., \code{predict.lm}, \code{predict.gam}).}
 }
 \value{
-A data frame with predicted \code{dx} and \code{dy} columns.
+A \code{data.frame} with predicted \code{dx} and \code{dy} columns, having the same
+number of rows as \code{newdata}.
 }
 \description{
-Predicts spatial corrections (dx, dy) from a trained \code{pai_model}.
+Predicts spatial corrections (dx, dy) from a trained \code{pai_model} object.
+This is an S3 method for the generic \code{predict()} function.
+}
+\details{
+This function provides the core prediction logic for all models created by
+\code{train_pai_model()}. As an S3 method, it should not be called directly (e.g.,
+\code{predict.pai_model(...)}), but rather through the generic \code{predict()} function
+(e.g., \code{predict(my_model, ...)}).
+
+Key features of this method include:
+\itemize{
+\item \strong{Automatic Model Handling:} It transparently handles the different
+output structures of \code{gam}, \code{lm}, and \code{rf} models, always returning a
+consistent \code{data.frame}.
+\item \strong{Robust NA Handling:} It correctly handles \code{NA} values in the
+\code{newdata} predictors. Rows with \code{NA} inputs will produce \code{NA} outputs,
+ensuring the output has the same number of rows as the input and preventing
+errors from underlying prediction functions.
+}
+}
+\examples{
+\dontrun{
+# This example shows how the generic `predict()` function can be used
+# on any model trained by `train_pai_model()`.
+
+# --- 1. Load Data and Train Models ---
+data(gcps) # Load the package's built-in homologous points
+
+# Train two different types of models
+pai_model_gam <- train_pai_model(gcps, method = "gam")
+pai_model_rf <- train_pai_model(gcps, method = "rf")
+
+# --- 2. Create New Data for Prediction ---
+# We'll create a small data frame of new points.
+# Note the third row contains an NA to demonstrate robust NA handling.
+new_points_to_predict <- data.frame(
+  source_x = c(241643.0, 241650.0, NA),
+  source_y = c(4477383, 4477370, 4477390)
+)
+
+# --- 3. Use the Generic `predict()` Function ---
+# The same `predict()` call works for both model objects.
+
+# Predict using the GAM model
+predictions_from_gam <- predict(pai_model_gam, newdata = new_points_to_predict)
+
+# Predict using the Random Forest model
+predictions_from_rf <- predict(pai_model_rf, newdata = new_points_to_predict)
+
+# --- 4. Inspect the Results ---
+print("Predictions from GAM model:")
+print(predictions_from_gam)
+#>           dx        dy
+#> 1  0.5898319 -0.163833
+#> 2  0.5908929 -0.161099
+#> 3         NA        NA
+
+print("Predictions from Random Forest model:")
+print(predictions_from_rf)
+}
 }
 \keyword{internal}

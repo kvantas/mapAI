@@ -8,7 +8,7 @@ assess_pai_model(
   gcp_data,
   method,
   validation_type = "random",
-  k_folds = NULL,
+  k_folds = 5,
   seed = 123,
   ...
 )
@@ -75,19 +75,14 @@ random_assessment <- assess_pai_model(
   k_folds = 10
 )
 print(random_assessment)
-#>   Method ValidationType Mean_RMSE_2D SD_RMSE_2D
-#> 1     rf        random    0.5841103  0.1340156
 
 # --- 3. Assess the SAME model with SPATIAL CV ---
-# Note: Spatial CV results in a higher (more realistic) error estimate.
 spatial_assessment <- assess_pai_model(
   gcp_data,
   method = "rf",
   validation_type = "spatial",
-  k_folds = 5 # Fewer folds are common for SCV
+  k_folds = 5
 )
 print(spatial_assessment)
-#>   Method ValidationType Mean_RMSE_2D SD_RMSE_2D
-#> 1     rf        spatial    0.6983421  0.1194389
 }
 }
