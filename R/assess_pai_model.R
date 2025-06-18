@@ -55,20 +55,15 @@
 #'   k_folds = 10
 #' )
 #' print(random_assessment)
-#' #>   Method ValidationType Mean_RMSE_2D SD_RMSE_2D
-#' #> 1     rf        random    0.5841103  0.1340156
 #'
 #' # --- 3. Assess the SAME model with SPATIAL CV ---
-#' # Note: Spatial CV results in a higher (more realistic) error estimate.
 #' spatial_assessment <- assess_pai_model(
 #'   gcp_data,
 #'   method = "rf",
 #'   validation_type = "spatial",
-#'   k_folds = 5 # Fewer folds are common for SCV
+#'   k_folds = 5
 #' )
 #' print(spatial_assessment)
-#' #>   Method ValidationType Mean_RMSE_2D SD_RMSE_2D
-#' #> 1     rf        spatial    0.6983421  0.1194389
 #' }
 assess_pai_model <- function(gcp_data, method, validation_type = "random", k_folds = 5, seed = 123, ...) {
 
@@ -131,7 +126,6 @@ assess_pai_model <- function(gcp_data, method, validation_type = "random", k_fol
     # Predict on the test data
     predictions <- predict(temp_model, newdata = sf::st_drop_geometry(test_data))
 
-    # THE DEFINITIVE FIX for the warning:
     # Align the true values with the predictions using row names.
     # This is robust to any internal na.action in predict methods.
     # Note: test_data must have its original row names preserved.

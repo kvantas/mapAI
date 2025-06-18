@@ -1,10 +1,11 @@
 #' @title Ground Control Points (GCPs) for Map Correction
 #'
 #' @description A dataset containing Ground Control Points (GCPs) used for correcting
-#'   a vector map. These points represent homologous locations identified on both
-#'   the source (uncorrected) map and the target (reference) map.
+#'   the vector map parcels of the package. These points represent homologous
+#'   locations identified on both the source (uncorrected) map and a modern
+#'   land survey.
 #'
-#' @format An `sf` object with 1106 features and 6 variables:
+#' @format An `sf` object with 300 features and 6 variables:
 #' \describe{
 #'   \item{source_x}{Numeric. The X-coordinate of the GCP on the source map.}
 #'   \item{source_y}{Numeric. The Y-coordinate of the GCP on the source map.}
@@ -15,10 +16,10 @@
 #'   \item{geometry}{`sfc_POINT`. The `sf` point geometry representing the GCPs
 #'     in the target CRS (EPSG:2100).}
 #' }
-#' @source Generated from `data_raw/homologous.csv` using `read_gcps()` in
-#'   `data_raw/create_kastoria_data.R`.
+#' @source Part of the dataset
 #' @examples
 #' if (interactive()) {
-#'   plot(sf::st_geometry(gcps))
+#'   # plot the difference in X-coordinates dx
+#'   plot((gcps["dx"]))
 #' }
 "gcps"

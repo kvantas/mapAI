@@ -2,25 +2,80 @@
 % Please edit documentation in R/train_pai_model.R
 \name{train_pai_model}
 \alias{train_pai_model}
-\title{Train a PAI Model}
+\title{Train a Positional Accuracy Improvement (PAI) Model}
 \usage{
 train_pai_model(gcp_data, method, seed = 123, ...)
 }
 \arguments{
-\item{gcp_data}{An \code{sf} object of homologous points from \code{read_gcps()}.}
+\item{gcp_data}{An \code{sf} object of homologous points, typically from \code{read_gcps()}.}
 
 \item{method}{A character string specifying the algorithm. One of:
-"lm", "gam", "rf".}
+\code{"lm"}, \code{"gam"}, or \code{"rf"}.}
 
 \item{seed}{An integer for setting the random seed for reproducibility.}
 
-\item{...}{Additional arguments passed to the underlying model fitting
-functions (\code{mgcv::gam}, \code{stats::lm}, \code{ranger::ranger}).}
+\item{...}{Additional arguments passed to the underlying model fitting functions
+(e.g., \code{importance = "permutation"} for \code{ranger}, or \code{weights} for \code{lm}).}
 }
 \value{
-A trained model object of class \code{pai_model}.
+A trained model object of class \code{pai_model}. This is a list containing
+the fitted model(s) and the name of the method used.
 }
 \description{
-Trains a supervised learning model to predict spatial
-displacements using random forests, linear regression, or bivariate GAMs.
+Trains a supervised learning model to predict spatial displacements
+using one of three methods: linear models, random forests, or bivariate GAMs.
+}
+\details{
+This function is the core of the modeling workflow. It takes a set of Ground
+Control Points (GCPs) and learns the mathematical relationship between the
+distorted \code{source_x} and \code{source_y} coordinates and the \code{dx}/\code{dy} correction
+vectors.
+
+The user can choose from three distinct modeling approaches:
+\itemize{
+\item \strong{\code{"lm"} (Linear Model):} The fastest and simplest method. It assumes
+a global, linear distortion (like a simple skew or affine transformation).
+Best used as a baseline or for very simple distortions.
+\item \strong{\code{"rf"} (Random Forest):} A powerful machine learning model that can
+capture highly complex, non-linear relationships. It is robust and effective
+but less interpretable than other models. Implemented via the \code{ranger} package.
+\item \strong{\code{"gam"} (Generalized Additive Model):} A flexible model that balances
+predictive power with interpretability. It fits smooth, non-linear surfaces
+to the data and is ideal for distortions that vary smoothly across the map.
+This method uses a special bivariate \code{mgcv::gam} model to handle \code{dx} and
+\code{dy} simultaneously, which can improve accuracy.
+}
+
+The \code{...} argument allows advanced users to pass parameters directly to the
+underlying model-fitting functions (\code{stats::lm}, \code{ranger::ranger}, or \code{mgcv::gam}),
+enabling fine-tuning of the model.
+}
+\examples{
+\dontrun{
+# --- 1. Load Data ---
+data(gcps) # Load the package's built-in homologous points
+
+# --- 2. Train a Simple Linear Model ---
+# This serves as a good baseline.
+pai_model_lm <- train_pai_model(gcps, method = "lm")
+
+# Inspect the returned object
+print(pai_model_lm$method)
+summary(pai_model_lm$model$model_dx) # Summary of the model for dx
+
+# --- 3. Train a more complex Random Forest Model ---
+# We can pass advanced arguments via the `...` parameter.
+# For example, let's ask ranger to calculate variable importance.
+pai_model_rf <- train_pai_model(gcps, method = "rf",
+                                importance = "permutation")
+
+# The model object now contains importance scores
+print(pai_model_rf$model$model_dx$importance)
+
+# --- 4. Train a GAM for smooth, non-linear correction ---
+pai_model_gam <- train_pai_model(gcps, method = "gam")
+
+# The GAM model is a single object handling both dx and dy
+summary(pai_model_gam$model)
+}
 }

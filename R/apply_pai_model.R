@@ -1,14 +1,25 @@
 #' @title Apply a Trained PAI Model to Correct a Vector Map
 #' @description Applies a trained `pai_model` object to an `sf` vector map,
 #'   correcting the position of all its vertices based on the learned transformation.
-#' @details This function is the final step in the PAI workflow. It iterates through
-#'   each feature of the input `map`, uses a recursive method to handle arbitrarily
-#'   complex geometries (e.g., MULTIPOLYGON with holes), predicts the necessary `dx`
-#'   and `dy` correction for each vertex, and then reconstructs the map's geometry
-#'   with the corrected coordinates.
+#'
+#' @details
+#' This function is the final step in the PAI workflow, applying the learned
+#' spatial correction to a target map. It is designed to be robust and transparent:
+#' \itemize{
+#'   \item \strong{Robust Geometry Handling:} It uses a recursive method to traverse
+#'     arbitrarily complex geometries (e.g., `MULTIPOLYGON` with holes), ensuring
+#'     every vertex is corrected and the feature is rebuilt accurately.
+#'   \item \strong{Model-Specific Prediction:} It correctly handles the different
+#'     output structures of the supported model types (`gam`, `lm`, and `rf`).
+#'   \item \strong{Area Calculation:} If the input `map` contains `POLYGON` or
+#'     `MULTIPOLYGON` geometries, the function automatically calculates the area of
+#'     the newly corrected features and adds it to a column named `area_new`,
+#'     allowing for analysis of shape and size changes.
+#' }
 #'
 #' @param pai_model An object of class `pai_model` returned by `train_pai_model()`.
-#' @param map An `sf` object representing the vector map to be corrected.
+#' @param map An `sf` object representing the vector map to be corrected,
+#'   typically read by `read_map()`.
 #'
 #' @return A new `sf` object with the corrected geometry. Original attributes are
 #'   preserved, and an `area_new` column is added for polygon features.
@@ -18,6 +29,40 @@
 #' @importFrom units set_units
 #' @importFrom rlang .data
 #' @export
+#' @examples
+#' \dontrun{
+#' # This example demonstrates a full workflow:
+#' # 1. Load the package's built-in real-world data
+#' # 2. Train a Random Forest model
+#' # 3. Apply the model to correct the parcel map
+#' # 4. Inspect and visualize the results
+#'
+#' # --- 1. Load Data ---
+#' library(sf)
+#' data(parcels) # Load the polygon map to be corrected
+#' data(gcps)    # Load the corresponding ground control points
+#'
+#' # --- 2. Train a PAI Model ---
+#' # We'll use Random Forest for this example
+#' pai_model_rf <- train_pai_model(gcps, method = "rf")
+#'
+#' # --- 3. Apply the Model to Correct the Map ---
+#' corrected_parcels <- apply_pai_model(pai_model = pai_model_rf, map = parcels)
+#'
+#' # --- 4. Inspect and Visualize ---
+#'
+#' # Print the head of the corrected data frame.
+#' # Note the 'area_old' and 'area_new' columns, showing how the area changed.
+#' print(head(corrected_parcels))
+#'
+#' # Visualize the original vs. corrected map
+#' # Plot the original parcels with a dashed grey line
+#' plot(st_geometry(parcels), border = 'grey50', lty = 'dashed',
+#'      main = "Original (Grey) vs. Corrected (Red) Parcels")
+#'
+#' # Add the corrected parcels with a solid red line on top
+#' plot(st_geometry(corrected_parcels), border = 'red', add = TRUE)
+#' }
 apply_pai_model <- function(pai_model, map) {
   # --- 1. Input Validation ---
   if (!inherits(pai_model, "pai_model")) {
