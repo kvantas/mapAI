@@ -79,3 +79,4 @@ test_that("plot layers and aesthetics are correctly specified", {
   # In the first layer (geom_raster), the 'fill' aesthetic should be mapped to 'dx'
   expect_equal(rlang::quo_name(p_dx$mapping$fill), "dx")
 })
+

@@ -2,6 +2,7 @@
 
 # --- Setup for all tests in this file ---
 gcp_data <- read_gcps(gcp_path = DEMO_FILES$gcp_path, crs = 3857)
+
 # Create a 'newdata' set that is different from the training data
 new_gcp_data <- gcp_data[1:10, ]
 new_gcp_data$source_x <- new_gcp_data$source_x + 10 # Alter coordinates

@@ -1,21 +1,3 @@
-library(testthat)
-library(sf)
-library(dplyr)
-library(utils)
-
-# Helper function to create a dummy GCP CSV file
-create_dummy_gcp_csv <- function(path, data = NULL) {
-  if (is.null(data)) {
-    data <- data.frame(
-      source_x = c(10, 20, 30),
-      source_y = c(100, 110, 120),
-      target_x = c(12, 23, 35),
-      target_y = c(101, 112, 124)
-    )
-  }
-  utils::write.csv(data, path, row.names = FALSE)
-}
-
 test_that("read_gcps successfully reads valid GCP file and returns sf object", {
   # Create a temporary CSV file
   temp_gcp_path <- tempfile(fileext = ".csv")

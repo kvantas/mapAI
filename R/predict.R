@@ -11,7 +11,7 @@
 #' Key features of this method include:
 #' \itemize{
 #'   \item \strong{Automatic Model Handling:} It transparently handles the different
-#'     output structures of `gam`, `lm`, and `rf` models, always returning a
+#'     output structures of `helmert`, `gam`, `lm`, and `rf` models, always returning a
 #'     consistent `data.frame`.
 #'   \item \strong{Robust NA Handling:} It correctly handles `NA` values in the
 #'     `newdata` predictors. Rows with `NA` inputs will produce `NA` outputs,
@@ -79,7 +79,6 @@ predict.pai_model <- function(object, newdata, ...) {
     stop("'newdata' must contain 'source_x' and 'source_y' columns.", call. = FALSE)
   }
 
-  # --- 2. THE DEFINITIVE FIX: Pre-emptive NA Handling ---
   # Identify rows with NAs in the predictors. This is the only robust way
   # to handle libraries (like ranger) that have internal NA imputation.
   predictor_cols <- c("source_x", "source_y")
@@ -94,7 +93,26 @@ predict.pai_model <- function(object, newdata, ...) {
     clean_data <- newdata[complete_rows_idx, , drop = FALSE]
 
     # --- 3. Call the appropriate predict method on CLEAN data ---
-    if (object$method == "gam") {
+    if (object$method == "helmert") {
+      # Extract coefficients and centroids
+      coefs <- object$model$coefficients
+      cents <- object$model$centroids
+      a <- coefs["a"]
+      b <- coefs["b"]
+
+      # Calculate centered coordinates for the new data
+      u_i <- newdata$source_x - cents["u_mean"]
+      v_i <- newdata$source_y - cents["v_mean"]
+
+      # Predict the TARGET coordinates using the standard transformation formula
+      pred_target_x <- (a * u_i - b * v_i) + cents["x_mean"]
+      pred_target_y <- (b * u_i + a * v_i) + cents["y_mean"]
+
+      # compute.the correction vectors (dx, dy)
+      pred_dx[complete_rows_idx]  <- pred_target_x - newdata$source_x
+      pred_dy[complete_rows_idx]  <- pred_target_y - newdata$source_y
+
+    } else if (object$method == "gam") {
       preds_clean <- stats::predict(object$model, newdata = clean_data, ...)
       pred_dx[complete_rows_idx] <- preds_clean[, 1]
       pred_dy[complete_rows_idx] <- preds_clean[, 2]

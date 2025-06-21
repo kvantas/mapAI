@@ -28,7 +28,6 @@ test_that("assessment is reproducible when a seed is set", {
   expect_equal(assessment1, assessment2)
 })
 
-
 test_that("assess_pai_model() handles invalid inputs gracefully", {
   expect_error(
     assess_pai_model(gcp_data, method = "svm"),

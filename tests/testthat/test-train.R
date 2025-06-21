@@ -1,7 +1,7 @@
 gcp_data <- read_gcps(gcp_path = DEMO_FILES$gcp_path, crs = 3857)
 
 test_that("train_pai_model() creates valid models", {
-  for (method in c("rf", "lm", "gam")) {
+  for (method in c("rf", "lm", "gam", "helmert")) {
     model <- train_pai_model(gcp_data, method = method)
     expect_s3_class(model, "pai_model")
     expect_named(model, c("model", "method"))

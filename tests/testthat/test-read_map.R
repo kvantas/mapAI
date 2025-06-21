@@ -1,38 +1,3 @@
-library(testthat)
-library(sf)
-library(units)
-
-# Helper function to create a dummy shapefile for testing
-create_dummy_shp <- function(file_path, geometry_type = "POLYGON", has_crs = TRUE, has_area_old = FALSE) {
-  if (geometry_type == "POLYGON") {
-    # Create a simple polygon
-    poly <- st_polygon(list(cbind(c(0, 1, 1, 0, 0), c(0, 0, 1, 1, 0))))
-    sfc <- st_sfc(poly)
-  } else if (geometry_type == "POINT") {
-    # Create a simple point
-    point <- st_point(c(0, 0))
-    sfc <- st_sfc(point)
-  } else {
-    stop("Unsupported geometry type for dummy shapefile.")
-  }
-
-  if (has_crs) {
-    st_crs(sfc) <- 4326 # WGS 84
-  }
-
-  df <- data.frame(id = 1)
-  if (has_area_old) {
-    df$area_old <- set_units(100, "m^2")
-  }
-
-  sf_obj <- st_sf(df, geometry = sfc)
-
-  # Ensure the directory exists
-  dir.create(dirname(file_path), recursive = TRUE, showWarnings = FALSE)
-
-  st_write(sf_obj, file_path, delete_layer = TRUE, quiet = TRUE)
-  return(file_path)
-}
 
 test_that("read_map stops if shp_path does not exist", {
   expect_error(read_map("non_existent_file.shp"), "Map file not found")

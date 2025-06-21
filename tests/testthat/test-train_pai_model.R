@@ -1,8 +1,18 @@
 # Test cases for train_pai_model
+gcp_data <- read_gcps(gcp_path = DEMO_FILES$gcp_path, crs = 3857)
+
+# TEST 0: helmert method
+test_that("train_pai_model works with method = 'helmert'", {
+  model_h <- train_pai_model(gcp_data, method = "helmert")
+
+  expect_s3_class(model_h, "pai_model")
+  expect_equal(model_h$method, "helmert")
+  expect_equal(length(model_h$model$coefficients), 2)
+  expect_equal(length(model_h$model$centroids), 4)
+})
 
 # Test 1: lm method
 test_that("train_pai_model works with method = 'lm'", {
-  gcp_data <- create_dummy_gcp_data()
   model_lm <- train_pai_model(gcp_data, method = "lm")
 
   expect_s3_class(model_lm, "pai_model")
@@ -13,7 +23,6 @@ test_that("train_pai_model works with method = 'lm'", {
 
 # Test 2: rf method
 test_that("train_pai_model works with method = 'rf'", {
-  gcp_data <- create_dummy_gcp_data()
   model_rf <- train_pai_model(gcp_data, method = "rf")
 
   expect_s3_class(model_rf, "pai_model")
@@ -24,7 +33,6 @@ test_that("train_pai_model works with method = 'rf'", {
 
 # Test 3: gam method
 test_that("train_pai_model works with method = 'gam'", {
-  gcp_data <- create_dummy_gcp_data()
   model_gam <- train_pai_model(gcp_data, method = "gam")
 
   expect_s3_class(model_gam, "pai_model")
@@ -34,7 +42,6 @@ test_that("train_pai_model works with method = 'gam'", {
 
 # Test 4: seed parameter for reproducibility (using rf method)
 test_that("train_pai_model produces reproducible results with seed (rf method)", {
-  gcp_data <- create_dummy_gcp_data()
 
   model1 <- train_pai_model(gcp_data, method = "rf", seed = 42)
   model2 <- train_pai_model(gcp_data, method = "rf", seed = 42)
@@ -51,20 +58,13 @@ test_that("train_pai_model produces reproducible results with seed (rf method)",
                                 model3$model$model_dx$prediction.error)))
 })
 
-# Test 5: Handling of invalid method (returns NULL models)
+# Test 5: Handling of invalid method return error
 test_that("train_pai_model returns NULL models for invalid method", {
-  gcp_data <- create_dummy_gcp_data()
-  model_invalid <- train_pai_model(gcp_data, method = "invalid_method")
-
-  expect_s3_class(model_invalid, "pai_model")
-  expect_equal(model_invalid$method, "invalid_method")
-  expect_null(model_invalid$model$model_dx)
-  expect_null(model_invalid$model$model_dy)
+  expect_error( train_pai_model(gcp_data, method = "invalid_method"))
 })
 
 # Test 6: Passing additional arguments via ... for lm
 test_that("train_pai_model passes additional arguments to lm via ...", {
-  gcp_data <- create_dummy_gcp_data()
   # Pass 'weights' argument to lm
   weights_data <- runif(nrow(gcp_data), 0.1, 1)
   model_lm_weighted <- train_pai_model(gcp_data, method = "lm", weights = weights_data)
@@ -79,29 +79,27 @@ test_that("train_pai_model passes additional arguments to lm via ...", {
 
 # Test 7: Passing additional arguments via ... for rf
 test_that("train_pai_model passes additional arguments to rf via ...", {
-  gcp_data <- create_dummy_gcp_data()
   # Pass 'min.node.size' argument to ranger
-  model_rf_min_node <- train_pai_model(gcp_data, method = "rf", min.node.size = 10)
+  model_rf_min_node <- train_pai_model(gcp_data, method = "rf", min.node.size = 2)
 
   expect_s3_class(model_rf_min_node, "pai_model")
   expect_equal(model_rf_min_node$method, "rf")
   expect_s3_class(model_rf_min_node$model$model_dx, "ranger")
   expect_s3_class(model_rf_min_node$model$model_dy, "ranger")
-  expect_equal(model_rf_min_node$model$model_dx$call$min.node.size, 10)
-  expect_equal(model_rf_min_node$model$model_dy$call$min.node.size, 10)
+  expect_equal(model_rf_min_node$model$model_dx$min.node.size, 2)
+  expect_equal(model_rf_min_node$model$model_dx$min.node.size, 2)
 })
 
 # Test 8: Passing additional arguments via ... for gam
 test_that("train_pai_model passes additional arguments to gam via ...", {
-  gcp_data <- create_dummy_gcp_data()
 
   # let's test a top-level argument that gam accepts, e.g., 'optimizer'
-  model_gam_optimizer <- train_pai_model(gcp_data, method = "gam", gamma = 3)
+  model_gam_gamma <- train_pai_model(gcp_data, method = "gam", gamma = 3)
 
-  expect_s3_class(model_gam_optimizer, "pai_model")
-  expect_equal(model_gam_optimizer$method, "gam")
-  expect_s3_class(model_gam_optimizer$model, "gam")
+  expect_s3_class(model_gam_gamma, "pai_model")
+  expect_equal(model_gam_gamma$method, "gam")
+  expect_s3_class(model_gam_gamma$model, "gam")
 
   # Check if the gamma argument was passed
-  expect_true("gamma" %in% names(model_gam_optimizer$model$call))
+  expect_true("gamma" %in% names(model_gam_gamma$model$call))
 })
