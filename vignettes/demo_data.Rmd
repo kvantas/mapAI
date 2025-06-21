@@ -101,18 +101,7 @@ Before applying any correction, let's quantify the problem. A simple way to do t
 
 # First, let's visualize the errors as displacement vectors.
 # The arrows point from the incorrect location to the true location.
-ggplot(gcp_data) +
-  geom_segment(
-    aes(x = source_x, y = source_y, xend = target_x, yend = target_y),
-    arrow = arrow(length = unit(0.1, "cm")),
-    color = "darkred", alpha = 0.6
-  ) +
-  geom_point(aes(x = source_x, y = source_y), color = "red", size = 0.5) +
-  labs(
-    title = "Distortion Displacement Vectors",
-    subtitle = "Arrows point from distorted to true locations",
-    x = "Source X", y = "Source Y"
-  ) +
+plot_displacement(gcp_data) +
   coord_equal() +
   theme_minimal()
 
