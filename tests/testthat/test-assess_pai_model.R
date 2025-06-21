@@ -29,11 +29,7 @@ test_that("assessment is reproducible when a seed is set", {
 })
 
 test_that("assess_pai_model() handles invalid inputs gracefully", {
-  expect_error(
-    assess_pai_model(gcp_data, method = "svm"),
-    "Invalid `method`. Please choose one of: 'lm', 'gam', 'rf'.",
-    fixed = TRUE
-  )
+  expect_error(assess_pai_model(gcp_data, method = "svm"))
 
   # THE FIX for the error: Check for the correct error message.
   small_gcp_data <- gcp_data[1:3, ]

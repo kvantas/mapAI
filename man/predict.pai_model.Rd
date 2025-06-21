@@ -32,7 +32,7 @@ This function provides the core prediction logic for all models created by
 Key features of this method include:
 \itemize{
 \item \strong{Automatic Model Handling:} It transparently handles the different
-output structures of \code{gam}, \code{lm}, and \code{rf} models, always returning a
+output structures of \code{helmert}, \code{gam}, \code{lm}, and \code{rf} models, always returning a
 consistent \code{data.frame}.
 \item \strong{Robust NA Handling:} It correctly handles \code{NA} values in the
 \code{newdata} predictors. Rows with \code{NA} inputs will produce \code{NA} outputs,

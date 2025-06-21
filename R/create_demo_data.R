@@ -136,10 +136,10 @@ create_demo_data <- function(type = "complex", noise_sd = 0.5, n_points = 15, ou
   # 4. Create and save the homologous points (GCPs) CSV
   gcp_df <- final_data %>%
     dplyr::select(
-      source_x = .data$x_distorted,
-      source_y = .data$y_distorted,
-      target_x = .data$x_true,
-      target_y = .data$y_true
+      source_x = "x_distorted",
+      source_y = "y_distorted",
+      target_x = "x_true",
+      target_y = "y_true"
     )
   gcp_path <- file.path(output_dir, "demo_gcps.csv")
   write.csv(gcp_df, gcp_path, row.names = FALSE)

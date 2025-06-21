@@ -196,8 +196,8 @@ corrected_map$status <- "Corrected"
 
 # Combine the two maps
 comparison_data <- rbind(
-  map_to_correct %>% select(status),
-  corrected_map %>% select(status)
+  map_to_correct %>% select("status"),
+  corrected_map %>% select("status")
 )
 
 ggplot(comparison_data) +

@@ -71,7 +71,7 @@ assess_pai_model <- function(gcp_data, method, validation_type = "random", k_fol
   if (!inherits(gcp_data, "sf")) {
     stop("`gcp_data` must be a valid `sf` object.", call. = FALSE)
   }
-  supported_methods <- c("lm", "gam", "rf")
+  supported_methods <- c("lm", "gam", "rf", "helmert")
   if (!method %in% supported_methods) {
     stop(paste0("Invalid `method`. Please choose one of: '", paste(supported_methods, collapse = "', '"), "'."), call. = FALSE)
   }
