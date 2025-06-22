@@ -2,7 +2,7 @@
 % Please edit documentation in R/plot_distortion_surface.R
 \name{plot_distortion_surface}
 \alias{plot_distortion_surface}
-\title{Plot a Distortion Metric}
+\title{Visualize a Distortion Metric}
 \usage{
 plot_distortion_surface(
   distortion_sf,
@@ -15,39 +15,87 @@ plot_distortion_surface(
 \arguments{
 \item{distortion_sf}{An \code{sf} object of \strong{points} returned by \code{analyze_distortion()}.}
 
-\item{metric}{A character string specifying the name of the metric column to plot.}
+\item{metric}{A character string specifying the name of the metric column to plot.
+Must be one of "a", "b", "area_scale", "log2_area_scale", "max_shear",
+"max_angular_distortion", or "theta_a".}
 
-\item{gcp_data}{An optional \code{sf} object of the original GCPs to overlay on the plot.}
+\item{gcp_data}{An optional \code{sf} object of the original GCPs to overlay on the
+plot for context.}
 
-\item{palette}{A character string for the viridis color palette.}
+\item{palette}{A character string specifying the name of a viridis color palette
+(e.g., "viridis", "magma", "cividis"), used when \code{diverging=FALSE}.}
 
-\item{diverging}{A logical value for using a diverging color scale.}
+\item{diverging}{A logical value. If \code{TRUE}, a diverging color scale is used,
+which is ideal for metrics like \code{area_scale} or \code{log2_area_scale}.}
 }
 \value{
-A \code{ggplot} object.
+A \code{ggplot} object, which can be further customized.
 }
 \description{
 Creates a visualization of a continuous distortion metric from the
 output of \code{analyze_distortion()}.
 }
 \details{
-This function intelligently creates the best visualization for your data...
-(rest of details section is unchanged)
+This function intelligently creates the best visualization for your data. The
+type of plot generated depends on the geometry of the \code{distortion_sf} input:
+\itemize{
+\item \strong{For points on a regular grid} (recommended): It creates a rasterized
+surface plot using \code{geom_raster()}, which is ideal for visualizing continuous
+distortion surfaces. To create a regular grid, use the pattern:
+\code{sf::st_make_grid(...) \%>\% sf::st_centroid() \%>\% sf::st_sf()}.
+\item \strong{For scattered, irregular points} (like the original GCPs): It creates a
+point plot where each point is colored by its metric value. This avoids
+memory errors and still provides a useful diagnostic plot, along with a
+message recommending the use of a grid for a true surface plot.
+}
+
+\strong{Interpreting Plots by Model Type}
+
+The visual output will depend on the model used to generate the
+\code{distortion_sf} data:
+\itemize{
+\item \strong{\code{gam} model data}: Will produce a smooth, continuous surface with
+spatially varying colors, which is highly informative. This is the ideal
+model for this function.
+\item \strong{\code{helmert} or \code{lm} model data}: Will produce a plot with a single,
+uniform color, as the underlying distortion metrics are constant across the map.
+\item \strong{\code{rf} model data}: Will produce a plot indicating an Identity
+transformation (\code{area_scale} = 1, \code{max_shear} = 0). While RF is an excellent
+correction tool, this analysis is not informative for it.
+}
+
+You may see a benign warning from \code{ggplot2} about "uneven horizontal intervals."
+This is caused by minor floating-point inaccuracies in the grid coordinates and
+can be safely ignored; the plot is still accurate.
 }
 \examples{
-# --- Setup: Train a model and create analysis points ---
-
-data(gcps)
+# --- 1. Train a GAM model for the best visual results ---
 library(magrittr)
-
+data(gcps)
 gam_model <- train_pai_model(gcps, method = "gam")
+
+# --- 2. Create a regular grid of POINTS for analysis ---
 analysis_points <- sf::st_make_grid(gcps, n = c(25, 25)) \%>\%
-sf::st_centroid() \%>\%
+  sf::st_centroid() \%>\%
   sf::st_sf()
 
 distortion_on_grid <- analyze_distortion(gam_model, analysis_points)
 
-# --- Plot with a diverging scale ---
-plot_distortion_surface(distortion_on_grid, metric = "area_scale", diverging = TRUE)
+# --- 3. Plot a metric using a standard sequential scale ---
+plot_distortion_surface(
+  distortion_on_grid,
+  metric = "max_shear",
+  gcp_data = gcps,
+  palette = "magma"
+)
+
+# --- 4. Plot a metric using a diverging scale ---
+# 'log2_area_scale' is ideal for this, as it's centered at 0.
+plot_distortion_surface(
+  distortion_on_grid,
+  metric = "log2_area_scale",
+  gcp_data = gcps,
+  diverging = TRUE
+)
 
 }

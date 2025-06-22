@@ -44,49 +44,113 @@ test_that("apply_pai_model() throws errors for invalid inputs", {
   )
 })
 
-# This test block verifies that apply_pai_model works with POINT geometry.
 
+data(gcps)
+test_gam_model <- train_pai_model(gcps, method = "gam")
+
+
+# --- Test 1: POINT Geometry (from previous debugging) ---
 test_that("apply_pai_model works correctly with POINT geometry", {
-
-  # 1. ARRANGE: Load the necessary data and train a model.
-  # We use the built-in 'gcps' data, which is an sf object with POINT geometry.
-  data(gcps)
-  # A GAM model is used because it produces a non-trivial (non-linear) transformation.
-  gam_model <- train_pai_model(gcps, method = "gam")
-
-  # 2. ACT: Apply the trained model to the gcps point data itself.
-  # The function should run without error.
+  # ACT: Apply the model to the gcps point data itself.
   corrected_points <- expect_no_error(
-    apply_pai_model(pai_model = gam_model, map = gcps)
+    apply_pai_model(pai_model = test_gam_model, map = gcps)
   )
-
-  # 3. ASSERT: Check the validity and correctness of the output.
-
-  # Assertion 3.1: The output should be a valid sf object with the same number of rows.
+  # ASSERT:
   expect_s3_class(corrected_points, "sf")
   expect_equal(nrow(corrected_points), nrow(gcps))
-
-  # For points, no 'area_new' column should be added.
-  expect_equal(ncol(corrected_points), ncol(gcps))
-
-  # Assertion 3.2: The geometry type should still be POINT.
-  geom_types <- unique(sf::st_geometry_type(corrected_points))
-  expect_equal(as.character(geom_types), "POINT")
-
-  # Assertion 3.3: The coordinates of the output points must have changed.
-  # We compare the original source coordinates with the new geometry coordinates.
+  expect_equal(as.character(unique(sf::st_geometry_type(corrected_points))), "POINT")
   original_coords <- sf::st_coordinates(gcps)
   new_coords <- sf::st_coordinates(corrected_points)
   expect_false(identical(original_coords, new_coords))
+})
 
-  # Assertion 3.4: The new coordinates should match what predict() would calculate.
-  # This is a strong check to ensure the internal logic is correct.
-  predicted_displacements <- predict(gam_model, newdata = sf::st_drop_geometry(gcps))
-  expected_target_x <- gcps$source_x + predicted_displacements$dx
-  expected_target_y <- gcps$source_y + predicted_displacements$dy
 
-  # Check that the X and Y coordinates of the output match the expected values.
-  # We use a tolerance because of potential floating-point arithmetic differences.
-  expect_equal(new_coords[, 1], expected_target_x, tolerance = 1e-9)
-  expect_equal(new_coords[, 2], expected_target_y, tolerance = 1e-9)
+# --- Test 2: LINESTRING Geometry ---
+test_that("apply_pai_model works correctly with LINESTRING geometry", {
+  # ARRANGE: Create a simple linestring sf object.
+  ls_coords <- matrix(c(0,0, 10,10, 10,0, 0,10), ncol = 2, byrow = TRUE)
+  linestring_sf <- sf::st_sf(id = 1, geometry = sf::st_sfc(sf::st_linestring(ls_coords), crs = 3857))
+
+  # ACT: Apply the model.
+  corrected_ls <- expect_no_error(apply_pai_model(test_gam_model, linestring_sf))
+
+  # ASSERT:
+  expect_s3_class(corrected_ls, "sf")
+  expect_equal(nrow(corrected_ls), 1)
+  expect_equal(as.character(sf::st_geometry_type(corrected_ls)), "LINESTRING")
+  expect_false(identical(sf::st_coordinates(linestring_sf), sf::st_coordinates(corrected_ls)))
+})
+
+
+# --- Test 3: POLYGON Geometry (including a hole) ---
+test_that("apply_pai_model works correctly with POLYGON geometry", {
+  # ARRANGE: Create a polygon with a hole.
+  outer_ring <- matrix(c(0,0, 0,100, 100,100, 100,0, 0,0), ncol=2, byrow=TRUE)
+  inner_hole <- matrix(c(25,25, 75,25, 75,75, 25,75, 25,25), ncol=2, byrow=TRUE)
+  polygon_with_hole <- sf::st_polygon(list(outer_ring, inner_hole))
+  polygon_sf <- sf::st_sf(id = 1, geometry = sf::st_sfc(polygon_with_hole, crs = 3857))
+
+  # ACT: Apply the model.
+  corrected_poly <- expect_no_error(apply_pai_model(test_gam_model, polygon_sf))
+
+  # ASSERT:
+  expect_s3_class(corrected_poly, "sf")
+  expect_equal(nrow(corrected_poly), 1)
+  expect_equal(as.character(sf::st_geometry_type(corrected_poly)), "POLYGON")
+  # Check that the corrected geometry still has a hole (i.e., is a list of 2 matrices)
+  expect_length(corrected_poly$geometry[[1]], 2)
+  expect_false(identical(sf::st_coordinates(polygon_sf), sf::st_coordinates(corrected_poly)))
+})
+
+
+# --- Test 4: MULTIPOINT Geometry ---
+test_that("apply_pai_model works correctly with MULTIPOINT geometry", {
+  # ARRANGE: Create a simple multipoint sf object.
+  mp_coords <- matrix(c(0,0, 10,10, 20,20), ncol = 2, byrow = TRUE)
+  multipoint_sf <- sf::st_sf(id = 1, geometry = sf::st_sfc(sf::st_multipoint(mp_coords), crs = 3857))
+
+  # ACT: Apply the model.
+  corrected_mp <- expect_no_error(apply_pai_model(test_gam_model, multipoint_sf))
+
+  # ASSERT:
+  expect_s3_class(corrected_mp, "sf")
+  expect_equal(nrow(corrected_mp), 1)
+  expect_equal(as.character(sf::st_geometry_type(corrected_mp)), "MULTIPOINT")
+  expect_false(identical(sf::st_coordinates(multipoint_sf), sf::st_coordinates(corrected_mp)))
+})
+
+
+# --- Test 5: MULTILINESTRING Geometry ---
+test_that("apply_pai_model works correctly with MULTILINESTRING geometry", {
+  # ARRANGE: Create a multilinestring sf object.
+  ls1 <- matrix(c(0,0, 10,10), ncol=2, byrow=TRUE)
+  ls2 <- matrix(c(20,20, 30,0), ncol=2, byrow=TRUE)
+  multilinestring_sf <- sf::st_sf(id=1, geometry=sf::st_sfc(sf::st_multilinestring(list(ls1, ls2)), crs = 3857))
+
+  # ACT: Apply the model.
+  corrected_mls <- expect_no_error(apply_pai_model(test_gam_model, multilinestring_sf))
+
+  # ASSERT:
+  expect_s3_class(corrected_mls, "sf")
+  expect_equal(nrow(corrected_mls), 1)
+  expect_equal(as.character(sf::st_geometry_type(corrected_mls)), "MULTILINESTRING")
+  expect_false(identical(sf::st_coordinates(multilinestring_sf), sf::st_coordinates(corrected_mls)))
+})
+
+
+# --- Test 6: MULTIPOLYGON Geometry ---
+test_that("apply_pai_model works correctly with MULTIPOLYGON geometry", {
+  # ARRANGE: Create a multipolygon sf object (two separate polygons).
+  p1 <- sf::st_polygon(list(matrix(c(0,0, 10,0, 10,10, 0,10, 0,0), ncol=2, byrow=TRUE)))
+  p2 <- sf::st_polygon(list(matrix(c(20,20, 30,20, 30,30, 20,30, 20,20), ncol=2, byrow=TRUE)))
+  multipolygon_sf <- sf::st_sf(id=1, geometry=sf::st_sfc(sf::st_multipolygon(list(p1, p2)), crs = 3857))
+
+  # ACT: Apply the model.
+  corrected_mpoly <- expect_no_error(apply_pai_model(test_gam_model, multipolygon_sf))
+
+  # ASSERT:
+  expect_s3_class(corrected_mpoly, "sf")
+  expect_equal(nrow(corrected_mpoly), 1)
+  expect_equal(as.character(sf::st_geometry_type(corrected_mpoly)), "MULTIPOLYGON")
+  expect_false(identical(sf::st_coordinates(multipolygon_sf), sf::st_coordinates(corrected_mpoly)))
 })

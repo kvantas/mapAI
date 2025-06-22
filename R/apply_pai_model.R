@@ -4,129 +4,94 @@
 #'
 #' @details
 #' This function is the final step in the PAI workflow, applying the learned
-#' spatial correction to a target map. It is designed to be robust and transparent:
-#' \itemize{
-#'   \item \strong{Robust Geometry Handling:} It uses a recursive method to traverse
-#'     arbitrarily complex geometries (e.g., `MULTIPOLYGON` with holes), ensuring
-#'     every vertex is corrected and the feature is rebuilt accurately.
-#'   \item \strong{Model-Specific Prediction:} It correctly handles the different
-#'     output structures of the supported model types (`gam`, `lm`, and `rf`).
-#'   \item \strong{Area Calculation:} If the input `map` contains `POLYGON` or
-#'     `MULTIPOLYGON` geometries, the function automatically calculates the area of
-#'     the newly corrected features and adds it to a column named `area_new`,
-#'     allowing for analysis of shape and size changes.
-#' }
+#' spatial correction to a target map. It uses a robust feature-by-feature
+#' iteration that correctly handles all standard simple and multi-part geometry
+#' types (`POINT`, `LINESTRING`, `POLYGON`, etc.).
 #'
 #' @param pai_model An object of class `pai_model` returned by `train_pai_model()`.
-#' @param map An `sf` object representing the vector map to be corrected,
-#'   typically read by `read_map()`.
+#' @param map An `sf` object representing the vector map to be corrected.
 #'
-#' @return A new `sf` object with the corrected geometry. Original attributes are
-#'   preserved, and an `area_new` column is added for polygon features.
+#' @return A new `sf` object with the corrected geometry.
 #'
 #' @import sf
 #' @import dplyr
-#' @importFrom units set_units
-#' @importFrom rlang .data
+#' @importFrom stats predict
 #' @export
 #' @examples
-#' \dontrun{
-#' # This example demonstrates a full workflow:
-#' # 1. Load the package's built-in real-world data
-#' # 2. Train a Random Forest model
-#' # 3. Apply the model to correct the parcel map
-#' # 4. Inspect and visualize the results
+#' # This example demonstrates a full workflow with POINT geometry.
 #'
-#' # --- 1. Load Data ---
-#' library(sf)
-#' data(parcels) # Load the polygon map to be corrected
-#' data(gcps)    # Load the corresponding ground control points
+#' # --- 1. Load Data and Train Model ---
+#' data(gcps) # gcps is an sf object with POINT geometry
+#' gam_model <- train_pai_model(gcps, method = "gam")
 #'
-#' # --- 2. Train a PAI Model ---
-#' # We'll use Random Forest for this example
-#' pai_model_rf <- train_pai_model(gcps, method = "rf")
+#' # --- 2. Apply the Model to Correct the Points ---
+#' corrected_points <- apply_pai_model(gam_model, gcps)
 #'
-#' # --- 3. Apply the Model to Correct the Map ---
-#' corrected_parcels <- apply_pai_model(pai_model = pai_model_rf, map = parcels)
+#' # --- 3. Inspect and Visualize ---
+#' # The coordinates of the corrected points should be different.
+#' head(sf::st_coordinates(gcps))
+#' head(sf::st_coordinates(corrected_points))
 #'
-#' # --- 4. Inspect and Visualize ---
+#' # Visually confirm the points have moved
+#' plot(sf::st_geometry(gcps), col = 'grey', pch = 4, cex=0.5,
+#'      main = "Original (Grey) vs. Corrected (Red) Points")
+#' plot(sf::st_geometry(corrected_points), col = 'red', pch = 16, cex=0.5, add = TRUE)
 #'
-#' # Print the head of the corrected data frame.
-#' # Note the 'area_old' and 'area_new' columns, showing how the area changed.
-#' print(head(corrected_parcels))
-#'
-#' # Visualize the original vs. corrected map
-#' # Plot the original parcels with a dashed grey line
-#' plot(st_geometry(parcels), border = 'grey50', lty = 'dashed',
-#'      main = "Original (Grey) vs. Corrected (Red) Parcels")
-#'
-#' # Add the corrected parcels with a solid red line on top
-#' plot(st_geometry(corrected_parcels), border = 'red', add = TRUE)
-#' }
 apply_pai_model <- function(pai_model, map) {
   # --- 1. Input Validation ---
-  if (!inherits(pai_model, "pai_model")) {
-    stop("`pai_model` must be an object of class 'pai_model', created by `train_pai_model()`.", call. = FALSE)
-  }
-  if (!inherits(map, "sf")) {
-    stop("`map` must be a valid `sf` object.", call. = FALSE)
-  }
+  if (!inherits(pai_model, "pai_model")) stop("`pai_model` must be an object of class 'pai_model'.", call. = FALSE)
+  if (!inherits(map, "sf")) stop("`map` must be a valid `sf` object.", call. = FALSE)
 
-  message("Applying PAI model: correcting map features...")
+  message("Applying PAI model to map features...")
 
-  # --- 2. Setup Helper and Recursive Functions ---
-  transform_coords <- function(coord_matrix) {
-    if (is.null(coord_matrix) || nrow(coord_matrix) == 0) return(coord_matrix)
-
-    # THE DEFINITIVE FIX: Construct the data frame with named columns directly.
-    # This is robust and avoids the as.data.frame() and names() fragility.
-    data_for_prediction <- data.frame(
-      source_x = coord_matrix[, 1],
-      source_y = coord_matrix[, 2]
-    )
-
-    predictions <- predict(pai_model, newdata = data_for_prediction)
-
-    coord_matrix[, 1] <- coord_matrix[, 1] + predictions$dx
-    coord_matrix[, 2] <- coord_matrix[, 2] + predictions$dy
-    return(coord_matrix)
-  }
-
-  recursive_transform <- function(g_part) {
-    # If the part is a simple numeric vector (i.e., a POINT), convert it to a 1-row matrix first.
-    if (is.vector(g_part) && is.numeric(g_part)) {
-      g_part <- matrix(g_part, nrow = 1)
-    }
-
-    if (is.matrix(g_part)) {
-      # Base Case: This is a coordinate matrix (from a POINT, LINESTRING, or POLYGON ring)
-      return(transform_coords(g_part))
-    } else if (is.list(g_part)) {
-      # Recursive Step: This is a list of parts (e.g., a POLYGON or MULTI* geometry)
-      return(lapply(g_part, recursive_transform))
-    }
-
-    # Fallback for any other type
-    return(g_part)
-  }
-
-  # --- 3. Iterate, Transform, and Rebuild Geometries ---
   original_geom_col <- sf::st_geometry(map)
   new_geom_list <- vector("list", length = length(original_geom_col))
 
+  # --- 2. Iterate through each feature one-by-one ---
   for (i in seq_along(original_geom_col)) {
     feature <- original_geom_col[[i]]
-    corrected_coords <- recursive_transform(feature)
+    geom_type <- as.character(sf::st_geometry_type(feature))
 
-    geom_type <- sf::st_geometry_type(feature)
+    # Use st_coordinates, which reliably extracts vertices into a standard matrix format
+    original_coords <- sf::st_coordinates(feature)
 
-    new_sfg <- switch(as.character(geom_type),
-                      "POINT"           = sf::st_point(corrected_coords),
-                      "LINESTRING"      = sf::st_linestring(corrected_coords),
-                      "POLYGON"         = sf::st_polygon(corrected_coords),
-                      "MULTIPOINT"      = sf::st_multipoint(corrected_coords),
-                      "MULTILINESTRING" = sf::st_multilinestring(corrected_coords),
-                      "MULTIPOLYGON"    = sf::st_multipolygon(corrected_coords),
+    # Handle empty geometries gracefully
+    if (nrow(original_coords) == 0) {
+      new_geom_list[[i]] <- feature
+      next
+    }
+
+    # Prepare data for prediction from the standardized matrix
+    source_coords_df <- as.data.frame(original_coords[, 1:2, drop = FALSE])
+    names(source_coords_df) <- c("source_x", "source_y")
+
+    # Get displacements and calculate new coordinates
+    displacements <- predict(pai_model, newdata = source_coords_df)
+    corrected_coords <- original_coords
+    corrected_coords[, 1] <- corrected_coords[, 1] + displacements$dx
+    corrected_coords[, 2] <- corrected_coords[, 2] + displacements$dy
+
+    # --- 3. Reconstruct the geometry based on its original type ---
+    new_sfg <- switch(geom_type,
+                      "POINT" = sf::st_point(corrected_coords[1, 1:2]),
+                      "LINESTRING" = sf::st_linestring(corrected_coords[, 1:2]),
+                      "POLYGON" = {
+                        rings <- split.data.frame(corrected_coords[, 1:2], f = corrected_coords[, "L1"])
+                        sf::st_polygon(lapply(rings, as.matrix))
+                      },
+                      "MULTIPOINT" = sf::st_multipoint(corrected_coords[, 1:2]),
+                      "MULTILINESTRING" = {
+                        lines <- split.data.frame(corrected_coords[, 1:2], f = corrected_coords[, "L1"])
+                        sf::st_multilinestring(lapply(lines, as.matrix))
+                      },
+                      "MULTIPOLYGON" = {
+                        polys <- split.data.frame(corrected_coords, f = corrected_coords[, "L2"])
+                        rebuilt_polys <- lapply(polys, function(p) {
+                          rings <- split.data.frame(p[, 1:2], f = p[, "L1"])
+                          sf::st_polygon(lapply(rings, as.matrix))
+                        })
+                        sf::st_multipolygon(rebuilt_polys)
+                      },
                       {
                         warning(paste("Unsupported geometry type:", geom_type, "at feature", i, ". Keeping original."), call. = FALSE)
                         feature

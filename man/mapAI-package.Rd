@@ -4,7 +4,7 @@
 \name{mapAI-package}
 \alias{mapAI}
 \alias{mapAI-package}
-\title{mapAI: An R package for Positional Accuracy Improvement of Historical Maps}
+\title{mapAI: An R Package for Positional Accuracy Improvement of Historical Maps}
 \description{
 An R package for Positional Accuracy Improvement of Historical Maps that uses supervised learning algorithms. It uses as input a csv file with homologous points and a vector map of the area of interest in order to correct it.
 }
