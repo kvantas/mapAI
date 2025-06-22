@@ -9,6 +9,7 @@
 coverage](https://codecov.io/gh/kvantas/mapAI/graph/badge.svg)](https://app.codecov.io/gh/kvantas/mapAI)
 [![Lifecycle:
 stable](https://img.shields.io/badge/lifecycle-stable-brightgreen.svg)](https://lifecycle.r-lib.org/articles/stages.html#stable)
+[![R-CMD-check](https://github.com/kvantas/mapAI/actions/workflows/R-CMD-check.yaml/badge.svg)](https://github.com/kvantas/mapAI/actions/workflows/R-CMD-check.yaml)
 <!-- badges: end -->
 
 The `mapAI` package provides a cohesive, end-to-end toolkit in R for the
@@ -71,8 +72,8 @@ library(ggplot2)
 # Generate a shapefile and a GCPs CSV with complex distortions
 # The function returns a list containing the paths to these new files.
 demo_files <- create_demo_data(type = "complex", seed = 42)
-#>    -> Homologous points saved to: /var/folders/yh/kq6cp_457lg059f3l02r57s80000gn/T//Rtmp37in4N/demo_gcps.csv
-#>    -> Distorted map saved to: /var/folders/yh/kq6cp_457lg059f3l02r57s80000gn/T//Rtmp37in4N/demo_map.shp
+#>    -> Homologous points saved to: /var/folders/yh/kq6cp_457lg059f3l02r57s80000gn/T//Rtmp6zelFI/demo_gcps.csv
+#>    -> Distorted map saved to: /var/folders/yh/kq6cp_457lg059f3l02r57s80000gn/T//Rtmp6zelFI/demo_map.shp
 ```
 
 ### 2. Read the Data into R
