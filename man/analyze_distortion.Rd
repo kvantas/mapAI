@@ -33,7 +33,7 @@ model at specified locations, based on Tissot's indicatrix theory.
 This function is the core analytical engine of the \code{mapAI} package. It
 implements a differential analysis by calculating the first partial derivatives
 of the spatial transformation learned by a \code{pai_model}. This is achieved using
-a robust \strong{numerical differentiation} (finite difference) method that is
+a  \strong{numerical differentiation} (finite difference) method that is
 universally applicable to all models in the package (\code{lm}, \code{rf}, \code{gam}, \code{helmert}).
 
 From these derivatives, it calculates key distortion metrics that describe how
@@ -48,7 +48,7 @@ differentiable surface. The distortion metrics will be \strong{spatially variabl
 and provide a rich, meaningful understanding of how distortion changes across the map.
 \item \strong{\code{helmert} & \code{lm}}: Represent global transformations. The distortion
 metrics will be \strong{constant for every point}.
-\item \strong{\code{rf}}: Creates a step-like surface. The local derivatives are
+\item \strong{\code{rf}}: Creates a step-like surface. The local derivatives may be
 effectively zero, resulting in metrics indicating no local distortion (e.g.,
 \code{area_scale} = 1, \code{max_shear} = 0). This analysis is therefore
 \strong{not informative} for \code{rf} models.
@@ -56,6 +56,8 @@ effectively zero, resulting in metrics indicating no local distortion (e.g.,
 }
 \examples{
 # This example showcases the full analytical workflow.
+
+library(magrittr)
 
 # --- 1. Load data and train a GAM model ---
 data(gcps)

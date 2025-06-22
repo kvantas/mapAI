@@ -84,12 +84,12 @@ corrected_grid <- apply_pai_model(gam_model, source_grid)
 
 ## Step 5: Visualize the Corrected Grid
 
-This is the most intuitive part of the analysis. We overlay the corrected grid on the original grid. A successful correction will transform the warped, distorted grid back into a regular, straight-lined grid.
+This is the most intuitive part of the analysis. We overlay the corrected grid on the original grid. The correction will transform the regular, straight-lined grid to a warped one, in order to correct it. 
 
 ```{r plot-correction, fig.dim = c(6, 6)}
 # For easy plotting, add a 'status' column to each grid
-source_grid$status <- "Original (Warped by model)"
-corrected_grid$status <- "Corrected (Regular)"
+source_grid$status <- "Original (Regular)"
+corrected_grid$status <- "Corrected (Warped by model)"
 
 # Combine them into a single sf object for ggplot2
 comparison_data <- rbind(
@@ -101,19 +101,20 @@ ggplot(comparison_data) +
   geom_sf(aes(color = status, linetype = status), linewidth = 0.6) +
   scale_color_manual(
     name = "Grid Status",
-    values = c("Original (Warped by model)" = "grey50", "Corrected (Regular)" = "#e41a1c")
+    values = c("Original (Regular)" = "grey50", 
+               "Corrected (Warped by model)" = "#e41a1c")
   ) +
   scale_linetype_manual(
     name = "Grid Status",
-    values = c("Original (Warped by model)" = "dashed", "Corrected (Regular)" = "solid")
+    values = c("Original (Regular)" = "dashed", 
+               "Corrected (Warped by model)" = "solid")
   ) +
   labs(
     title = "Visualizing the Non-Linear Correction",
-    subtitle = "The GAM model transforms the warped grid back to a regular shape"
+    subtitle = "The GAM model transforms the regular shape to warped grid"
   ) +
   theme_minimal()
 ```
-The plot clearly shows the power of the `gam` model. The dashed grey lines show how a regular grid is warped by the distortion, and the solid red lines show the final, corrected grid.
 
 ## Step 6: In-Depth Distortion Analysis
 

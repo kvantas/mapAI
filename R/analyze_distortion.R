@@ -6,7 +6,7 @@
 #' This function is the core analytical engine of the `mapAI` package. It
 #' implements a differential analysis by calculating the first partial derivatives
 #' of the spatial transformation learned by a `pai_model`. This is achieved using
-#' a robust **numerical differentiation** (finite difference) method that is
+#' a  **numerical differentiation** (finite difference) method that is
 #' universally applicable to all models in the package (`lm`, `rf`, `gam`, `helmert`).
 #'
 #' From these derivatives, it calculates key distortion metrics that describe how
@@ -21,7 +21,7 @@
 #'     and provide a rich, meaningful understanding of how distortion changes across the map.
 #'   \item \strong{`helmert` & `lm`}: Represent global transformations. The distortion
 #'     metrics will be **constant for every point**.
-#'   \item \strong{`rf`}: Creates a step-like surface. The local derivatives are
+#'   \item \strong{`rf`}: Creates a step-like surface. The local derivatives may be
 #'     effectively zero, resulting in metrics indicating no local distortion (e.g.,
 #'     `area_scale` = 1, `max_shear` = 0). This analysis is therefore
 #'     **not informative** for `rf` models.
@@ -49,6 +49,8 @@
 #' @export
 #' @examples
 #' # This example showcases the full analytical workflow.
+#'
+#' library(magrittr)
 #'
 #' # --- 1. Load data and train a GAM model ---
 #' data(gcps)

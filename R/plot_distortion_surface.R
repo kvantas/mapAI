@@ -58,11 +58,11 @@
 #' @examples
 #' # --- 1. Train a GAM model for the best visual results ---
 #' library(magrittr)
-#' data(gcps)
-#' gam_model <- train_pai_model(gcps, method = "gam")
+#' data(swiss_cps)
+#' gam_model <- train_pai_model(swiss_cps, method = "gam")
 #'
 #' # --- 2. Create a regular grid of POINTS for analysis ---
-#' analysis_points <- sf::st_make_grid(gcps, n = c(25, 25)) %>%
+#' analysis_points <- sf::st_make_grid(swiss_cps, n = c(25, 25)) %>%
 #'   sf::st_centroid() %>%
 #'   sf::st_sf()
 #'
@@ -72,7 +72,6 @@
 #' plot_distortion_surface(
 #'   distortion_on_grid,
 #'   metric = "max_shear",
-#'   gcp_data = gcps,
 #'   palette = "magma"
 #' )
 #'
@@ -81,7 +80,6 @@
 #' plot_distortion_surface(
 #'   distortion_on_grid,
 #'   metric = "log2_area_scale",
-#'   gcp_data = gcps,
 #'   diverging = TRUE
 #' )
 #'
