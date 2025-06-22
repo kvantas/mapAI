@@ -18,7 +18,7 @@ in the target CRS (EPSG:2100).}
 }
 }
 \source{
-Part of the dataset
+Part of the dataset is used in the paper in https://doi.org/10.1111/tgis.70076
 }
 \usage{
 gcps

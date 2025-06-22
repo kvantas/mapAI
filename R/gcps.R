@@ -16,7 +16,7 @@
 #'   \item{geometry}{`sfc_POINT`. The `sf` point geometry representing the GCPs
 #'     in the target CRS (EPSG:2100).}
 #' }
-#' @source Part of the dataset
+#' @source Part of the dataset is used in the paper in https://doi.org/10.1111/tgis.70076
 #' @examples
 #' if (interactive()) {
 #'   # plot the difference in X-coordinates dx

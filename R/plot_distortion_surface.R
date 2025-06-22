@@ -118,7 +118,7 @@ plot_distortion_surface <- function(distortion_sf, metric, gcp_data = NULL,
     aesthetic_to_scale <- "fill"
   } else {
     message("Scattered points detected. Creating a point plot with geom_point().")
-    message("ℹ For a continuous surface plot, run analyze_distortion() on a regular grid of points.")
+    message("For a continuous surface plot, run analyze_distortion() on a regular grid of points.")
     p <- p + ggplot2::geom_point(data = plot_df, aes(x = .data$X, y = .data$Y, color = .data$metric_val), size = 3)
     aesthetic_to_scale <- "color"
   }

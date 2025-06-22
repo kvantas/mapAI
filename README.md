@@ -67,8 +67,8 @@ library(ggplot2)
 # Generate a shapefile and a GCPs CSV with complex distortions
 # The function returns a list containing the paths to these new files.
 demo_files <- create_demo_data(type = "complex", seed = 42)
-#>    -> Homologous points saved to: /var/folders/yh/kq6cp_457lg059f3l02r57s80000gn/T//RtmpJBkSUk/demo_gcps.csv
-#>    -> Distorted map saved to: /var/folders/yh/kq6cp_457lg059f3l02r57s80000gn/T//RtmpJBkSUk/demo_map.shp
+#>    -> Homologous points saved to: /var/folders/yh/kq6cp_457lg059f3l02r57s80000gn/T//RtmpCeimEC/demo_gcps.csv
+#>    -> Distorted map saved to: /var/folders/yh/kq6cp_457lg059f3l02r57s80000gn/T//RtmpCeimEC/demo_map.shp
 ```
 
 ### 2. Read the Data into R
@@ -80,10 +80,10 @@ paths here with the paths to your own `.shp` and `.csv` files.
 ``` r
 # Load the homologous points (GCPs)
 # It is crucial to provide the correct Coordinate Reference System (CRS).
-gcp_data <- read_gcps(gcp_path = demo_files$gcp_path, crs = 3857)
+gcp_data <- read_gcps(gcp_path = demo_files$gcp_path, crs = 2100)
 
 # Load the distorted vector map
-map_to_correct <- read_map(shp_path = demo_files$shp_path, crs = 3857)
+map_to_correct <- read_map(shp_path = demo_files$shp_path, crs = 2100)
 ```
 
 ### 3. Train a Correction Model
@@ -106,7 +106,7 @@ returns a new `sf` object with the corrected geometries.
 ``` r
 # Apply the model to the distorted map
 corrected_map <- apply_pai_model(gam_model, map_to_correct)
-#> Applying PAI model: correcting map features...
+#> Applying PAI model to map features...
 #> Correction complete.
 ```
 

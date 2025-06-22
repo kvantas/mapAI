@@ -66,10 +66,10 @@ Next, we use the package's reading functions to load the files we just created. 
 ```{r load-data}
 # Load the homologous points (GCPs)
 # It is crucial to provide the correct Coordinate Reference System (CRS).
-gcp_data <- read_gcps(gcp_path = demo_files$gcp_path, crs = 3857)
+gcp_data <- read_gcps(gcp_path = demo_files$gcp_path, crs = 2100)
 
 # Load the distorted vector map
-map_to_correct <- read_map(shp_path = demo_files$shp_path, crs = 3857)
+map_to_correct <- read_map(shp_path = demo_files$shp_path, crs = 2100)
 ```
 
 ### 3. Train a Correction Model
