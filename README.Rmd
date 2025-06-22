@@ -17,6 +17,7 @@ knitr::opts_chunk$set(
 
 <!-- badges: start -->
 [![Codecov test coverage](https://codecov.io/gh/kvantas/mapAI/graph/badge.svg)](https://app.codecov.io/gh/kvantas/mapAI)
+[![Lifecycle: stable](https://img.shields.io/badge/lifecycle-stable-brightgreen.svg)](https://lifecycle.r-lib.org/articles/stages.html#stable)
 <!-- badges: end -->
 
 The `mapAI` package provides a cohesive, end-to-end toolkit in R for the **Positional Accuracy Improvement (PAI)** of historical vector maps. It uses modern machine learning and statistical models to learn the complex geometric distortions inherent in historical cartographic documents and applies a correction to improve their alignment with modern coordinate systems.
