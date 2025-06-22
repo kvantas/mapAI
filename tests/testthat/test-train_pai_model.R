@@ -93,7 +93,7 @@ test_that("train_pai_model passes additional arguments to rf via ...", {
 # Test 8: Passing additional arguments via ... for gam
 test_that("train_pai_model passes additional arguments to gam via ...", {
 
-  # let's test a top-level argument that gam accepts, e.g., 'optimizer'
+  # let's test a top-level argument that gam accepts, e.g., gamma
   model_gam_gamma <- train_pai_model(gcp_data, method = "gam", gamma = 3)
 
   expect_s3_class(model_gam_gamma, "pai_model")
@@ -102,4 +102,9 @@ test_that("train_pai_model passes additional arguments to gam via ...", {
 
   # Check if the gamma argument was passed
   expect_true("gamma" %in% names(model_gam_gamma$model$call))
+})
+
+# Test 9: Passing additional arguments via ... for gam
+test_that("train_pai_model passes additional arguments to gam via ...", {
+  expect_error(train_pai_model(gcp_data[1:60, ], method = "gam" ))
 })
