@@ -1,0 +1,155 @@
+---
+title: "Advanced Analysis with Swiss Data"
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{Advanced Analysis with Swiss Data}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+```{r, include = FALSE}
+knitr::opts_chunk$set(
+  collapse = TRUE,
+  comment = "#>",
+  fig.path = "man/figures/swiss-",
+  out.width = "100%"
+)
+```
+
+This vignette demonstrates an advanced workflow for analyzing and correcting a map with complex, non-linear distortions. While the first vignette showed a general correction, this one focuses on a more challenging real-world scenario.
+
+We will use the `swiss_cps` dataset, which is included with the `mapAI` package. The key feature of this dataset is that the gross, linear distortions have already been removed with a Helmert transformation. The remaining errors are subtle, non-linear, and spatially variable—a perfect test case for the more advanced models in `mapAI`.
+
+Our goal is to model these non-linear residuals and visualize the effect of the correction on a reference line grid.
+
+```{r setup}
+# Load the necessary libraries for our workflow
+library(mapAI)
+library(sf)
+library(ggplot2)
+library(magrittr) # For the %>% pipe operator
+```
+
+## Step 1: Load and Explore the Data
+
+We begin by loading the `swiss_cps` dataset. This `sf` object contains 343 control points where the `source` coordinates have been pre-aligned, so we can focus on the residual `dx` and `dy` errors.
+
+```{r load-data, fig.dim = c(6, 6)}
+# Load the built-in Swiss control points dataset
+data(swiss_cps)
+
+# Inspect the data structure
+# Note that dx and dy are relatively small, representing the non-linear errors.
+dplyr::glimpse(swiss_cps)
+
+# Let's visualize the residual displacement vectors
+plot_displacement(swiss_cps, title = "Residual Non-Linear Distortions")
+```
+The plot shows that even after a global alignment, there are clear spatial patterns in the remaining errors, which a simple linear model could not fix.
+
+## Step 2: Create a Reference Grid to Deform
+
+To best visualize the distortion, we will create a regular grid of lines that covers the extent of our control points. This will serve as our "source map." We will then apply our correction model to this grid to see how it is "un-warped."
+
+```{r create-grid, fig.dim = c(6, 6)}
+# Create a grid of polygons covering the data extent
+grid_polygons <- sf::st_make_grid(swiss_cps, n = c(15, 15))
+
+# Convert the polygon boundaries to a MULTILINESTRING object
+# This gives us a clean line grid for visualization.
+source_grid <- sf::st_cast(grid_polygons, "MULTILINESTRING") %>%
+  sf::st_sf() # Convert to a full sf object
+
+# Plot the original, regular grid
+plot(sf::st_geometry(source_grid), main = "Original, Regular Reference Grid")
+```
+
+## Step 3: Train a Non-Linear Model
+
+Because the linear components of the distortion have already been removed from the `swiss_cps` data, using a `helmert` or `lm` model would be ineffective. This is the perfect scenario to use a **Generalized Additive Model (`gam`)**, which is designed to capture exactly these kinds of smooth, non-linear spatial patterns.
+
+```{r train-model}
+# Train the GAM model to learn the residual distortion patterns
+gam_model <- train_pai_model(swiss_cps, method = "gam")
+```
+
+## Step 4: Apply the Correction to the Grid
+
+Now, we use our trained `gam_model` to correct the regular line grid we created. The `apply_pai_model` function will transform every vertex in the grid according to the learned distortion.
+
+```{r apply-model}
+# Apply the model to our source grid
+corrected_grid <- apply_pai_model(gam_model, source_grid)
+```
+
+## Step 5: Visualize the Corrected Grid
+
+This is the most intuitive part of the analysis. We overlay the corrected grid on the original grid. A successful correction will transform the warped, distorted grid back into a regular, straight-lined grid.
+
+```{r plot-correction, fig.dim = c(6, 6)}
+# For easy plotting, add a 'status' column to each grid
+source_grid$status <- "Original (Warped by model)"
+corrected_grid$status <- "Corrected (Regular)"
+
+# Combine them into a single sf object for ggplot2
+comparison_data <- rbind(
+  source_grid[, "status"],
+  corrected_grid[, "status"]
+)
+
+ggplot(comparison_data) +
+  geom_sf(aes(color = status, linetype = status), linewidth = 0.6) +
+  scale_color_manual(
+    name = "Grid Status",
+    values = c("Original (Warped by model)" = "grey50", "Corrected (Regular)" = "#e41a1c")
+  ) +
+  scale_linetype_manual(
+    name = "Grid Status",
+    values = c("Original (Warped by model)" = "dashed", "Corrected (Regular)" = "solid")
+  ) +
+  labs(
+    title = "Visualizing the Non-Linear Correction",
+    subtitle = "The GAM model transforms the warped grid back to a regular shape"
+  ) +
+  theme_minimal()
+```
+The plot clearly shows the power of the `gam` model. The dashed grey lines show how a regular grid is warped by the distortion, and the solid red lines show the final, corrected grid.
+
+## Step 6: In-Depth Distortion Analysis
+
+Finally, let's use the advanced analysis functions to quantify the distortion that the model learned. We will analyze the distortion on a dense grid of points and visualize the results.
+
+```{r analysis, fig.dim = c(6, 12)}
+# 1. Create a dense grid of POINTS for analysis
+analysis_points <- sf::st_make_grid(swiss_cps, n = c(25, 25)) %>%
+  sf::st_centroid() %>%
+  sf::st_sf()
+
+# 2. Analyze the distortion using our trained GAM model
+distortion_results <- analyze_distortion(gam_model, analysis_points)
+
+# 3. Visualize the results for two key metrics
+plot_shear <- plot_distortion_surface(
+  distortion_results,
+  metric = "max_shear",
+  diverging = FALSE,
+  palette = "magma"
+) +
+  labs(title = "Maximum Angular Distortion (°)")
+
+plot_area <- plot_distortion_surface(
+  distortion_results,
+  metric = "log2_area_scale",
+  diverging = TRUE
+) +
+  labs(title = "Log-Areal Distortion (log2)")
+
+# Combine plots using the patchwork library
+if (requireNamespace("patchwork", quietly = TRUE)) {
+  plot_shear / plot_area
+} else {
+  plot_shear
+}
+```
+
+This final analysis provides a quantitative map of the distortion, revealing complex patterns of shearing and scaling across the map extent that the `gam` model successfully identified and corrected.
