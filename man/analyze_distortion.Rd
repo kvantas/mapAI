@@ -11,33 +11,74 @@ analyze_distortion(pai_model, points_to_analyze, reference_scale = 1)
 
 \item{points_to_analyze}{An \code{sf} object of \strong{points} where the analysis should be performed.}
 
-\item{reference_scale}{A single numeric value used to normalize the area scale calculation. Defaults to \code{1}.}
+\item{reference_scale}{A single numeric value used to normalize the area scale
+calculation. Defaults to \code{1} (no normalization).}
 }
 \value{
 An \code{sf} object containing the original points and new columns with all
-calculated distortion metrics.
+calculated distortion metrics:
+\item{a, b}{The semi-major and semi-minor axes of the Tissot indicatrix.}
+\item{area_scale}{The areal distortion factor (\code{a * b}).}
+\item{log2_area_scale}{The base-2 logarithm of \code{area_scale}, a symmetric metric centered at 0.}
+\item{max_shear}{The maximum angular distortion in degrees.}
+\item{max_angular_distortion}{The maximum angular distortion in radians (the \verb{2Ω} metric).}
+\item{airy_kavrayskiy}{The Airy-Kavrayskiy measure, a balanced metric combining areal and angular distortion.}
+\item{theta_a}{The orientation of the axis of maximum scale (in degrees).}
 }
 \description{
-Computes detailed distortion metrics for a PAI model at specified locations.
+Computes a comprehensive set of detailed distortion metrics for a PAI
+model at specified locations, based on Tissot's indicatrix theory.
 }
 \details{
-This function implements a differential analysis based on Tissot's
-indicatrix theory... (rest of details section is unchanged)
+This function is the core analytical engine of the \code{mapAI} package. It
+implements a differential analysis by calculating the first partial derivatives
+of the spatial transformation learned by a \code{pai_model}. This is achieved using
+a robust \strong{numerical differentiation} (finite difference) method that is
+universally applicable to all models in the package (\code{lm}, \code{rf}, \code{gam}, \code{helmert}).
+
+From these derivatives, it calculates key distortion metrics that describe how
+shape, area, and angles are warped at every point.
+
+\strong{Interpreting Results by Model Type:}
+
+The nature of the output is \strong{highly dependent} on the model used:
+\itemize{
+\item \strong{\code{gam} (Recommended for this analysis)}: Produces a smooth,
+differentiable surface. The distortion metrics will be \strong{spatially variable}
+and provide a rich, meaningful understanding of how distortion changes across the map.
+\item \strong{\code{helmert} & \code{lm}}: Represent global transformations. The distortion
+metrics will be \strong{constant for every point}.
+\item \strong{\code{rf}}: Creates a step-like surface. The local derivatives are
+effectively zero, resulting in metrics indicating no local distortion (e.g.,
+\code{area_scale} = 1, \code{max_shear} = 0). This analysis is therefore
+\strong{not informative} for \code{rf} models.
+}
 }
 \examples{
-# --- 1. Train a GAM model for a rich, spatially varying analysis ---
-library(magrittr)
+# This example showcases the full analytical workflow.
+
+# --- 1. Load data and train a GAM model ---
 data(gcps)
 gam_model <- train_pai_model(gcps, method = "gam")
 
-# --- 2. Analyze distortion on a regular grid of points ---
+# --- 2. Create a regular grid of POINTS for analysis ---
 analysis_points <- sf::st_make_grid(gcps, n = c(20, 20)) \%>\%
-sf::st_centroid() \%>\%
+  sf::st_centroid() \%>\%
   sf::st_sf()
 
+# --- 3. Run the distortion analysis ---
 distortion_results <- analyze_distortion(gam_model, analysis_points)
 
-# --- 3. View the new metric columns in the output ---
-head(distortion_results)
+# --- 4. Inspect the rich output ---
+# Note the new columns like 'airy_kavrayskiy'.
+dplyr::glimpse(distortion_results)
+
+# --- 5. Visualize the Airy-Kavrayskiy measure ---
+# This plot shows areas of combined areal and angular distortion.
+plot_distortion_surface(
+  distortion_results,
+  metric = "airy_kavrayskiy",
+  gcp_data = gcps
+)
 
 }

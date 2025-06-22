@@ -17,7 +17,7 @@ plot_distortion_surface(
 
 \item{metric}{A character string specifying the name of the metric column to plot.
 Must be one of "a", "b", "area_scale", "log2_area_scale", "max_shear",
-"max_angular_distortion", or "theta_a".}
+"max_angular_distortion", "airy_kavrayskiy", or "theta_a".}
 
 \item{gcp_data}{An optional \code{sf} object of the original GCPs to overlay on the
 plot for context.}
@@ -36,8 +36,9 @@ Creates a visualization of a continuous distortion metric from the
 output of \code{analyze_distortion()}.
 }
 \details{
-This function intelligently creates the best visualization for your data. The
-type of plot generated depends on the geometry of the \code{distortion_sf} input:
+This function visualizes the distortion field as it exists on the \strong{source map's
+coordinate space}. This allows for a direct visual correlation between features on
+the original map and the calculated distortion metrics.
 \itemize{
 \item \strong{For points on a regular grid} (recommended): It creates a rasterized
 surface plot using \code{geom_raster()}, which is ideal for visualizing continuous

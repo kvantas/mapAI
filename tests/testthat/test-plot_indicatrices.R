@@ -14,7 +14,6 @@ test_that("plot_indicatrices returns a valid ggplot object", {
   # 1. ACTION: Call the function with valid inputs.
   p <- plot_indicatrices(
     distortion_sf = distortion_at_gcps,
-    pai_model = test_gam_model,
     scale_factor = 1 # scale_factor can be small for non-visual tests
   )
 
@@ -26,7 +25,6 @@ test_that("plot_indicatrices generates the correct geometry properties", {
   # 1. ACTION: Call the function and capture the plot object.
   p <- plot_indicatrices(
     distortion_sf = distortion_at_gcps,
-    pai_model = test_gam_model,
     scale_factor = 1
   )
 
@@ -49,14 +47,8 @@ test_that("plot_indicatrices generates the correct geometry properties", {
 test_that("plot_indicatrices throws errors for invalid inputs", {
   # Error when distortion_sf is not an sf object.
   expect_error(
-    plot_indicatrices(as.data.frame(distortion_at_gcps), test_gam_model),
+    plot_indicatrices(as.data.frame(distortion_at_gcps)),
     "`distortion_sf` must be an sf object."
-  )
-
-  # Error when pai_model is not a pai_model object.
-  expect_error(
-    plot_indicatrices(distortion_at_gcps, list()),
-    "`pai_model` must be an object of class 'pai_model'."
   )
 
   # Error when required columns are missing from distortion_sf.
@@ -74,7 +66,6 @@ test_that("plot_indicatrices arguments for color and scale work correctly", {
   # 2. ACTION: Create a plot with custom arguments.
   p_custom <- plot_indicatrices(
     distortion_sf = distortion_at_gcps,
-    pai_model = test_gam_model,
     scale_factor = 1,
     fill_color = custom_fill,
     border_color = custom_border
@@ -89,7 +80,6 @@ test_that("plot_indicatrices arguments for color and scale work correctly", {
   # Test that scale_factor changes the output geometry.
   p_scaled <- plot_indicatrices(
     distortion_sf = distortion_at_gcps,
-    pai_model = test_gam_model,
     scale_factor = 100 # A much larger scale factor
   )
 

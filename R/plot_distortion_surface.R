@@ -3,8 +3,9 @@
 #'   output of `analyze_distortion()`.
 #'
 #' @details
-#' This function intelligently creates the best visualization for your data. The
-#' type of plot generated depends on the geometry of the `distortion_sf` input:
+#' This function visualizes the distortion field as it exists on the **source map's
+#' coordinate space**. This allows for a direct visual correlation between features on
+#' the original map and the calculated distortion metrics.
 #' \itemize{
 #'   \item \strong{For points on a regular grid} (recommended): It creates a rasterized
 #'     surface plot using `geom_raster()`, which is ideal for visualizing continuous
@@ -38,7 +39,7 @@
 #' @param distortion_sf An `sf` object of **points** returned by `analyze_distortion()`.
 #' @param metric A character string specifying the name of the metric column to plot.
 #'   Must be one of "a", "b", "area_scale", "log2_area_scale", "max_shear",
-#'   "max_angular_distortion", or "theta_a".
+#'   "max_angular_distortion", "airy_kavrayskiy", or "theta_a".
 #' @param gcp_data An optional `sf` object of the original GCPs to overlay on the
 #'   plot for context.
 #' @param palette A character string specifying the name of a viridis color palette
@@ -88,7 +89,7 @@ plot_distortion_surface <- function(distortion_sf, metric, gcp_data = NULL,
                                     palette = "viridis", diverging = FALSE) {
 
   # --- Input Validation ---
-  valid_metrics <- c("a", "b", "area_scale", "log2_area_scale", "max_shear", "max_angular_distortion", "theta_a")
+  valid_metrics <- c("a", "b", "area_scale", "log2_area_scale", "max_shear", "max_angular_distortion", "theta_a", "airy_kavrayskiy")
   if (!metric %in% valid_metrics) {
     stop(paste("`metric` must be one of:", paste(valid_metrics, collapse = ", ")), call. = FALSE)
   }
