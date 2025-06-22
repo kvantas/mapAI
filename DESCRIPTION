@@ -1,5 +1,5 @@
 Package: mapAI
-Title: An R package for Positional Accuracy Improvement of Historical Maps
+Title: An R Package for Positional Accuracy Improvement of Historical Maps
 Version: 0.0.0.9000
 Authors@R: 
     person(given = "Konstantinos",
