@@ -35,3 +35,4 @@ Depends:
     R (>= 3.5)
 LazyData: true
 VignetteBuilder: knitr
+URL: https://kvantas.github.io/mapAI/
