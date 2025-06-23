@@ -1,0 +1,8 @@
+pandoc: 3.1.11
+pkgdown: 2.1.3
+pkgdown_sha: ~
+articles:
+  demo_data: demo_data.html
+  pai_validation: pai_validation.html
+  swiss_data: swiss_data.html
+last_built: 2025-06-23T15:00Z
