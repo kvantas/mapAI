@@ -22,6 +22,16 @@
 #' @param output_dir A character string specifying the directory where the demo files
 #'   will be saved. Defaults to a temporary directory (`tempdir()`).
 #' @param seed An integer for setting the random seed for reproducibility. Defaults to 42.
+#' @param grid_limits A numeric vector of the form `c(xmin, xmax, ymin, ymax)`
+#'   defining the extent of the "true" grid. Defaults to `c(0, 100, 0, 100)`.
+#' @param helmert_params A list of parameters for the Helmert transformation:
+#'   `s` (scale), `angle_deg` (rotation in degrees), `tx` (translation in x),
+#'   and `ty` (translation in y). Defaults to `list(s = 1.005, angle_deg = 1, tx = 2, ty = -3)`.
+#' @param poly_params A list of coefficients (`cE1`, `cE2`, `cN1`, `cN2`) for the
+#'   polynomial warp. Defaults to `list(cE1 = 0.00002, cE2 = -0.0008, cN1 = 0.0002, cN2 = 0.0015)`.
+#' @param gauss_params A list of parameters for the Gaussian warp: `A` (amplitude),
+#'   `Ec`, `Nc` (center coordinates), and `sigma2` (variance). Defaults to
+#'   `list(A = 4, Ec = 50, Nc = 0, sigma2 = 20)`.
 #'
 #' @return A list containing the full paths to the generated files:
 #'   \item{shp_path}{The path to the 'demo_map.shp' shapefile.}
@@ -34,9 +44,16 @@
 #' @export
 #' @examples
 #' \dontrun{
-#' # --- 1. Generate the demonstration data ---
-#' # This creates 'demo_map.shp' and 'demo_gcps.csv' in a temporary folder
+#' # --- 1. Generate the demonstration data with default complex distortion ---
 #' demo_files <- create_demo_data(type = "complex", noise_sd = 0.5)
+#'
+#' # --- Generate data with only Helmert distortion and custom parameters ---
+#' custom_helmert_params <- list(s = 1.0, angle_deg = 5, tx = 10, ty = 15)
+#' helmert_files <- create_demo_data(
+#'   type = "helmert",
+#'   helmert_params = custom_helmert_params,
+#'   n_points = 10
+#'  )
 #'
 #' # --- 2. Use the generated files in the new workflow ---
 #' # Read the GCPs and map separately, providing the CRS
@@ -52,22 +69,34 @@
 #' # --- 5. Visualize the results ---
 #' plot_correction_surface(rf_model, gcp_data)
 #' }
-create_demo_data <- function(type = "complex", noise_sd = 0.5, n_points = 15, output_dir = tempdir(), seed = 42) {
+create_demo_data <- function(type = "complex",
+                             noise_sd = 0.5,
+                             n_points = 15,
+                             output_dir = tempdir(),
+                             seed = 42,
+                             grid_limits = c(0, 100, 0, 100),
+                             helmert_params = list(s = 1.005, angle_deg = 1, tx = 2, ty = -3),
+                             poly_params = list(cE1 = 0.00002, cE2 = -0.0008, cN1 = 0.0002, cN2 = 0.0015),
+                             gauss_params = list(A = 4, Ec = 50, Nc = 0, sigma2 = 20)) {
   set.seed(seed)
 
   # --- Internal Helper Functions ---
 
   # 1. Base grid generation
-  generate_true_grid <- function(n_pts) {
+  generate_true_grid <- function(n_pts, limits) {
     expand.grid(
-      x_true = seq(0, 100, length.out = n_pts),
-      y_true = seq(0, 100, length.out = n_pts)
+      x_true = seq(limits[1], limits[2], length.out = n_pts),
+      y_true = seq(limits[3], limits[4], length.out = n_pts)
     )
   }
 
   # 2. Distortion functions
-  apply_helmert <- function(data) {
-    s <- 1.005; angle_rad <- 1 * pi / 180; tx <- 2; ty <- -3
+  apply_helmert <- function(data, params) {
+    s <- params$s
+    angle_rad <- params$angle_deg * pi / 180
+    tx <- params$tx
+    ty <- params$ty
+
     data %>%
       dplyr::mutate(
         x_distorted = tx + s * (.data$x_true * cos(angle_rad) - .data$y_true * sin(angle_rad)),
@@ -75,8 +104,10 @@ create_demo_data <- function(type = "complex", noise_sd = 0.5, n_points = 15, ou
       )
   }
 
-  apply_poly_warp <- function(data) {
-    cE1 <- 0.00002; cE2 <- -0.0008; cN1 <- 0.0002; cN2 <- 0.0015
+  apply_poly_warp <- function(data, params) {
+    cE1 <- params$cE1; cE2 <- params$cE2
+    cN1 <- params$cN1; cN2 <- params$cN2
+
     data %>%
       dplyr::mutate(
         x_distorted = .data$x_distorted + (cE1 * .data$x_distorted^2 + cE2 * .data$x_distorted * .data$y_distorted),
@@ -84,16 +115,23 @@ create_demo_data <- function(type = "complex", noise_sd = 0.5, n_points = 15, ou
       )
   }
 
-  apply_gauss_warp <- function(data) {
-    A <- 4; Ec <- 50; Nc <- 0; sigma2 <- 20
+  apply_gauss_warp <- function(data, params) {
+    A <- params$A; Ec <- params$Ec; Nc <- params$Nc; sigma2 <- params$sigma2
+
     dx <- data$x_distorted - Ec
     dy <- data$y_distorted - Nc
     dist_sq <- dx^2 + dy^2
     dist <- sqrt(dist_sq)
     gauss_factor <- A * exp(-dist_sq / (2 * sigma2))
+
+    # Avoid division by zero at the center of the warp
     delta_x <- ifelse(dist == 0, 0, gauss_factor * (dx / dist))
     delta_y <- ifelse(dist == 0, 0, gauss_factor * (dy / dist))
-    data %>% dplyr::mutate(x_distorted = .data$x_distorted + delta_x, y_distorted = .data$y_distorted + delta_y)
+
+    data %>% dplyr::mutate(
+      x_distorted = .data$x_distorted + delta_x,
+      y_distorted = .data$y_distorted + delta_y
+    )
   }
 
   # 3. Noise function
@@ -108,22 +146,22 @@ create_demo_data <- function(type = "complex", noise_sd = 0.5, n_points = 15, ou
   # --- Main Data Generation Logic ---
 
   # Generating true grid
-  true_data <- generate_true_grid(n_pts = n_points)
+  true_data <- generate_true_grid(n_pts = n_points, limits = grid_limits)
 
   # Applying distortion of type
   distorted_data <- switch(
     type,
     "helmert" = {
-      apply_helmert(true_data)
+      apply_helmert(true_data, params = helmert_params)
     },
     "nonlinear" = {
-      helmert_dist <- apply_helmert(true_data)
-      apply_poly_warp(helmert_dist)
+      helmert_dist <- apply_helmert(true_data, params = helmert_params)
+      apply_poly_warp(helmert_dist, params = poly_params)
     },
     "complex" = {
-      helmert_dist <- apply_helmert(true_data)
-      poly_dist <- apply_poly_warp(helmert_dist)
-      apply_gauss_warp(poly_dist)
+      helmert_dist <- apply_helmert(true_data, params = helmert_params)
+      poly_dist <- apply_poly_warp(helmert_dist, params = poly_params)
+      apply_gauss_warp(poly_dist, params = gauss_params)
     },
     stop("Invalid 'type'. Choose from 'helmert', 'nonlinear', or 'complex'.")
   )
@@ -161,7 +199,8 @@ create_demo_data <- function(type = "complex", noise_sd = 0.5, n_points = 15, ou
   })
 
   # Combine into an sf object
-  grid_sfc <- sf::st_sfc(c(horiz_lines, vert_lines), crs = 3857) # Assign a common placeholder CRS
+  # Assign a common placeholder CRS; users should specify their known CRS upon reading
+  grid_sfc <- sf::st_sfc(c(horiz_lines, vert_lines), crs = 3857)
   map_sf <- sf::st_as_sf(data.frame(id = 1:length(grid_sfc)), geom = grid_sfc)
 
   shp_path <- file.path(output_dir, "demo_map.shp")

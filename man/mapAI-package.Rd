@@ -8,6 +8,13 @@
 \description{
 An R package for Positional Accuracy Improvement of Historical Maps that uses supervised learning algorithms. It uses as input a csv file with homologous points and a vector map of the area of interest in order to correct it.
 }
+\seealso{
+Useful links:
+\itemize{
+  \item \url{https://kvantas.github.io/mapAI/}
+}
+
+}
 \author{
 \strong{Maintainer}: Konstantinos Vantas \email{kon.vantas@gmail.com} (\href{https://orcid.org/0000-0001-6387-8791}{ORCID})
 

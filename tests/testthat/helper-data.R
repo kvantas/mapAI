@@ -5,6 +5,7 @@ library(testthat)
 library(sf)
 library(dplyr)
 library(utils)
+library(mockery)
 
 # Helper function to create a dummy shapefile for testing
 create_dummy_shp <- function(file_path, geometry_type = "POLYGON", has_crs = TRUE, has_area_old = FALSE) {
@@ -78,3 +79,59 @@ create_dummy_gcp_data <- function(n = 500) {
 # Generate the main demo data once for all tests
 DEMO_FILES <- create_demo_data(output_dir = TEST_TEMP_DIR)
 POLYGON_FILE <- create_test_polygon(file.path(TEST_TEMP_DIR, "test_polygon.shp"))
+
+
+# This helper function creates mock model objects. It assigns a special
+# test-only class, 'mock_pai_model', allowing us to define a custom S3 method
+# for predict() that intercepts the call during testing.
+create_mock_pai_model <- function(method) {
+
+  # This is the simple function we want to execute when predict() is called in a test.
+  predictor_func <- switch(method,
+                           "lm" = function(newdata) {
+                             data.frame(
+                               dx = (newdata$source_x * 1.2) - newdata$source_x,
+                               dy = (newdata$source_y * 0.8) - newdata$source_y
+                             )
+                           },
+                           "helmert" = function(newdata) {
+                             theta <- pi / 6
+                             scale <- 1.1
+                             x_new <- newdata$source_x * cos(theta) - newdata$source_y * sin(theta)
+                             y_new <- newdata$source_x * sin(theta) + newdata$source_y * cos(theta)
+                             data.frame(
+                               dx = (x_new * scale) - newdata$source_x,
+                               dy = (y_new * scale) - newdata$source_y
+                             )
+                           },
+                           "gam" = function(newdata) {
+                             data.frame(
+                               dx = sin(newdata$source_x / 1e5) * 10,
+                               dy = cos(newdata$source_y / 1e5) * 10
+                             )
+                           },
+                           "rf" = function(newdata) {
+                             data.frame(dx = 0, dy = 0)
+                           }
+  )
+
+  # Build the mock object, assigning our new class first. This is key for S3.
+  structure(
+    list(
+      # The 'method' element is still needed by the function being tested.
+      method = method,
+      # Store the simple prediction logic inside the object.
+      predictor = predictor_func
+    ),
+    # The class vector tells R's S3 dispatch to look for predict.mock_pai_model first.
+    class = c("mock_pai_model", "pai_model")
+  )
+}
+
+# This is the core of the solution. We define a `predict` method for our test class.
+# When `predict()` is called on a 'mock_pai_model' object during a test, this version
+# runs instead of the real `predict.pai_model`, giving us full, predictable control.
+predict.mock_pai_model <- function(object, newdata, ...) {
+  # Execute the simple prediction function we stored inside the object.
+  object$predictor(newdata)
+}

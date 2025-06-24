@@ -39,3 +39,15 @@ test_that("assess_pai_model() handles invalid inputs gracefully", {
     fixed = TRUE
   )
 })
+
+test_that("sanitize data works",{
+
+  gcd_data_na <- gcp_data
+  gcd_data_na$source_x[1] <- NA
+
+  expect_warning(
+    assessment <- assess_pai_model(gcd_data_na, method = "rf", seed = 123)
+    )
+
+})
+

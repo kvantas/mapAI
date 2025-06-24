@@ -9,7 +9,11 @@ create_demo_data(
   noise_sd = 0.5,
   n_points = 15,
   output_dir = tempdir(),
-  seed = 42
+  seed = 42,
+  grid_limits = c(0, 100, 0, 100),
+  helmert_params = list(s = 1.005, angle_deg = 1, tx = 2, ty = -3),
+  poly_params = list(cE1 = 2e-05, cE2 = -8e-04, cN1 = 2e-04, cN2 = 0.0015),
+  gauss_params = list(A = 4, Ec = 50, Nc = 0, sigma2 = 20)
 )
 }
 \arguments{
@@ -26,6 +30,20 @@ initial grid. The total number of homologous points will be \code{n_points^2}. D
 will be saved. Defaults to a temporary directory (\code{tempdir()}).}
 
 \item{seed}{An integer for setting the random seed for reproducibility. Defaults to 42.}
+
+\item{grid_limits}{A numeric vector of the form \code{c(xmin, xmax, ymin, ymax)}
+defining the extent of the "true" grid. Defaults to \code{c(0, 100, 0, 100)}.}
+
+\item{helmert_params}{A list of parameters for the Helmert transformation:
+\code{s} (scale), \code{angle_deg} (rotation in degrees), \code{tx} (translation in x),
+and \code{ty} (translation in y). Defaults to \code{list(s = 1.005, angle_deg = 1, tx = 2, ty = -3)}.}
+
+\item{poly_params}{A list of coefficients (\code{cE1}, \code{cE2}, \code{cN1}, \code{cN2}) for the
+polynomial warp. Defaults to \code{list(cE1 = 0.00002, cE2 = -0.0008, cN1 = 0.0002, cN2 = 0.0015)}.}
+
+\item{gauss_params}{A list of parameters for the Gaussian warp: \code{A} (amplitude),
+\code{Ec}, \code{Nc} (center coordinates), and \code{sigma2} (variance). Defaults to
+\code{list(A = 4, Ec = 50, Nc = 0, sigma2 = 20)}.}
 }
 \value{
 A list containing the full paths to the generated files:
@@ -51,9 +69,16 @@ of homologous points ready for use with \code{read_correction_data()}.
 }
 \examples{
 \dontrun{
-# --- 1. Generate the demonstration data ---
-# This creates 'demo_map.shp' and 'demo_gcps.csv' in a temporary folder
+# --- 1. Generate the demonstration data with default complex distortion ---
 demo_files <- create_demo_data(type = "complex", noise_sd = 0.5)
+
+# --- Generate data with only Helmert distortion and custom parameters ---
+custom_helmert_params <- list(s = 1.0, angle_deg = 5, tx = 10, ty = 15)
+helmert_files <- create_demo_data(
+  type = "helmert",
+  helmert_params = custom_helmert_params,
+  n_points = 10
+ )
 
 # --- 2. Use the generated files in the new workflow ---
 # Read the GCPs and map separately, providing the CRS

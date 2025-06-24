@@ -108,3 +108,10 @@ test_that("train_pai_model passes additional arguments to gam via ...", {
 test_that("return error with less that 60 points", {
   expect_error(train_pai_model(gcp_data[1:50, ], method = "gam" ))
 })
+
+# test 10: Return error with wrong input data
+test_that("gcp_data must be an sf object",{
+  expect_error(
+    train_pai_model(gcp_data = list(), method = "rf")
+  )
+})

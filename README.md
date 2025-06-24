@@ -11,16 +11,14 @@ stable](https://img.shields.io/badge/lifecycle-stable-brightgreen.svg)](https://
 [![R-CMD-check](https://github.com/kvantas/mapAI/actions/workflows/R-CMD-check.yaml/badge.svg)](https://github.com/kvantas/mapAI/actions/workflows/R-CMD-check.yaml)
 <!-- badges: end -->
 
-The `mapAI` package provides a cohesive, end-to-end toolkit in R for the
+The `mapAI` package provides an end-to-end toolkit in R for the
 **Positional Accuracy Improvement (PAI)** of historical vector maps. It
 uses modern machine learning and statistical models to learn the complex
 geometric distortions inherent in historical cartographic documents and
-applies a correction to improve their alignment with modern coordinate
-systems.
+applies a correction to improve their geometric accuracy
 
 The package is designed for researchers and practitioners in geomatics
-and GIS who need to integrate historical maps into contemporary spatial
-analysis workflows.
+and GIS who need to integrate historical maps into modern GIS workflows.
 
 ## Overview
 
@@ -38,6 +36,8 @@ The core workflow of `mapAI` involves:
     functions like `analyze_distortion()` and `plot_indicatrices()` to
     perform a detailed differential distortion analysis based on
     Tissot’s indicatrix theory.
+5.  **Exporting Data** Easily export the corrected distorted map as
+    (`.shp`, etc.)
 
 ## Installation
 
@@ -52,14 +52,14 @@ pak::pak("kvantas/mapAI")
 ## Example
 
 This example demonstrates the main workflow from start to finish. We
-will first generate a synthetic dataset representing a distorted map,
-and then use the package’s functions to correct it.
+will first generate a synthetic dataset representing a distorted map and
+then use the package’s functions to correct it.
 
 ### 1. Load Libraries and Create Demo Data
 
 We begin by loading the necessary libraries and using
 `create_demo_data()` to generate a test case. This function creates a
-distorted grid shapefile and a corresponding CSV file of control points
+distorted grid shape file and a corresponding CSV file of control points
 in a temporary directory.
 
 ``` r
@@ -68,11 +68,11 @@ library(sf)
 #> Linking to GEOS 3.13.0, GDAL 3.8.5, PROJ 9.5.1; sf_use_s2() is TRUE
 library(ggplot2)
 
-# Generate a shapefile and a GCPs CSV with complex distortions
+# Generate a shapefile and a GCPs CSV with complex noisy distortions
 # The function returns a list containing the paths to these new files.
 demo_files <- create_demo_data(type = "complex", seed = 42)
-#>    -> Homologous points saved to: /var/folders/yh/kq6cp_457lg059f3l02r57s80000gn/T//RtmpVVV9Ta/demo_gcps.csv
-#>    -> Distorted map saved to: /var/folders/yh/kq6cp_457lg059f3l02r57s80000gn/T//RtmpVVV9Ta/demo_map.shp
+#>    -> Homologous points saved to: /var/folders/yh/kq6cp_457lg059f3l02r57s80000gn/T//RtmpDidGoH/demo_gcps.csv
+#>    -> Distorted map saved to: /var/folders/yh/kq6cp_457lg059f3l02r57s80000gn/T//RtmpDidGoH/demo_map.shp
 ```
 
 ### 2. Read the Data into R
@@ -117,9 +117,9 @@ corrected_map <- apply_pai_model(gam_model, map_to_correct)
 ### 5. Visualize the Result
 
 The most effective way to see the result is to plot the corrected map
-overlaid on the original. The “warped” grid being transformed back into
-a regular grid provides a clear visual confirmation of the positional
-improvement.
+overlaid on the original. The “warped” noisy grid being transformed back
+into a regular grid provides a clear visual confirmation of the
+positional improvement.
 
 ``` r
 # For easy plotting, we add a 'status' column to each map
@@ -155,9 +155,9 @@ ggplot(comparison_data) +
 ## Advanced: Distortion Analysis
 
 `mapAI` is more than just a correction tool. You can also perform a
-detailed analysis of the distortion itself. For example, you can analyze
-the maximum shear (`max_shear`) across the map and visualize it as a
-surface.
+detailed analysis of the distortion that the model learns. For example,
+you can analyze the maximum shear (`max_shear`) across the map and
+visualize it as a surface.
 
 ``` r
 # 1. Create a grid of points for analysis using the pipe (%>%)
