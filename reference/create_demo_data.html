@@ -51,7 +51,11 @@ and a corresponding set of homologous points (GCPs), saving them as files.</p>
 <span>  noise_sd <span class="op">=</span> <span class="fl">0.5</span>,</span>
 <span>  n_points <span class="op">=</span> <span class="fl">15</span>,</span>
 <span>  output_dir <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/tempfile.html" class="external-link">tempdir</a></span><span class="op">(</span><span class="op">)</span>,</span>
-<span>  seed <span class="op">=</span> <span class="fl">42</span></span>
+<span>  seed <span class="op">=</span> <span class="fl">42</span>,</span>
+<span>  grid_limits <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="fl">0</span>, <span class="fl">100</span>, <span class="fl">0</span>, <span class="fl">100</span><span class="op">)</span>,</span>
+<span>  helmert_params <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span>s <span class="op">=</span> <span class="fl">1.005</span>, angle_deg <span class="op">=</span> <span class="fl">1</span>, tx <span class="op">=</span> <span class="fl">2</span>, ty <span class="op">=</span> <span class="op">-</span><span class="fl">3</span><span class="op">)</span>,</span>
+<span>  poly_params <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span>cE1 <span class="op">=</span> <span class="fl">2e-05</span>, cE2 <span class="op">=</span> <span class="op">-</span><span class="fl">8e-04</span>, cN1 <span class="op">=</span> <span class="fl">2e-04</span>, cN2 <span class="op">=</span> <span class="fl">0.0015</span><span class="op">)</span>,</span>
+<span>  gauss_params <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span>A <span class="op">=</span> <span class="fl">4</span>, Ec <span class="op">=</span> <span class="fl">50</span>, Nc <span class="op">=</span> <span class="fl">0</span>, sigma2 <span class="op">=</span> <span class="fl">20</span><span class="op">)</span></span>
 <span><span class="op">)</span></span></code></pre></div>
     </div>
 
@@ -82,6 +86,28 @@ will be saved. Defaults to a temporary directory (<code><a href="https://rdrr.io
 <dt id="arg-seed">seed<a class="anchor" aria-label="anchor" href="#arg-seed"></a></dt>
 <dd><p>An integer for setting the random seed for reproducibility. Defaults to 42.</p></dd>
 
+
+<dt id="arg-grid-limits">grid_limits<a class="anchor" aria-label="anchor" href="#arg-grid-limits"></a></dt>
+<dd><p>A numeric vector of the form <code>c(xmin, xmax, ymin, ymax)</code>
+defining the extent of the "true" grid. Defaults to <code>c(0, 100, 0, 100)</code>.</p></dd>
+
+
+<dt id="arg-helmert-params">helmert_params<a class="anchor" aria-label="anchor" href="#arg-helmert-params"></a></dt>
+<dd><p>A list of parameters for the Helmert transformation:
+<code>s</code> (scale), <code>angle_deg</code> (rotation in degrees), <code>tx</code> (translation in x),
+and <code>ty</code> (translation in y). Defaults to <code>list(s = 1.005, angle_deg = 1, tx = 2, ty = -3)</code>.</p></dd>
+
+
+<dt id="arg-poly-params">poly_params<a class="anchor" aria-label="anchor" href="#arg-poly-params"></a></dt>
+<dd><p>A list of coefficients (<code>cE1</code>, <code>cE2</code>, <code>cN1</code>, <code>cN2</code>) for the
+polynomial warp. Defaults to <code>list(cE1 = 0.00002, cE2 = -0.0008, cN1 = 0.0002, cN2 = 0.0015)</code>.</p></dd>
+
+
+<dt id="arg-gauss-params">gauss_params<a class="anchor" aria-label="anchor" href="#arg-gauss-params"></a></dt>
+<dd><p>A list of parameters for the Gaussian warp: <code>A</code> (amplitude),
+<code>Ec</code>, <code>Nc</code> (center coordinates), and <code>sigma2</code> (variance). Defaults to
+<code>list(A = 4, Ec = 50, Nc = 0, sigma2 = 20)</code>.</p></dd>
+
 </dl></div>
     <div class="section level2">
     <h2 id="value">Value<a class="anchor" aria-label="anchor" href="#value"></a></h2>
@@ -108,9 +134,16 @@ of homologous points ready for use with <code>read_correction_data()</code>.</p>
     <div class="section level2">
     <h2 id="ref-examples">Examples<a class="anchor" aria-label="anchor" href="#ref-examples"></a></h2>
     <div class="sourceCode"><pre class="sourceCode r"><code><span class="r-in"><span><span class="kw">if</span> <span class="op">(</span><span class="cn">FALSE</span><span class="op">)</span> <span class="op">{</span> <span class="co"># \dontrun{</span></span></span>
-<span class="r-in"><span><span class="co"># --- 1. Generate the demonstration data ---</span></span></span>
-<span class="r-in"><span><span class="co"># This creates 'demo_map.shp' and 'demo_gcps.csv' in a temporary folder</span></span></span>
+<span class="r-in"><span><span class="co"># --- 1. Generate the demonstration data with default complex distortion ---</span></span></span>
 <span class="r-in"><span><span class="va">demo_files</span> <span class="op">&lt;-</span> <span class="fu">create_demo_data</span><span class="op">(</span>type <span class="op">=</span> <span class="st">"complex"</span>, noise_sd <span class="op">=</span> <span class="fl">0.5</span><span class="op">)</span></span></span>
+<span class="r-in"><span></span></span>
+<span class="r-in"><span><span class="co"># --- Generate data with only Helmert distortion and custom parameters ---</span></span></span>
+<span class="r-in"><span><span class="va">custom_helmert_params</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span>s <span class="op">=</span> <span class="fl">1.0</span>, angle_deg <span class="op">=</span> <span class="fl">5</span>, tx <span class="op">=</span> <span class="fl">10</span>, ty <span class="op">=</span> <span class="fl">15</span><span class="op">)</span></span></span>
+<span class="r-in"><span><span class="va">helmert_files</span> <span class="op">&lt;-</span> <span class="fu">create_demo_data</span><span class="op">(</span></span></span>
+<span class="r-in"><span>  type <span class="op">=</span> <span class="st">"helmert"</span>,</span></span>
+<span class="r-in"><span>  helmert_params <span class="op">=</span> <span class="va">custom_helmert_params</span>,</span></span>
+<span class="r-in"><span>  n_points <span class="op">=</span> <span class="fl">10</span></span></span>
+<span class="r-in"><span> <span class="op">)</span></span></span>
 <span class="r-in"><span></span></span>
 <span class="r-in"><span><span class="co"># --- 2. Use the generated files in the new workflow ---</span></span></span>
 <span class="r-in"><span><span class="co"># Read the GCPs and map separately, providing the CRS</span></span></span>
