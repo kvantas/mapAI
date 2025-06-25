@@ -21,7 +21,7 @@ calculated distortion metrics:
 \item{area_scale}{The areal distortion factor (\code{a * b}).}
 \item{log2_area_scale}{The base-2 logarithm of \code{area_scale}, a symmetric metric centered at 0.}
 \item{max_shear}{The maximum angular distortion in degrees.}
-\item{max_angular_distortion}{The maximum angular distortion in radians (the \verb{2Ω} metric).}
+\item{max_angular_distortion}{The maximum angular distortion in radians (the \verb{2Omega} metric).}
 \item{airy_kavrayskiy}{The Airy-Kavrayskiy measure, a balanced metric combining areal and angular distortion.}
 \item{theta_a}{The orientation of the axis of maximum scale (in degrees).}
 }
