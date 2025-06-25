@@ -15,10 +15,10 @@ The `mapAI` package provides an end-to-end toolkit in R for the
 **Positional Accuracy Improvement (PAI)** of historical vector maps. It
 uses modern machine learning and statistical models to learn the complex
 geometric distortions inherent in historical cartographic documents and
-applies a correction to improve their geometric accuracy
+applies a correction to improve their geometric accuracy.
 
 The package is designed for researchers and practitioners in geomatics
-and GIS who need to integrate historical maps into modern GIS workflows.
+who need to integrate historical maps into modern GIS datasets.
 
 ## Overview
 
@@ -36,8 +36,8 @@ The core workflow of `mapAI` involves:
     functions like `analyze_distortion()` and `plot_indicatrices()` to
     perform a detailed differential distortion analysis based on
     Tissot’s indicatrix theory.
-5.  **Exporting Data** Easily export the corrected distorted map as
-    (`.shp`, etc.)
+5.  **Exporting Data** Easily export the corrected distorted map to
+    various file formats (`.shp`, etc.).
 
 ## Installation
 
@@ -52,8 +52,8 @@ pak::pak("kvantas/mapAI")
 ## Example
 
 This example demonstrates the main workflow from start to finish. We
-will first generate a synthetic dataset representing a distorted map and
-then use the package’s functions to correct it.
+will first generate a synthetic data set representing a distorted map
+and then use the package’s functions to correct it.
 
 ### 1. Load Libraries and Create Demo Data
 
@@ -71,8 +71,8 @@ library(ggplot2)
 # Generate a shapefile and a GCPs CSV with complex noisy distortions
 # The function returns a list containing the paths to these new files.
 demo_files <- create_demo_data(type = "complex", seed = 42)
-#>    -> Homologous points saved to: /var/folders/yh/kq6cp_457lg059f3l02r57s80000gn/T//RtmpDidGoH/demo_gcps.csv
-#>    -> Distorted map saved to: /var/folders/yh/kq6cp_457lg059f3l02r57s80000gn/T//RtmpDidGoH/demo_map.shp
+#>    -> Homologous points saved to: /var/folders/yh/kq6cp_457lg059f3l02r57s80000gn/T//RtmpKRiB40/demo_gcps.csv
+#>    -> Distorted map saved to: /var/folders/yh/kq6cp_457lg059f3l02r57s80000gn/T//RtmpKRiB40/demo_map.shp
 ```
 
 ### 2. Read the Data into R
@@ -104,8 +104,9 @@ gam_model <- train_pai_model(gcp_data, method = "gam")
 
 ### 4. Apply the Model to Correct the Map
 
-Now we apply this trained model to our distorted grid. The function
-returns a new `sf` object with the corrected geometries.
+Now we apply this trained model to our distorted grid that represents
+the historical map. The function returns a new `sf` object with the
+corrected geometries.
 
 ``` r
 # Apply the model to the distorted map
@@ -117,9 +118,9 @@ corrected_map <- apply_pai_model(gam_model, map_to_correct)
 ### 5. Visualize the Result
 
 The most effective way to see the result is to plot the corrected map
-overlaid on the original. The “warped” noisy grid being transformed back
-into a regular grid provides a clear visual confirmation of the
-positional improvement.
+overlaid on the original. The “warped”, noisy, grid being transformed
+back into a more regular grid provides a clear visual confirmation of
+the positional improvement.
 
 ``` r
 # For easy plotting, we add a 'status' column to each map
@@ -181,4 +182,4 @@ labs(title = "Maximum Shear Distortion (°)")
 
 <img src="man/figures/README-advanced-analysis-1.png" width="100%" />
 This shows how `mapAI` can be used for both practical correction and
-deeper analytical research into the properties of historical maps.
+deeper analysis about the distortions of a historical map.
