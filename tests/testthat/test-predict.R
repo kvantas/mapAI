@@ -11,6 +11,7 @@ new_gcp_data$source_x <- new_gcp_data$source_x + 10 # Alter coordinates
 model_rf <- train_pai_model(gcp_data, method = "rf")
 model_lm <- train_pai_model(gcp_data, method = "lm")
 model_gam <- train_pai_model(gcp_data, method = "gam")
+model_tps <- train_pai_model(gcp_data, method = "tps")
 
 
 test_that("predict.pai_model() returns a correctly structured data frame", {
@@ -25,7 +26,7 @@ test_that("predict.pai_model() correctly uses newdata for all model types", {
   # This is the most critical test. It ensures that the function is not just
   # returning the fitted values from the training data.
 
-  methods_to_test <- list(rf = model_rf, lm = model_lm, gam = model_gam)
+  methods_to_test <- list(rf = model_rf, lm = model_lm, gam = model_gam, tps = model_tps)
 
   for (method_name in names(methods_to_test)) {
     model <- methods_to_test[[method_name]]

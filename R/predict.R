@@ -11,7 +11,7 @@
 #' Key features of this method include:
 #' \itemize{
 #'   \item \strong{Automatic Model Handling:} It transparently handles the different
-#'     output structures of `helmert`, `gam`, `lm`, and `rf` models, always returning a
+#'     output structures of `helmert`,`tps`, `gam`, `lm`, and `rf` models, always returning a
 #'     consistent `data.frame`.
 #'   \item \strong{Robust NA Handling:} It correctly handles `NA` values in the
 #'     `newdata` predictors. Rows with `NA` inputs will produce `NA` outputs,
@@ -127,6 +127,12 @@ predict.pai_model <- function(object, newdata, ...) {
 
       pred_dx[complete_rows_idx] <- pred_dx_obj$predictions
       pred_dy[complete_rows_idx] <- pred_dy_obj$predictions
+    } else if (object$method == "tps") {
+      clean_coords <- as.matrix(clean_data[, c("source_x", "source_y")])
+
+      pred_dx[complete_rows_idx] <- predict(object$model$model_dx, x = clean_coords, ...)
+      pred_dy[complete_rows_idx] <- predict(object$model$model_dy, x = clean_coords, ...)
+
     }
   }
 

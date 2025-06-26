@@ -10,12 +10,12 @@ train_pai_model(gcp_data, method, seed = 123, ...)
 \item{gcp_data}{An \code{sf} object of homologous points from \code{read_gcps()}.}
 
 \item{method}{A character string specifying the algorithm. One of:
-"lm", "gam", "rf", or "helmert".}
+"lm","tps", "gam", "rf", or "helmert".}
 
-\item{seed}{An integer for setting the random seed for reproducibility (for "rf").}
+\item{seed}{An integer for setting the random seed for reproducibility.}
 
 \item{...}{Additional arguments passed to the underlying model fitting functions
-(\code{mgcv::gam}, \code{stats::lm}, \code{ranger::ranger}).}
+(\code{mgcv::gam}, \code{stats::lm}, \code{ranger::ranger}, \code{fields::Tps}).}
 }
 \value{
 A trained model object of class \code{pai_model}.

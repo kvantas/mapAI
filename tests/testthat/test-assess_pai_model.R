@@ -4,7 +4,7 @@
 gcp_data <- read_gcps(gcp_path = DEMO_FILES$gcp_path, crs = 3857)
 
 test_that("assess_pai_model() returns a correctly structured data frame", {
-  methods_to_test <- c("rf", "lm", "gam")
+  methods_to_test <- c("rf", "lm", "gam", "helmert", "tps")
   validation_types <- c("random", "spatial")
 
   for (method in methods_to_test) {

@@ -14,22 +14,37 @@
 #'
 #' @param gcp_data An `sf` object of homologous points from `read_gcps()`.
 #' @param method A character string specifying the algorithm. One of:
-#'    "lm", "gam", "rf", or "helmert".
-#' @param seed An integer for setting the random seed for reproducibility (for "rf").
+#'    "lm","tps", "gam", "rf", or "helmert".
+#' @param seed An integer for setting the random seed for reproducibility.
 #' @param ... Additional arguments passed to the underlying model fitting functions
-#'   (`mgcv::gam`, `stats::lm`, `ranger::ranger`).
+#'   (`mgcv::gam`, `stats::lm`, `ranger::ranger`, `fields::Tps`).
 #'
 #' @return A trained model object of class `pai_model`.
 #'
 #' @import mgcv
 #' @import ranger
+#' @importFrom fields Tps
 #' @import dplyr
 #' @importFrom stats lm as.formula
 #' @export
 train_pai_model <- function(gcp_data, method, seed = 123, ...) {
+
+  set.seed(seed)
+
   # Ensure the input is valid
   if (!inherits(gcp_data, "sf")) {
     stop("`gcp_data` must be an sf object created by `read_gcps()`.", call. = FALSE)
+  }
+
+  # Check if the method is valid
+  allowed_methods <- c("lm", "gam", "rf", "tps", "helmert")
+  if (!method %in% allowed_methods) {
+    stop(
+      "Invalid 'method'. Please choose one of: ",
+      paste(shQuote(allowed_methods), collapse = ", "),
+      ".",
+      call. = FALSE
+    )
   }
 
   df <- sf::st_drop_geometry(gcp_data)
@@ -56,6 +71,14 @@ Please use simpler models like 'lm' or 'helmert' for small datasets.",
       target_y = df$target_y
     )
     # The output from helmert() is already structured correctly
+  } else if (method == "tps") {
+    message("Fitting Thin Plate Spline model...")
+    source_coords <- as.matrix(df[, c("source_x", "source_y")])
+    # Train separate models for dx and dy, similar to lm and rf
+    model_fit <- list(
+      model_dx = fields::Tps(x = source_coords, Y = df$dx, ...),
+      model_dy = fields::Tps(x = source_coords, Y = df$dy, ...)
+    )
   } else {
     # --- Handle Machine Learning Models ---
     df_ml <- dplyr::select(df, "source_x", "source_y", "dx", "dy")
@@ -65,7 +88,6 @@ Please use simpler models like 'lm' or 'helmert' for small datasets.",
       formula_list <- list(dx ~ s(source_x, source_y), dy ~ s(source_x, source_y))
       model_fit <- mgcv::gam(formula_list, data = df_ml, family = mgcv::mvn(d = 2), ...)
     } else {
-      set.seed(seed)
       train_model <- function(data, outcome_var) {
         formula <- as.formula(paste(outcome_var, "~ source_x + source_y"))
         if (method == "lm") {

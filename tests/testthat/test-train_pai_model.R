@@ -104,6 +104,19 @@ test_that("train_pai_model passes additional arguments to gam via ...", {
   expect_true("gamma" %in% names(model_gam_gamma$model$call))
 })
 
+# Test 8.1: Passing additional arguments via ... for tps
+test_that("train_pai_model passes additional arguments to tps via ...", {
+
+  # let's test a top-level argument that tps accepts, e.g., method
+  model_tps <- train_pai_model(gcp_data, method = "tps", GCV = FALSE)
+
+  expect_equal(model_tps$method, "tps")
+
+  # Check if the GCV argument was passed
+  expect_true("GCV" %in% names(model_tps$model$model_dx$call))
+})
+
+
 # Test 9: Handling < 60 points with nonlinear methods
 test_that("return error with less that 60 points", {
   expect_error(train_pai_model(gcp_data[1:50, ], method = "gam" ))

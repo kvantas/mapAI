@@ -28,6 +28,7 @@ Imports:
     rlang,
     sf,
     ranger,
+    fields,
     units,
     ggplot2,
     patchwork,
