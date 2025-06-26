@@ -110,8 +110,8 @@ into R using the package’s reading functions.</p>
 <div class="sourceCode" id="cb2"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="co"># Create the shapefile and GCPs CSV in a temporary directory</span></span>
 <span><span class="va">demo_files</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/create_demo_data.html">create_demo_data</a></span><span class="op">(</span>type <span class="op">=</span> <span class="st">"complex"</span>, seed <span class="op">=</span> <span class="fl">123</span><span class="op">)</span></span>
-<span><span class="co">#&gt;    -&gt; Homologous points saved to: /tmp/Rtmp6DTJHe/demo_gcps.csv</span></span>
-<span><span class="co">#&gt;    -&gt; Distorted map saved to: /tmp/Rtmp6DTJHe/demo_map.shp</span></span>
+<span><span class="co">#&gt;    -&gt; Homologous points saved to: /tmp/RtmpZMwG60/demo_gcps.csv</span></span>
+<span><span class="co">#&gt;    -&gt; Distorted map saved to: /tmp/RtmpZMwG60/demo_map.shp</span></span>
 <span></span>
 <span><span class="co"># Load the GCPs (homologous points) from the demo file</span></span>
 <span><span class="va">gcp_data</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/read_gcps.html">read_gcps</a></span><span class="op">(</span>gcp_path <span class="op">=</span> <span class="va">demo_files</span><span class="op">$</span><span class="va">gcp_path</span>, crs <span class="op">=</span> <span class="fl">3857</span><span class="op">)</span></span>
@@ -123,15 +123,34 @@ into R using the package’s reading functions.</p>
 <h3 id="step-2-assess-initial-error-and-train-a-model">Step 2: Assess Initial Error and Train a Model<a class="anchor" aria-label="anchor" href="#step-2-assess-initial-error-and-train-a-model"></a>
 </h3>
 <p>We calculate the initial 2D Root Mean Squared Error (RMSE) to get a
-baseline for the positional error. Then, we train a <strong>Generalized
-Additive Model (<code>gam</code>)</strong>, which is well-suited for
-capturing the smooth, non-linear distortions in our synthetic data.</p>
+baseline for the positional error and then we use cross validation to
+estimate the out-of-sample error of a <strong>Generalized Additive Model
+(<code>gam</code>)</strong>. GAMs are well-suited for capturing the
+smooth, non-linear distortions in our synthetic data.</p>
 <div class="sourceCode" id="cb3"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="co"># Calculate the initial error before correction</span></span>
 <span><span class="va">identity_rmse</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/MathFun.html" class="external-link">sqrt</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/mean.html" class="external-link">mean</a></span><span class="op">(</span><span class="va">gcp_data</span><span class="op">$</span><span class="va">dx</span><span class="op">^</span><span class="fl">2</span> <span class="op">+</span> <span class="va">gcp_data</span><span class="op">$</span><span class="va">dy</span><span class="op">^</span><span class="fl">2</span><span class="op">)</span><span class="op">)</span></span>
 <span><span class="fu"><a href="https://rdrr.io/r/base/print.html" class="external-link">print</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/paste.html" class="external-link">paste</a></span><span class="op">(</span><span class="st">"Initial (Identity) 2D RMSE:"</span>, <span class="fu"><a href="https://rdrr.io/r/base/Round.html" class="external-link">round</a></span><span class="op">(</span><span class="va">identity_rmse</span>, <span class="fl">4</span><span class="op">)</span><span class="op">)</span><span class="op">)</span></span>
 <span><span class="co">#&gt; [1] "Initial (Identity) 2D RMSE: 5.3465"</span></span>
 <span></span>
+<span><span class="co"># use cross validation to assess a GAM's model accuracy</span></span>
+<span><span class="va">cv_res</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/assess_pai_model.html">assess_pai_model</a></span><span class="op">(</span><span class="va">gcp_data</span>,<span class="st">"gam"</span><span class="op">)</span></span>
+<span><span class="co">#&gt; Starting 5 -fold random cross-validation for method: gam on 225 complete points.</span></span>
+<span><span class="co">#&gt; Creating random folds...</span></span>
+<span><span class="co">#&gt;   Processing Fold 1 of 5 ...</span></span>
+<span><span class="co">#&gt; Training 'gam' model...</span></span>
+<span><span class="co">#&gt;   Processing Fold 2 of 5 ...</span></span>
+<span><span class="co">#&gt; Training 'gam' model...</span></span>
+<span><span class="co">#&gt;   Processing Fold 3 of 5 ...</span></span>
+<span><span class="co">#&gt; Training 'gam' model...</span></span>
+<span><span class="co">#&gt;   Processing Fold 4 of 5 ...</span></span>
+<span><span class="co">#&gt; Training 'gam' model...</span></span>
+<span><span class="co">#&gt;   Processing Fold 5 of 5 ...</span></span>
+<span><span class="co">#&gt; Training 'gam' model...</span></span>
+<span><span class="co">#&gt; Assessment complete.</span></span>
+<span><span class="fu"><a href="https://rdrr.io/r/base/print.html" class="external-link">print</a></span><span class="op">(</span><span class="va">cv_res</span><span class="op">)</span></span>
+<span><span class="co">#&gt;   Method ValidationType Mean_RMSE_2D SD_RMSE_2D</span></span>
+<span><span class="co">#&gt; 1    gam         random    0.7495636 0.06099847</span></span>
 <span><span class="co"># Train the GAM model using our GCP data</span></span>
 <span><span class="va">pai_model_gam</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/train_pai_model.html">train_pai_model</a></span><span class="op">(</span><span class="va">gcp_data</span>, method <span class="op">=</span> <span class="st">"gam"</span><span class="op">)</span></span>
 <span><span class="co">#&gt; Training 'gam' model...</span></span></code></pre></div>
@@ -236,22 +255,20 @@ have been deformed (shear).</p>
 <span>  <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/labs.html" class="external-link">labs</a></span><span class="op">(</span>title <span class="op">=</span> <span class="st">"Angular Distortion (2Ω)"</span><span class="op">)</span></span>
 <span><span class="co">#&gt; Regular grid detected. Creating a surface plot with geom_raster().</span></span>
 <span></span>
-<span><span class="co"># Combine plots using the patchwork library</span></span>
-<span><span class="kw">if</span> <span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/ns-load.html" class="external-link">requireNamespace</a></span><span class="op">(</span><span class="st">"patchwork"</span>, quietly <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span><span class="op">)</span> <span class="op">{</span></span>
-<span>  <span class="va">plot_area</span> <span class="op">+</span> <span class="va">plot_shear</span></span>
-<span><span class="op">}</span> <span class="kw">else</span> <span class="op">{</span></span>
+<span></span>
 <span>  <span class="va">plot_shear</span></span>
-<span>  <span class="va">plot_area</span></span>
-<span><span class="op">}</span></span>
 <span><span class="co">#&gt; Warning: Raster pixels are placed at uneven horizontal intervals and will be shifted</span></span>
-<span><span class="co">#&gt; <span style="color: #00BBBB;">ℹ</span> Consider using `geom_tile()` instead.</span></span>
-<span><span class="co">#&gt; Raster pixels are placed at uneven horizontal intervals and will be shifted</span></span>
-<span><span class="co">#&gt; <span style="color: #00BBBB;">ℹ</span> Consider using `geom_tile()` instead.</span></span>
-<span><span class="co">#&gt; Raster pixels are placed at uneven horizontal intervals and will be shifted</span></span>
 <span><span class="co">#&gt; <span style="color: #00BBBB;">ℹ</span> Consider using `geom_tile()` instead.</span></span>
 <span><span class="co">#&gt; Raster pixels are placed at uneven horizontal intervals and will be shifted</span></span>
 <span><span class="co">#&gt; <span style="color: #00BBBB;">ℹ</span> Consider using `geom_tile()` instead.</span></span></code></pre></div>
 <p><img src="reference/figures/vignette1-plot-surfaces-1.png" width="100%"></p>
+<div class="sourceCode" id="cb7"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span>  <span class="va">plot_area</span></span>
+<span><span class="co">#&gt; Warning: Raster pixels are placed at uneven horizontal intervals and will be shifted</span></span>
+<span><span class="co">#&gt; <span style="color: #00BBBB;">ℹ</span> Consider using `geom_tile()` instead.</span></span>
+<span><span class="co">#&gt; Raster pixels are placed at uneven horizontal intervals and will be shifted</span></span>
+<span><span class="co">#&gt; <span style="color: #00BBBB;">ℹ</span> Consider using `geom_tile()` instead.</span></span></code></pre></div>
+<p><img src="reference/figures/vignette1-plot-surfaces-2.png" width="100%"></p>
 </div>
 <div class="section level4">
 <h4 id="airy-kavrayskiy-measure">Airy-Kavrayskiy Measure<a class="anchor" aria-label="anchor" href="#airy-kavrayskiy-measure"></a>
@@ -259,7 +276,7 @@ have been deformed (shear).</p>
 <p>This is a combined measure of distortion that balances both areal and
 angular errors. We can calculate it from the <code>a</code> and
 <code>b</code> values produced by <code>analyze_distortion</code>.</p>
-<div class="sourceCode" id="cb7"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb8"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="co"># Plot the Airy-Kavrayskiy metric</span></span>
 <span><span class="fu"><a href="../reference/plot_distortion_surface.html">plot_distortion_surface</a></span><span class="op">(</span></span>
 <span>  <span class="va">distortion_results</span>,</span>
@@ -281,7 +298,7 @@ angular errors. We can calculate it from the <code>a</code> and
 visualization, showing the distortion ellipses themselves. The shape,
 size, and orientation of each ellipse represent the local distortion
 pattern.</p>
-<div class="sourceCode" id="cb8"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb9"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="co"># Plot the indicatrices at the locations of the analysis points</span></span>
 <span><span class="co"># We use a large scale_factor to make the ellipses clearly visible.</span></span>
 <span><span class="fu"><a href="../reference/plot_indicatrices.html">plot_indicatrices</a></span><span class="op">(</span></span>
