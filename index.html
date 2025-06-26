@@ -57,8 +57,8 @@
 </h1></div>
 <!-- badges: start -->
 
-<p>The <code>mapAI</code> package provides an end-to-end toolkit in R for the <strong>Positional Accuracy Improvement (PAI)</strong> of historical vector maps. It uses modern machine learning and statistical models to learn the complex geometric distortions inherent in historical cartographic documents and applies a correction to improve their geometric accuracy</p>
-<p>The package is designed for researchers and practitioners in geomatics and GIS who need to integrate historical maps into modern GIS workflows.</p>
+<p>The <code>mapAI</code> package provides an end-to-end toolkit in R for the <strong>Positional Accuracy Improvement (PAI)</strong> of historical vector maps. It uses modern machine learning and statistical models to learn the complex geometric distortions inherent in historical cartographic documents and applies a correction to improve their geometric accuracy.</p>
+<p>The package is designed for researchers and practitioners in geomatics who need to integrate historical maps into modern GIS datasets.</p>
 <div class="section level2">
 <h2 id="overview">Overview<a class="anchor" aria-label="anchor" href="#overview"></a>
 </h2>
@@ -73,7 +73,7 @@
 <li>
 <strong>Analyzing Distortion</strong>: Go beyond simple correction by using functions like <code><a href="reference/analyze_distortion.html">analyze_distortion()</a></code> and <code><a href="reference/plot_indicatrices.html">plot_indicatrices()</a></code> to perform a detailed differential distortion analysis based on Tissot’s indicatrix theory.</li>
 <li>
-<strong>Exporting Data</strong> Easily export the corrected distorted map as (<code>.shp</code>, etc.)</li>
+<strong>Exporting Data</strong> Easily export the corrected distorted map to various file formats (<code>.shp</code>, etc.).</li>
 </ol>
 </div>
 <div class="section level2">
@@ -87,7 +87,7 @@
 <div class="section level2">
 <h2 id="example">Example<a class="anchor" aria-label="anchor" href="#example"></a>
 </h2>
-<p>This example demonstrates the main workflow from start to finish. We will first generate a synthetic dataset representing a distorted map and then use the package’s functions to correct it.</p>
+<p>This example demonstrates the main workflow from start to finish. We will first generate a synthetic data set representing a distorted map and then use the package’s functions to correct it.</p>
 <div class="section level3">
 <h3 id="id_1-load-libraries-and-create-demo-data">1. Load Libraries and Create Demo Data<a class="anchor" aria-label="anchor" href="#id_1-load-libraries-and-create-demo-data"></a>
 </h3>
@@ -101,8 +101,8 @@
 <span><span class="co"># Generate a shapefile and a GCPs CSV with complex noisy distortions</span></span>
 <span><span class="co"># The function returns a list containing the paths to these new files.</span></span>
 <span><span class="va">demo_files</span> <span class="op">&lt;-</span> <span class="fu"><a href="reference/create_demo_data.html">create_demo_data</a></span><span class="op">(</span>type <span class="op">=</span> <span class="st">"complex"</span>, seed <span class="op">=</span> <span class="fl">42</span><span class="op">)</span></span>
-<span><span class="co">#&gt;    -&gt; Homologous points saved to: /var/folders/yh/kq6cp_457lg059f3l02r57s80000gn/T//RtmpDidGoH/demo_gcps.csv</span></span>
-<span><span class="co">#&gt;    -&gt; Distorted map saved to: /var/folders/yh/kq6cp_457lg059f3l02r57s80000gn/T//RtmpDidGoH/demo_map.shp</span></span></code></pre></div>
+<span><span class="co">#&gt;    -&gt; Homologous points saved to: /var/folders/yh/kq6cp_457lg059f3l02r57s80000gn/T//RtmpKRiB40/demo_gcps.csv</span></span>
+<span><span class="co">#&gt;    -&gt; Distorted map saved to: /var/folders/yh/kq6cp_457lg059f3l02r57s80000gn/T//RtmpKRiB40/demo_map.shp</span></span></code></pre></div>
 </div>
 <div class="section level3">
 <h3 id="id_2-read-the-data-into-r">2. Read the Data into R<a class="anchor" aria-label="anchor" href="#id_2-read-the-data-into-r"></a>
@@ -128,7 +128,7 @@
 <div class="section level3">
 <h3 id="id_4-apply-the-model-to-correct-the-map">4. Apply the Model to Correct the Map<a class="anchor" aria-label="anchor" href="#id_4-apply-the-model-to-correct-the-map"></a>
 </h3>
-<p>Now we apply this trained model to our distorted grid. The function returns a new <code>sf</code> object with the corrected geometries.</p>
+<p>Now we apply this trained model to our distorted grid that represents the historical map. The function returns a new <code>sf</code> object with the corrected geometries.</p>
 <div class="sourceCode" id="cb5"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="co"># Apply the model to the distorted map</span></span>
 <span><span class="va">corrected_map</span> <span class="op">&lt;-</span> <span class="fu"><a href="reference/apply_pai_model.html">apply_pai_model</a></span><span class="op">(</span><span class="va">gam_model</span>, <span class="va">map_to_correct</span><span class="op">)</span></span>
@@ -138,7 +138,7 @@
 <div class="section level3">
 <h3 id="id_5-visualize-the-result">5. Visualize the Result<a class="anchor" aria-label="anchor" href="#id_5-visualize-the-result"></a>
 </h3>
-<p>The most effective way to see the result is to plot the corrected map overlaid on the original. The “warped” noisy grid being transformed back into a regular grid provides a clear visual confirmation of the positional improvement.</p>
+<p>The most effective way to see the result is to plot the corrected map overlaid on the original. The “warped”, noisy, grid being transformed back into a more regular grid provides a clear visual confirmation of the positional improvement.</p>
 <div class="sourceCode" id="cb6"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="co"># For easy plotting, we add a 'status' column to each map</span></span>
 <span><span class="va">map_to_correct</span><span class="op">$</span><span class="va">status</span> <span class="op">&lt;-</span> <span class="st">"Original (Distorted)"</span></span>
@@ -191,7 +191,7 @@
 <span>  gcp_data <span class="op">=</span> <span class="va">gcp_data</span></span>
 <span><span class="op">)</span> <span class="op">+</span></span>
 <span><span class="fu"><a href="https://ggplot2.tidyverse.org/reference/labs.html" class="external-link">labs</a></span><span class="op">(</span>title <span class="op">=</span> <span class="st">"Maximum Shear Distortion (°)"</span><span class="op">)</span></span></code></pre></div>
-<p><img src="reference/figures/README-advanced-analysis-1.png" width="100%"> This shows how <code>mapAI</code> can be used for both practical correction and deeper analytical research into the properties of historical maps.</p>
+<p><img src="reference/figures/README-advanced-analysis-1.png" width="100%"> This shows how <code>mapAI</code> can be used for both practical correction and deeper analysis about the distortions of a historical map.</p>
 </div>
 </div>
   </main><aside class="col-md-3"><div class="license">

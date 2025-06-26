@@ -80,7 +80,7 @@ number of rows as <code>newdata</code>.</p>
 <code>predict.pai_model(...)</code>), but rather through the generic <code><a href="https://rdrr.io/r/stats/predict.html" class="external-link">predict()</a></code> function
 (e.g., <code>predict(my_model, ...)</code>).</p>
 <p>Key features of this method include:</p><ul><li><p><strong>Automatic Model Handling:</strong> It transparently handles the different
-output structures of <code>helmert</code>, <code>gam</code>, <code>lm</code>, and <code>rf</code> models, always returning a
+output structures of <code>helmert</code>,<code>tps</code>, <code>gam</code>, <code>lm</code>, and <code>rf</code> models, always returning a
 consistent <code>data.frame</code>.</p></li>
 <li><p><strong>Robust NA Handling:</strong> It correctly handles <code>NA</code> values in the
 <code>newdata</code> predictors. Rows with <code>NA</code> inputs will produce <code>NA</code> outputs,
