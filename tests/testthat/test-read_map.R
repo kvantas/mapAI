@@ -1,3 +1,16 @@
+test_that("read_map() works and handles errors", {
+  map_data <- read_map(shp_path = DEMO_FILES$shp_path, crs = 3857)
+  expect_s3_class(map_data, "sf")
+  expect_false(is.na(sf::st_crs(map_data)))
+  expect_error(read_map("non_existent_map.shp"), "Map file not found")
+})
+
+test_that("read_map() calculates 'area_old' for polygons", {
+  poly_map <- read_map(POLYGON_FILE, crs = 3857)
+  expect_true("area_old" %in% names(poly_map))
+  expect_s3_class(poly_map$area_old, "units")
+  expect_equal(as.numeric(poly_map$area_old[1]), 100)
+})
 
 test_that("read_map stops if shp_path does not exist", {
   expect_error(read_map("non_existent_file.shp"), "Map file not found")

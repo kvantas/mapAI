@@ -1,5 +1,29 @@
-# Test cases for train_pai_model
+
 gcp_data <- read_gcps(gcp_path = DEMO_FILES$gcp_path, crs = 3857)
+
+test_that("train_pai_model() creates valid models", {
+  for (method in c("rf", "lm", "gam", "helmert", "tps")) {
+    model <- train_pai_model(gcp_data, method = method)
+    expect_s3_class(model, "pai_model")
+    expect_named(model, c("model", "method"))
+    expect_equal(model$method, method)
+  }
+})
+
+test_that("train_pai_model() internal model classes are correct", {
+  model_rf <- train_pai_model(gcp_data, method = "rf")
+  expect_s3_class(model_rf$model$model_dx, "ranger")
+
+  model_lm <- train_pai_model(gcp_data, method = "lm")
+  expect_s3_class(model_lm$model$model_dx, "lm")
+
+  model_gam <- train_pai_model(gcp_data, method = "gam")
+  expect_s3_class(model_gam$model, "gam")
+
+  model_tps <- train_pai_model(gcp_data, method = "tps")
+  expect_equal(class(model_tps$model$model_dx), c("Krig", "Tps"))
+
+})
 
 # TEST 0: helmert method
 test_that("train_pai_model works with method = 'helmert'", {
@@ -40,7 +64,15 @@ test_that("train_pai_model works with method = 'gam'", {
   expect_s3_class(model_gam$model, "gam")
 })
 
-# Test 4: seed parameter for reproducibility (using rf method)
+# Test 3.1: tps method
+test_that("train_pai_model works with method = 'tps'", {
+  model_gam <- train_pai_model(gcp_data, method = "tps")
+
+  expect_s3_class(model_gam, "pai_model")
+  expect_equal(model_gam$method, "tps")
+})
+
+# Test 4: seed parameter for reproducibility
 test_that("train_pai_model produces reproducible results with seed (rf method)", {
 
   model1 <- train_pai_model(gcp_data, method = "rf", seed = 42)

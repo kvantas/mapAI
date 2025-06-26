@@ -39,7 +39,6 @@ test_that("plot_correction_surface runs successfully with valid inputs", {
   expect_s3_class(plot_low_res, "patchwork")
 })
 
-
 test_that("plot_correction_surface handles invalid inputs gracefully", {
 
   # 1. Test for error when pai_model is not the correct class
@@ -56,7 +55,6 @@ test_that("plot_correction_surface handles invalid inputs gracefully", {
     "gcp_data must be a valid sf object."
   )
 })
-
 
 test_that("plot layers and aesthetics are correctly specified", {
   # This is a more advanced test to check the internals of the ggplot object

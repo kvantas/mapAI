@@ -1,6 +1,5 @@
 # Tests for the model assessment function: assess_pai_model()
 
-# --- Setup for all tests in this file ---
 gcp_data <- read_gcps(gcp_path = DEMO_FILES$gcp_path, crs = 3857)
 
 test_that("assess_pai_model() returns a correctly structured data frame", {

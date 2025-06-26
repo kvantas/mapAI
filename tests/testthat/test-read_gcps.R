@@ -1,3 +1,13 @@
+test_that("read_gcps() works and handles errors", {
+  gcp_data <- read_gcps(gcp_path = DEMO_FILES$gcp_path, crs = 3857)
+  expect_s3_class(gcp_data, "sf")
+  expect_true(all(c("source_x", "dx", "dy", "geometry") %in% names(gcp_data)))
+  expect_equal(sf::st_crs(gcp_data), sf::st_crs(3857))
+  expect_error(read_gcps(DEMO_FILES$gcp_path), "A coordinate reference system")
+})
+
+
+
 test_that("read_gcps successfully reads valid GCP file and returns sf object", {
   # Create a temporary CSV file
   temp_gcp_path <- tempfile(fileext = ".csv")
