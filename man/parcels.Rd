@@ -5,13 +5,14 @@
 \alias{parcels}
 \title{Vector Map Parcels for Correction}
 \format{
-An \code{sf} object with 493 parcel polygon geometries and several variables:
+An \code{sf} object with 493 parcel polygon geometries and several
+variables:
 \describe{
 \item{KAK}{Numeric. A unique identifier for each parcel.}
 \item{area_old}{\code{units} object. The original area of each polygon feature,
 calculated by \code{read_map()}}
-\item{geometry}{\code{sfc_POLYGON} or \code{sfc_MULTIPOLYGON}. The \code{sf} polygon geometry
-representing the parcels in the target CRS (EPSG:2100).}
+\item{geometry}{\code{sfc_POLYGON} or \code{sfc_MULTIPOLYGON}. The \code{sf} polygon
+geometry representing the parcels in the target CRS (EPSG:2100).}
 }
 }
 \source{
@@ -22,8 +23,9 @@ Greece as used in http://dx.doi.org/10.1111/tgis.70076
 parcels
 }
 \description{
-A dataset containing vector map parcels (polygons from a cadastral map)
-that are intended to be corrected using geospatial transformation methods.
+A dataset containing vector map parcels (polygons from a
+cadastral map) that are intended to be corrected using geospatial
+transformation methods.
 }
 \examples{
 if (interactive()) {

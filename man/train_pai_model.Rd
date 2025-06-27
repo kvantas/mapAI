@@ -14,21 +14,22 @@ train_pai_model(gcp_data, method, seed = 123, ...)
 
 \item{seed}{An integer for setting the random seed for reproducibility.}
 
-\item{...}{Additional arguments passed to the underlying model fitting functions
-(\code{mgcv::gam}, \code{stats::lm}, \code{ranger::ranger}, \code{fields::Tps}).}
+\item{...}{Additional arguments passed to the underlying model fitting
+functions (\code{mgcv::gam}, \code{stats::lm}, \code{ranger::ranger}, \code{fields::Tps}).}
 }
 \value{
 A trained model object of class \code{pai_model}.
 }
 \description{
-Trains a supervised learning or analytical model to define a spatial
-transformation.
+Trains a supervised learning or analytical model to define a
+spatial transformation.
 }
 \details{
-This function serves as a factory for creating transformation models. It
-supports machine learning methods ("lm", "gam", "rf") that learn the relationship
-between source coordinates and displacement vectors, as well as the analytical
-"helmert" method which solves for a global similarity transformation.
+This function serves as a factory for creating transformation
+models. It supports machine learning methods ("lm", "gam", "rf") that learn
+the relationship between source coordinates and displacement vectors, as
+well as the analytical "helmert" method which solves for a global
+similarity transformation.
 
 \strong{Important}: The more flexible machine learning models, \code{gam} and \code{rf},
 require a sufficient number of data points to produce stable and reliable

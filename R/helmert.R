@@ -2,7 +2,8 @@
 #'
 #' @description Calculates the four parameters of a 2D similarity (Helmert)
 #'   transformation using a standard, numerically stable least-squares solution
-#'   based on centroids. This is an internal function called by `train_pai_model`.
+#'   based on centroids. This is an internal function called by
+#'   `train_pai_model`.
 #'
 #' @param source_x Numeric vector of approximate ('from') x coordinates.
 #' @param source_y Numeric vector of approximate ('from') y coordinates.
@@ -32,8 +33,10 @@ helmert <- function(source_x, source_y, target_x, target_y) {
   # b = s * sin(theta)
   denominator <- sum(u_i^2 + v_i^2)
   if (abs(denominator) < 1e-9) {
-    stop("Cannot solve Helmert transformation: source points are co-located.", call. = FALSE)
+    stop("Cannot solve Helmert transformation: source points are co-located.",
+         call. = FALSE)
   }
+
   a <- (sum(u_i * x_i) + sum(v_i * y_i)) / denominator
   b <- (sum(u_i * y_i) - sum(v_i * x_i)) / denominator
 
@@ -41,7 +44,8 @@ helmert <- function(source_x, source_y, target_x, target_y) {
   model <- structure(
     list(
       coefficients = c(a = a, b = b),
-      centroids = c(u_mean = u_mean, v_mean = v_mean, x_mean = x_mean, y_mean = y_mean)
+      centroids = c(u_mean = u_mean, v_mean = v_mean,
+                    x_mean = x_mean, y_mean = y_mean)
     ),
     class = "helmert"
   )

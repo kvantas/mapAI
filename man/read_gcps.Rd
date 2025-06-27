@@ -7,25 +7,29 @@
 read_gcps(gcp_path, crs)
 }
 \arguments{
-\item{gcp_path}{A character string specifying the path to the CSV file of homologous points.}
+\item{gcp_path}{A character string specifying the path to the CSV file of
+homologous points.}
 
-\item{crs}{The coordinate reference system (CRS) of the \code{source_x} and \code{source_y}
-coordinates. This is a \strong{required} parameter to ensure spatial context.
-It can be an EPSG code (e.g., \code{32632}) or a WKT string.}
+\item{crs}{The coordinate reference system (CRS) of the \code{source_x} and
+\code{source_y} coordinates. This is a \strong{required} parameter to ensure spatial
+context. It can be an EPSG code (e.g., \code{32632}) or a WKT string.}
 }
 \value{
-An \code{sf} object of the homologous points, with point geometries based on
-the source coordinates and calculated \code{dx} and \code{dy} displacement columns.
+An \code{sf} object of the homologous points, with point geometries based
+on the source coordinates and calculated \code{dx} and \code{dy} displacement
+columns.
 }
 \description{
-Reads a CSV file containing homologous points and prepares them for
-modeling by calculating displacement vectors and creating an \code{sf} object.
+Reads a CSV file containing homologous points and prepares them
+for modeling by calculating displacement vectors and creating an \code{sf}
+object.
 }
 \details{
-This function is the first step in the modeling workflow. It requires a
-CSV file with four specific columns: \code{source_x} and \code{source_y} (coordinates from
-the old/distorted map) and \code{target_x} and \code{target_y} (coordinates from the
-reference/true map). It calculates the \code{dx} and \code{dy} errors that the models will learn to predict.
+This function is the first step in the modeling workflow. It
+requires a CSV file with four specific columns: \code{source_x} and \code{source_y}
+(coordinates from the old/distorted map) and \code{target_x} and \code{target_y}
+(coordinates from the reference/true map). It calculates the \code{dx} and \code{dy}
+errors that the models will learn to predict.
 }
 \examples{
 \dontrun{

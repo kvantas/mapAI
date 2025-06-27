@@ -1,6 +1,7 @@
 #' @title Apply a Trained PAI Model to Correct a Vector Map
 #' @description Applies a trained `pai_model` object to an `sf` vector map,
-#'   correcting the position of all its vertices based on the learned transformation.
+#'   correcting the position of all its vertices based on the learned
+#'   transformation.
 #'
 #' @details
 #' This function is the final step in the PAI workflow, applying the learned
@@ -8,7 +9,8 @@
 #' iteration that correctly handles all standard simple and multi-part geometry
 #' types (`POINT`, `LINESTRING`, `POLYGON`, etc.).
 #'
-#' @param pai_model An object of class `pai_model` returned by `train_pai_model()`.
+#' @param pai_model An object of class `pai_model` returned by
+#'        `train_pai_model()`.
 #' @param map An `sf` object representing the vector map to be corrected.
 #'
 #' @return A new `sf` object with the corrected geometry.
@@ -39,8 +41,13 @@
 #'
 apply_pai_model <- function(pai_model, map) {
   # --- 1. Input Validation ---
-  if (!inherits(pai_model, "pai_model")) stop("`pai_model` must be an object of class 'pai_model'.", call. = FALSE)
-  if (!inherits(map, "sf")) stop("`map` must be a valid `sf` object.", call. = FALSE)
+  if (!inherits(pai_model, "pai_model")) {
+    stop("`pai_model` must be an object of class 'pai_model'.", call. = FALSE)
+    }
+
+  if (!inherits(map, "sf")) {
+    stop("`map` must be a valid `sf` object.", call. = FALSE)
+    }
 
   message("Applying PAI model to map features...")
 
@@ -52,7 +59,8 @@ apply_pai_model <- function(pai_model, map) {
     feature <- original_geom_col[[i]]
     geom_type <- as.character(sf::st_geometry_type(feature))
 
-    # Use st_coordinates, which reliably extracts vertices into a standard matrix format
+    # Use st_coordinates, which reliably extracts vertices into a standard
+    # matrix format
     original_coords <- sf::st_coordinates(feature)
 
     # Handle empty geometries gracefully
@@ -72,30 +80,33 @@ apply_pai_model <- function(pai_model, map) {
     corrected_coords[, 2] <- corrected_coords[, 2] + displacements$dy
 
     # --- 3. Reconstruct the geometry based on its original type ---
-    new_sfg <- switch(geom_type,
-                      "POINT" = sf::st_point(corrected_coords[1, 1:2]),
-                      "LINESTRING" = sf::st_linestring(corrected_coords[, 1:2]),
-                      "POLYGON" = {
-                        rings <- split.data.frame(corrected_coords[, 1:2], f = corrected_coords[, "L1"])
-                        sf::st_polygon(lapply(rings, as.matrix))
-                      },
-                      "MULTIPOINT" = sf::st_multipoint(corrected_coords[, 1:2]),
-                      "MULTILINESTRING" = {
-                        lines <- split.data.frame(corrected_coords[, 1:2], f = corrected_coords[, "L1"])
-                        sf::st_multilinestring(lapply(lines, as.matrix))
-                      },
-                      "MULTIPOLYGON" = {
-                        polys <- split.data.frame(corrected_coords, f = corrected_coords[, "L2"])
-                        rebuilt_polys <- lapply(polys, function(p) {
-                          rings <- split.data.frame(p[, 1:2], f = p[, "L1"])
-                          sf::st_polygon(lapply(rings, as.matrix))
-                        })
-                        sf::st_multipolygon(rebuilt_polys)
-                      },
-                      {
-                        warning(paste("Unsupported geometry type:", geom_type, "at feature", i, ". Keeping original."), call. = FALSE)
-                        feature
-                      }
+    new_sfg <- switch(
+      geom_type,
+      "POINT" = sf::st_point(corrected_coords[1, 1:2]),
+      "LINESTRING" = sf::st_linestring(corrected_coords[, 1:2]),
+      "POLYGON" = {
+        rings <- split.data.frame(corrected_coords[, 1:2], f = corrected_coords[, "L1"])
+        sf::st_polygon(lapply(rings, as.matrix))
+      },
+      "MULTIPOINT" = sf::st_multipoint(corrected_coords[, 1:2]),
+      "MULTILINESTRING" = {
+        lines <- split.data.frame(corrected_coords[, 1:2], f = corrected_coords[, "L1"])
+        sf::st_multilinestring(lapply(lines, as.matrix))
+      },
+      "MULTIPOLYGON" = {
+        polys <- split.data.frame(corrected_coords, f = corrected_coords[, "L2"])
+        rebuilt_polys <- lapply(polys, function(p) {
+          rings <- split.data.frame(p[, 1:2], f = p[, "L1"])
+          sf::st_polygon(lapply(rings, as.matrix))
+        })
+        sf::st_multipolygon(rebuilt_polys)
+      },
+      {
+        warning(paste("Unsupported geometry type:",
+                      geom_type,
+                      "at feature", i, ". Keeping original."), call. = FALSE)
+        feature
+      }
     )
     new_geom_list[[i]] <- new_sfg
   }

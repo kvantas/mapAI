@@ -7,10 +7,11 @@
 \method{predict}{pai_model}(object, newdata, ...)
 }
 \arguments{
-\item{object}{A trained model object of class \code{pai_model} returned by \code{train_pai_model()}.}
+\item{object}{A trained model object of class \code{pai_model} returned by
+\code{train_pai_model()}.}
 
-\item{newdata}{A \code{data.frame} with \code{source_x} and \code{source_y} columns for which
-to generate predictions.}
+\item{newdata}{A \code{data.frame} with \code{source_x} and \code{source_y} columns for
+which to generate predictions.}
 
 \item{...}{Additional arguments passed on to the underlying predict methods
 (e.g., \code{predict.lm}, \code{predict.gam}).}
@@ -20,24 +21,24 @@ A \code{data.frame} with predicted \code{dx} and \code{dy} columns, having the s
 number of rows as \code{newdata}.
 }
 \description{
-Predicts spatial corrections (dx, dy) from a trained \code{pai_model} object.
-This is an S3 method for the generic \code{predict()} function.
+Predicts spatial corrections (dx, dy) from a trained \code{pai_model}
+object. This is an S3 method for the generic \code{predict()} function.
 }
 \details{
-This function provides the core prediction logic for all models created by
-\code{train_pai_model()}. As an S3 method, it should not be called directly (e.g.,
-\code{predict.pai_model(...)}), but rather through the generic \code{predict()} function
-(e.g., \code{predict(my_model, ...)}).
+This function provides the core prediction logic for all models
+created by \code{train_pai_model()}. As an S3 method, it should not be called
+directly (e.g., \code{predict.pai_model(...)}), but rather through the generic
+\code{predict()} function (e.g., \code{predict(my_model, ...)}).
 
 Key features of this method include:
 \itemize{
-\item \strong{Automatic Model Handling:} It transparently handles the different
-output structures of \code{helmert},\code{tps}, \code{gam}, \code{lm}, and \code{rf} models, always returning a
-consistent \code{data.frame}.
+\item \strong{Automatic Model Handling:} It transparently handles the
+different output structures of \code{helmert},\code{tps}, \code{gam}, \code{lm}, and \code{rf}
+models, always returning a consistent \code{data.frame}.
 \item \strong{Robust NA Handling:} It correctly handles \code{NA} values in the
 \code{newdata} predictors. Rows with \code{NA} inputs will produce \code{NA} outputs,
-ensuring the output has the same number of rows as the input and preventing
-errors from underlying prediction functions.
+ensuring the output has the same number of rows as the input and
+preventing errors from underlying prediction functions.
 }
 }
 \examples{

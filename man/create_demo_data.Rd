@@ -17,33 +17,37 @@ create_demo_data(
 )
 }
 \arguments{
-\item{type}{A character string specifying the distortion type. One of "helmert",
-"nonlinear", or "complex". Defaults to "complex".}
+\item{type}{A character string specifying the distortion type. One of
+"helmert", "nonlinear", or "complex". Defaults to "complex".}
 
-\item{noise_sd}{A numeric value for the standard deviation of the Gaussian noise
-added to the distorted coordinates. Defaults to 0.5.}
+\item{noise_sd}{A numeric value for the standard deviation of the Gaussian
+noise added to the distorted coordinates. Defaults to 0.5.}
 
-\item{n_points}{An integer specifying the number of points along each axis of the
-initial grid. The total number of homologous points will be \code{n_points^2}. Defaults to 15.}
+\item{n_points}{An integer specifying the number of points along each axis of
+the initial grid. The total number of homologous points will be
+\code{n_points^2}. Defaults to 15.}
 
-\item{output_dir}{A character string specifying the directory where the demo files
-will be saved. Defaults to a temporary directory (\code{tempdir()}).}
+\item{output_dir}{A character string specifying the directory where the demo
+files will be saved. Defaults to a temporary directory (\code{tempdir()}).}
 
-\item{seed}{An integer for setting the random seed for reproducibility. Defaults to 42.}
+\item{seed}{An integer for setting the random seed for reproducibility.
+Defaults to 42.}
 
 \item{grid_limits}{A numeric vector of the form \code{c(xmin, xmax, ymin, ymax)}
 defining the extent of the "true" grid. Defaults to \code{c(0, 100, 0, 100)}.}
 
 \item{helmert_params}{A list of parameters for the Helmert transformation:
 \code{s} (scale), \code{angle_deg} (rotation in degrees), \code{tx} (translation in x),
-and \code{ty} (translation in y). Defaults to \code{list(s = 1.005, angle_deg = 1, tx = 2, ty = -3)}.}
+and \code{ty} (translation in y). Defaults to
+\code{list(s = 1.005, angle_deg = 1, tx = 2, ty = -3)}.}
 
-\item{poly_params}{A list of coefficients (\code{cE1}, \code{cE2}, \code{cN1}, \code{cN2}) for the
-polynomial warp. Defaults to \code{list(cE1 = 0.00002, cE2 = -0.0008, cN1 = 0.0002, cN2 = 0.0015)}.}
+\item{poly_params}{A list of coefficients (\code{cE1}, \code{cE2}, \code{cN1}, \code{cN2}) for
+the polynomial warp. Defaults to
+\code{list(cE1 = 0.00002, cE2 = -0.0008, cN1 = 0.0002, cN2 = 0.0015)}.}
 
-\item{gauss_params}{A list of parameters for the Gaussian warp: \code{A} (amplitude),
-\code{Ec}, \code{Nc} (center coordinates), and \code{sigma2} (variance). Defaults to
-\code{list(A = 4, Ec = 50, Nc = 0, sigma2 = 20)}.}
+\item{gauss_params}{A list of parameters for the Gaussian warp: \code{A}
+(amplitude), \code{Ec}, \code{Nc} (center coordinates), and \code{sigma2} (variance).
+Defaults to \code{list(A = 4, Ec = 50, Nc = 0, sigma2 = 20)}.}
 }
 \value{
 A list containing the full paths to the generated files:
@@ -51,21 +55,28 @@ A list containing the full paths to the generated files:
 \item{gcp_path}{The path to the 'demo_gcps.csv' file.}
 }
 \description{
-Generates a simulated dataset representing a distorted historical map
-and a corresponding set of homologous points (GCPs), saving them as files.
+Generates a simulated dataset representing a distorted
+historical map and a corresponding set of homologous points (GCPs), saving
+them as files.
 }
 \details{
-This function implements the simulation framework described in Vantas and Mirkopoulou, 2025.
-It first creates a regular grid of points representing the "true" geography.
-It then applies one of three distortion types from the paper:
+This function implements the simulation framework described in
+Vantas and Mirkopoulou, 2025. It first creates a regular grid of points
+representing the "true" geography. It then applies one of three distortion
+types from the paper:
 \itemize{
-\item \strong{\code{"helmert"}}: A simple global transformation involving scale, rotation, and translation.
-\item \strong{\code{"nonlinear"}}: A Helmert transformation followed by a smooth polynomial warp, simulating material stretching.
-\item \strong{\code{"complex"} (Default)}: Combines the Helmert and nonlinear warp with a localized Gaussian deformation, simulating a complex mix of global, regional, and local errors.
+\item \strong{\code{"helmert"}}: A simple global transformation involving
+scale, rotation, and translation.
+\item \strong{\code{"nonlinear"}}: A Helmert transformation followed by a
+smooth polynomial warp, simulating material stretching.
+\item \strong{\code{"complex"} (Default)}: Combines the Helmert and nonlinear
+warp with a localized Gaussian deformation, simulating a complex mix of
+global, regional, and local errors.
 }
-Finally, random noise is added to the distorted coordinates. The function outputs a
-shapefile representing the distorted grid (as a set of grid lines) and a CSV file
-of homologous points ready for use with \code{read_correction_data()}.
+Finally, random noise is added to the distorted coordinates. The function
+outputs a shapefile representing the distorted grid (as a set of grid
+lines) and a CSV file of homologous points ready for use with
+\code{read_correction_data()}.
 }
 \examples{
 \dontrun{

@@ -7,7 +7,8 @@
 apply_pai_model(pai_model, map)
 }
 \arguments{
-\item{pai_model}{An object of class \code{pai_model} returned by \code{train_pai_model()}.}
+\item{pai_model}{An object of class \code{pai_model} returned by
+\code{train_pai_model()}.}
 
 \item{map}{An \code{sf} object representing the vector map to be corrected.}
 }
@@ -16,7 +17,8 @@ A new \code{sf} object with the corrected geometry.
 }
 \description{
 Applies a trained \code{pai_model} object to an \code{sf} vector map,
-correcting the position of all its vertices based on the learned transformation.
+correcting the position of all its vertices based on the learned
+transformation.
 }
 \details{
 This function is the final step in the PAI workflow, applying the learned

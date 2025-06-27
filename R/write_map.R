@@ -1,12 +1,12 @@
 #' @title Write a Spatial Object to a File
-#' @description A robust and user-friendly wrapper around `sf::st_write` to save an
-#'   `sf` object, for example, a corrected map.
+#' @description A robust and user-friendly wrapper around `sf::st_write` to save
+#'   an `sf` object, for example, a corrected map.
 #'
-#' @details
-#' This function provides a straightforward way to save the output of the `mapAI`
-#' workflow (or any `sf` object) to a file on disk. It supports any file format
-#' that `sf::st_write` can handle. The function automatically infers the correct
-#' driver from the file extension (e.g., `.shp` -> `"ESRI Shapefile"`, `.gpkg` -> `"GPKG"`).
+#' @details This function provides a straightforward way to save the output of
+#' the `mapAI` workflow (or any `sf` object) to a file on disk. It supports any
+#' file format that `sf::st_write` can handle. The function automatically infers
+#' the correct driver from the file extension (e.g., `.shp` -> `"ESRI
+#' Shapefile"`, `.gpkg` -> `"GPKG"`).
 #'
 #' For safety, the function defaults to `overwrite = FALSE`, which will prevent
 #' accidentally overwriting an existing file. Advanced users can pass additional
@@ -15,8 +15,8 @@
 #' @param map An `sf` object to be written to a file.
 #' @param file_path A character string specifying the path and filename for the
 #'   output file (e.g., `"path/to/my_corrected_map.shp"`).
-#' @param overwrite A logical value. If `TRUE`, it will overwrite an existing file
-#'   at the specified path. Defaults to `FALSE`.
+#' @param overwrite A logical value. If `TRUE`, it will overwrite an existing
+#'   file at the specified path. Defaults to `FALSE`.
 #' @param ... Additional arguments to be passed directly to `sf::st_write`
 #'   (e.g., `layer_options`).
 #'

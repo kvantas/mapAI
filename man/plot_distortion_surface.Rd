@@ -13,17 +13,18 @@ plot_distortion_surface(
 )
 }
 \arguments{
-\item{distortion_sf}{An \code{sf} object of \strong{points} returned by \code{analyze_distortion()}.}
+\item{distortion_sf}{An \code{sf} object of \strong{points} returned by
+\code{analyze_distortion()}.}
 
-\item{metric}{A character string specifying the name of the metric column to plot.
-Must be one of "a", "b", "area_scale", "log2_area_scale", "max_shear",
-"max_angular_distortion", "airy_kavrayskiy", or "theta_a".}
+\item{metric}{A character string specifying the name of the metric column to
+plot. Must be one of "a", "b", "area_scale", "log2_area_scale",
+"max_shear", "max_angular_distortion", "airy_kavrayskiy", or "theta_a".}
 
-\item{gcp_data}{An optional \code{sf} object of the original GCPs to overlay on the
-plot for context.}
+\item{gcp_data}{An optional \code{sf} object of the original GCPs to overlay on
+the plot for context.}
 
-\item{palette}{A character string specifying the name of a viridis color palette
-(e.g., "viridis", "magma", "cividis"), used when \code{diverging=FALSE}.}
+\item{palette}{A character string specifying the name of a viridis color
+palette (e.g., "viridis", "magma", "cividis"), used when \code{diverging=FALSE}.}
 
 \item{diverging}{A logical value. If \code{TRUE}, a diverging color scale is used,
 which is ideal for metrics like \code{area_scale} or \code{log2_area_scale}.}
@@ -32,22 +33,24 @@ which is ideal for metrics like \code{area_scale} or \code{log2_area_scale}.}
 A \code{ggplot} object, which can be further customized.
 }
 \description{
-Creates a visualization of a continuous distortion metric from the
-output of \code{analyze_distortion()}.
+Creates a visualization of a continuous distortion metric from
+the output of \code{analyze_distortion()}.
 }
 \details{
-This function visualizes the distortion field as it exists on the \strong{source map's
-coordinate space}. This allows for a direct visual correlation between features on
-the original map and the calculated distortion metrics.
+This function visualizes the distortion field as it exists on the
+\strong{source map's coordinate space}. This allows for a direct visual
+correlation between features on the original map and the calculated
+distortion metrics.
 \itemize{
-\item \strong{For points on a regular grid} (recommended): It creates a rasterized
-surface plot using \code{geom_raster()}, which is ideal for visualizing continuous
-distortion surfaces. To create a regular grid, use the pattern:
-\code{sf::st_make_grid(...) \%>\% sf::st_centroid() \%>\% sf::st_sf()}.
-\item \strong{For scattered, irregular points} (like the original GCPs): It creates a
-point plot where each point is colored by its metric value. This avoids
-memory errors and still provides a useful diagnostic plot, along with a
-message recommending the use of a grid for a true surface plot.
+\item \strong{For points on a regular grid} (recommended): It creates a
+rasterized surface plot using \code{geom_raster()}, which is ideal for
+visualizing continuous distortion surfaces. To create a regular grid,
+use the pattern: \code{sf::st_make_grid(...) \%>\% sf::st_centroid() \%>\% sf::st_sf()}.
+\item \strong{For scattered, irregular points} (like the original GCPs):
+It creates a point plot where each point is colored by its metric value.
+This avoids memory errors and still provides a useful diagnostic plot,
+along with a message recommending the use of a grid for a true surface
+plot.
 }
 
 \strong{Interpreting Plots by Model Type}
@@ -55,19 +58,20 @@ message recommending the use of a grid for a true surface plot.
 The visual output will depend on the model used to generate the
 \code{distortion_sf} data:
 \itemize{
-\item \strong{\code{gam} model data}: Will produce a smooth, continuous surface with
-spatially varying colors, which is highly informative. This is the ideal
-model for this function.
+\item \strong{\code{gam} or \code{tps} model data}: Will produce a smooth, continuous
+surface withcspatially varying colors, which is highly informative. This is
+the idealcmodel for this function.
 \item \strong{\code{helmert} or \code{lm} model data}: Will produce a plot with a single,
-uniform color, as the underlying distortion metrics are constant across the map.
+uniform color, as the underlying distortion metrics are constant across
+the map.
 \item \strong{\code{rf} model data}: Will produce a plot indicating an Identity
-transformation (\code{area_scale} = 1, \code{max_shear} = 0). While RF is an excellent
-correction tool, this analysis is not informative for it.
+transformation (\code{area_scale} = 1, \code{max_shear} = 0). While RF might be an
+excellent correction tool, this analysis is not informative for it.
 }
 
-You may see a benign warning from \code{ggplot2} about "uneven horizontal intervals."
-This is caused by minor floating-point inaccuracies in the grid coordinates and
-can be safely ignored; the plot is still accurate.
+You may see a benign warning from \code{ggplot2} about "uneven horizontal
+intervals." This is caused by minor floating-point inaccuracies in the grid
+coordinates and can be safely ignored; the plot is still accurate.
 }
 \examples{
 # --- 1. Train a GAM model for the best visual results ---

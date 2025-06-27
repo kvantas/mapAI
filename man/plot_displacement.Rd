@@ -13,19 +13,23 @@ plot_displacement(
 )
 }
 \arguments{
-\item{gcp_data}{An \code{sf} object of homologous points, typically the output of \code{read_gcps()}.
-Must contain \code{source_x}, \code{source_y}, \code{target_x}, and \code{target_y} columns.}
+\item{gcp_data}{An \code{sf} object of homologous points, typically the output of
+\code{read_gcps()}. Must contain \code{source_x}, \code{source_y}, \code{target_x}, and
+\code{target_y} columns.}
 
 \item{title}{A character string for the plot's main title.}
 
 \item{subtitle}{A character string for the plot's subtitle.}
 
-\item{arrow_color}{A character string specifying the color of the displacement arrows.}
+\item{arrow_color}{A character string specifying the color of the
+displacement arrows.}
 
-\item{point_color}{A character string specifying the color of the points marking the source locations.}
+\item{point_color}{A character string specifying the color of the points
+marking the source locations.}
 }
 \value{
-A \code{ggplot} object, which can be further customized using standard \code{ggplot2} syntax.
+A \code{ggplot} object, which can be further customized using standard
+\code{ggplot2} syntax.
 }
 \description{
 Creates a visualization of the displacement vectors from source
@@ -34,9 +38,10 @@ Creates a visualization of the displacement vectors from source
 \details{
 This function is a key exploratory tool for understanding the nature
 and magnitude of positional error in a dataset before correction. It plots
-arrows that originate at the distorted \code{source} coordinates and point to the
-correct \code{target} coordinates. This provides an immediate visual sense of the
-spatial patterns in the distortion (e.g., rotation, scaling, or non-linear warping).
+arrows that originate at the distorted \code{source} coordinates and point to
+the correct \code{target} coordinates. This provides an immediate visual sense
+of the spatial patterns in the distortion (e.g., rotation, scaling, or
+non-linear warping).
 }
 \examples{
 # --- 1. First, create a demo dataset to work with ---

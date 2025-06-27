@@ -18,16 +18,17 @@ in the target CRS (EPSG:2100).}
 }
 }
 \source{
-Part of the dataset is used in the paper in https://doi.org/10.1111/tgis.70076
+Part of the dataset is used in the paper
+https://doi.org/10.1111/tgis.70076
 }
 \usage{
 gcps
 }
 \description{
-A dataset containing Ground Control Points (GCPs) used for correcting
-the vector map parcels of the package. These points represent homologous
-locations identified on both the source (uncorrected) map and a modern
-land survey.
+A dataset containing Ground Control Points (GCPs) used for
+correcting the vector map parcels of the package. These points represent
+homologous locations identified on both the source (uncorrected) map and a
+modern land survey.
 }
 \examples{
 if (interactive()) {

@@ -1,14 +1,15 @@
-
 #' @title Read a Vector Map for Correction
-#' @description Reads a vector map (e.g., shapefile) that is intended to be corrected.
-#' @details This function reads the geospatial file using `sf::st_read`. If the file contains
-#'   polygon geometries and does not already have an area column named 'area_old', this function
-#'   will calculate the area of each feature and add it.
+#' @description Reads a vector map (e.g., shapefile) that is intended to be
+#'   corrected.
+#' @details This function reads the geospatial file using `sf::st_read`. If the
+#'   file contains polygon geometries and does not already have an area column
+#'   named 'area_old', this function will calculate the area of each feature and
+#'   add it.
 #'
 #' @param shp_path A character string specifying the path to the input map file
 #'   (e.g., a shapefile).
-#' @param crs An optional coordinate reference system (CRS) to assign if the input
-#'   file lacks one. Can be an EPSG code (e.g., `32632`) or a WKT string.
+#' @param crs An optional coordinate reference system (CRS) to assign if the
+#'   input file lacks one. Can be an EPSG code (e.g., `32632`) or a WKT string.
 #'
 #' @return An `sf` object of the map to be corrected.
 #'
@@ -45,12 +46,14 @@ read_map <- function(shp_path, crs = NA) {
 
   # Issue warning if CRS is still missing after attempts to set it
   if (is.na(sf::st_crs(map_to_correct)$epsg)) {
-    warning("Input map has no CRS and none was provided. Results may be incorrect.", call. = FALSE)
+    warning("Input map has no CRS and none was provided. Results may be incorrect.",
+            call. = FALSE)
   }
 
   # --- Add Area for Polygons ---
   # Check if the map has polygon geometries and lacks an 'area_old' column
-  if (any(sf::st_geometry_type(map_to_correct) %in% c("POLYGON", "MULTIPOLYGON")) &&
+  if (
+    any(sf::st_geometry_type(map_to_correct) %in% c("POLYGON", "MULTIPOLYGON")) &&
       !("area_old" %in% names(map_to_correct))) {
     message("Calculating area for polygon features...")
     map_to_correct$area_old <- sf::st_area(map_to_correct)

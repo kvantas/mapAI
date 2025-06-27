@@ -3,18 +3,23 @@
 #'   (distorted) to target (true) coordinates for a set of homologous points.
 #' @details This function is a key exploratory tool for understanding the nature
 #'   and magnitude of positional error in a dataset before correction. It plots
-#'   arrows that originate at the distorted `source` coordinates and point to the
-#'   correct `target` coordinates. This provides an immediate visual sense of the
-#'   spatial patterns in the distortion (e.g., rotation, scaling, or non-linear warping).
+#'   arrows that originate at the distorted `source` coordinates and point to
+#'   the correct `target` coordinates. This provides an immediate visual sense
+#'   of the spatial patterns in the distortion (e.g., rotation, scaling, or
+#'   non-linear warping).
 #'
-#' @param gcp_data An `sf` object of homologous points, typically the output of `read_gcps()`.
-#'   Must contain `source_x`, `source_y`, `target_x`, and `target_y` columns.
+#' @param gcp_data An `sf` object of homologous points, typically the output of
+#'   `read_gcps()`. Must contain `source_x`, `source_y`, `target_x`, and
+#'   `target_y` columns.
 #' @param title A character string for the plot's main title.
 #' @param subtitle A character string for the plot's subtitle.
-#' @param arrow_color A character string specifying the color of the displacement arrows.
-#' @param point_color A character string specifying the color of the points marking the source locations.
+#' @param arrow_color A character string specifying the color of the
+#'   displacement arrows.
+#' @param point_color A character string specifying the color of the points
+#'   marking the source locations.
 #'
-#' @return A `ggplot` object, which can be further customized using standard `ggplot2` syntax.
+#' @return A `ggplot` object, which can be further customized using standard
+#'   `ggplot2` syntax.
 #'
 #' @import ggplot2
 #' @importFrom rlang .data
@@ -37,19 +42,22 @@
 #'   point_color = "orange"
 #' )
 #'
-plot_displacement <- function(gcp_data,
-                              title = "Distortion Displacement Vectors",
-                              subtitle = "Arrows point from distorted to true locations",
-                              arrow_color = "darkred",
-                              point_color = "red") {
+plot_displacement <- function(
+    gcp_data,
+    title = "Distortion Displacement Vectors",
+    subtitle = "Arrows point from distorted to true locations",
+    arrow_color = "darkred",
+    point_color = "red") {
 
   # --- 1. Input Validation ---
   if (!inherits(gcp_data, "sf")) {
-    stop("`gcp_data` must be an sf object, typically created by `read_gcps()`.", call. = FALSE)
+    stop("`gcp_data` must be an sf object, typically created by `read_gcps()`.",
+         call. = FALSE)
   }
   required_cols <- c("source_x", "source_y", "target_x", "target_y")
   if (!all(required_cols %in% names(gcp_data))) {
-    stop("`gcp_data` is missing required columns for plotting.", call. = FALSE)
+    stop("`gcp_data` is missing required columns for plotting.",
+         call. = FALSE)
   }
 
   # --- 2. Create the Plot ---

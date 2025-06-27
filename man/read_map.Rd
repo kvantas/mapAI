@@ -10,19 +10,21 @@ read_map(shp_path, crs = NA)
 \item{shp_path}{A character string specifying the path to the input map file
 (e.g., a shapefile).}
 
-\item{crs}{An optional coordinate reference system (CRS) to assign if the input
-file lacks one. Can be an EPSG code (e.g., \code{32632}) or a WKT string.}
+\item{crs}{An optional coordinate reference system (CRS) to assign if the
+input file lacks one. Can be an EPSG code (e.g., \code{32632}) or a WKT string.}
 }
 \value{
 An \code{sf} object of the map to be corrected.
 }
 \description{
-Reads a vector map (e.g., shapefile) that is intended to be corrected.
+Reads a vector map (e.g., shapefile) that is intended to be
+corrected.
 }
 \details{
-This function reads the geospatial file using \code{sf::st_read}. If the file contains
-polygon geometries and does not already have an area column named 'area_old', this function
-will calculate the area of each feature and add it.
+This function reads the geospatial file using \code{sf::st_read}. If the
+file contains polygon geometries and does not already have an area column
+named 'area_old', this function will calculate the area of each feature and
+add it.
 }
 \examples{
 \dontrun{

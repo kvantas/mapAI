@@ -9,33 +9,35 @@ plot_correction_surface(pai_model, gcp_data, n_grid = 100)
 \arguments{
 \item{pai_model}{A trained \code{pai_model} object returned by \code{train_pai_model()}.}
 
-\item{gcp_data}{The \code{sf} object of homologous points that was used for training
-the model.}
+\item{gcp_data}{The \code{sf} object of homologous points that was used for
+training the model.}
 
-\item{n_grid}{The resolution of the interpolation grid used to create the smooth
-surface. Higher values create a more detailed plot but take longer to compute.
-Defaults to 100.}
+\item{n_grid}{The resolution of the interpolation grid used to create the
+smooth surface. Higher values create a more detailed plot but take longer to
+compute. Defaults to 100.}
 }
 \value{
 A \code{patchwork} object containing two \code{ggplot} plots, one for \code{dx} and
 one for \code{dy}.
 }
 \description{
-Visualizes the spatial correction field (dx, dy) learned by a PAI model.
+Visualizes the spatial correction field (dx, dy) learned by a
+PAI model.
 }
 \details{
-This function serves as a key diagnostic tool for understanding the behavior of
-a trained \code{pai_model}. It creates two raster plots: one for the \code{dx}
-(East-West) corrections and one for the \code{dy} (North-South) corrections.
+This function serves as a key diagnostic tool for understanding the
+behavior of a trained \code{pai_model}. It creates two raster plots: one for the
+\code{dx} (East-West) corrections and one for the \code{dy} (North-South) corrections.
 
-The color intensity on the plots reveals the magnitude of the correction at any
-given location. Contour lines show the gradient of the change, and black crosses
-mark the location of the original Ground Control Points (GCPs), showing where
-the model had direct information to learn from.
+The color intensity on the plots reveals the magnitude of the correction at
+any given location. Contour lines show the gradient of the change, and black
+crosses mark the location of the original Ground Control Points (GCPs),
+showing where the model had direct information to learn from.
 
 By examining these surfaces, users can:
 \itemize{
-\item Understand the spatial nature of the distortion their model has learned.
+\item Understand the spatial nature of the distortion their model has
+learned.
 \item Identify areas of high vs. low correction.
 \item Spot potential issues like extreme corrections or unusual artifacts,
 especially at the edges of the data where the model is extrapolating.

@@ -1,10 +1,11 @@
 #' @title Train a PAI Model
-#' @description Trains a supervised learning or analytical model to define a spatial
-#'   transformation.
-#' @details This function serves as a factory for creating transformation models. It
-#'   supports machine learning methods ("lm", "gam", "rf") that learn the relationship
-#'   between source coordinates and displacement vectors, as well as the analytical
-#'   "helmert" method which solves for a global similarity transformation.
+#' @description Trains a supervised learning or analytical model to define a
+#'   spatial transformation.
+#' @details This function serves as a factory for creating transformation
+#'   models. It supports machine learning methods ("lm", "gam", "rf") that learn
+#'   the relationship between source coordinates and displacement vectors, as
+#'   well as the analytical "helmert" method which solves for a global
+#'   similarity transformation.
 #'
 #'   **Important**: The more flexible machine learning models, `gam` and `rf`,
 #'   require a sufficient number of data points to produce stable and reliable
@@ -16,8 +17,8 @@
 #' @param method A character string specifying the algorithm. One of:
 #'    "lm","tps", "gam", "rf", or "helmert".
 #' @param seed An integer for setting the random seed for reproducibility.
-#' @param ... Additional arguments passed to the underlying model fitting functions
-#'   (`mgcv::gam`, `stats::lm`, `ranger::ranger`, `fields::Tps`).
+#' @param ... Additional arguments passed to the underlying model fitting
+#'    functions (`mgcv::gam`, `stats::lm`, `ranger::ranger`, `fields::Tps`).
 #'
 #' @return A trained model object of class `pai_model`.
 #'
@@ -33,7 +34,8 @@ train_pai_model <- function(gcp_data, method, seed = 123, ...) {
 
   # Ensure the input is valid
   if (!inherits(gcp_data, "sf")) {
-    stop("`gcp_data` must be an sf object created by `read_gcps()`.", call. = FALSE)
+    stop("`gcp_data` must be an sf object created by `read_gcps()`.",
+         call. = FALSE)
   }
 
   # Check if the method is valid
@@ -95,7 +97,7 @@ Please use simpler models like 'lm' or 'helmert' for small datasets.",
         } else if (method == "rf") {
           return(ranger::ranger(formula, data = data, ...))
         } else {
-          stop("Invalid method specified. Choose from 'lm', 'gam', 'rf', or 'helmert'.", call. = FALSE)
+          stop("Invalid method specified. Choose from 'lm', 'tps', 'gam', 'rf', or 'helmert'.", call. = FALSE)
         }
       }
       model_fit <- list(

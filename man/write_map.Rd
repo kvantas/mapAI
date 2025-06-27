@@ -12,8 +12,8 @@ write_map(map, file_path, overwrite = FALSE, ...)
 \item{file_path}{A character string specifying the path and filename for the
 output file (e.g., \code{"path/to/my_corrected_map.shp"}).}
 
-\item{overwrite}{A logical value. If \code{TRUE}, it will overwrite an existing file
-at the specified path. Defaults to \code{FALSE}.}
+\item{overwrite}{A logical value. If \code{TRUE}, it will overwrite an existing
+file at the specified path. Defaults to \code{FALSE}.}
 
 \item{...}{Additional arguments to be passed directly to \code{sf::st_write}
 (e.g., \code{layer_options}).}
@@ -23,14 +23,14 @@ Invisibly returns the input \code{map} object, allowing it to be used in a
 pipe chain.
 }
 \description{
-A robust and user-friendly wrapper around \code{sf::st_write} to save an
-\code{sf} object, for example, a corrected map.
+A robust and user-friendly wrapper around \code{sf::st_write} to save
+an \code{sf} object, for example, a corrected map.
 }
 \details{
-This function provides a straightforward way to save the output of the \code{mapAI}
-workflow (or any \code{sf} object) to a file on disk. It supports any file format
-that \code{sf::st_write} can handle. The function automatically infers the correct
-driver from the file extension (e.g., \code{.shp} -> \code{"ESRI Shapefile"}, \code{.gpkg} -> \code{"GPKG"}).
+This function provides a straightforward way to save the output of
+the \code{mapAI} workflow (or any \code{sf} object) to a file on disk. It supports any
+file format that \code{sf::st_write} can handle. The function automatically infers
+the correct driver from the file extension (e.g., \code{.shp} -> \code{"ESRI Shapefile"}, \code{.gpkg} -> \code{"GPKG"}).
 
 For safety, the function defaults to \code{overwrite = FALSE}, which will prevent
 accidentally overwriting an existing file. Advanced users can pass additional

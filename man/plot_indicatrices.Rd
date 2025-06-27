@@ -12,37 +12,42 @@ plot_indicatrices(
 )
 }
 \arguments{
-\item{distortion_sf}{An \code{sf} object of \strong{points} returned by \code{analyze_distortion()}.
-It must contain the columns \code{a}, \code{b}, and \code{theta_a}.}
+\item{distortion_sf}{An \code{sf} object of \strong{points} returned by
+\code{analyze_distortion()}. It must contain the columns \code{a}, \code{b}, and
+\code{theta_a}.}
 
-\item{scale_factor}{A numeric value to control the size of the plotted ellipses
-for better visibility. You will need to adjust this based on your map's scale.}
+\item{scale_factor}{A numeric value to control the size of the plotted
+ellipses for better visibility. You will need to adjust this based on your
+map's scale.}
 
-\item{fill_color}{A character string specifying the fill color of the ellipses.}
+\item{fill_color}{A character string specifying the fill color of the
+ellipses.}
 
-\item{border_color}{A character string specifying the border color of the ellipses.}
+\item{border_color}{A character string specifying the border color of the
+ellipses.}
 }
 \value{
 A \code{ggplot} object containing the distortion ellipses plotted in the
 source coordinate space.
 }
 \description{
-Visualizes distortion by drawing Tissot's indicatrices (ellipses)
-at their original source locations.
+Visualizes distortion by drawing Tissot's indicatrices
+(ellipses) at their original source locations.
 }
 \details{
-This function creates a powerful visual representation of distortion, following
-the methodology of Boùùaert et al. (2016). It takes the results from
-\code{analyze_distortion()} and draws an ellipse at each analyzed point, centered
-on its \strong{source coordinate}. This allows for a direct visual assessment of
-distortion on the historical map's geographic space.
+This function creates a powerful visual representation of
+distortion, following the methodology of Boùùaert et al. (2016). It takes the
+results from \code{analyze_distortion()} and draws an ellipse at each analyzed
+point, centered on its \strong{source coordinate}. This allows for a direct visual
+assessment of distortion on the historical map's geographic space.
 
-Each ellipse graphically shows the magnitude and direction of distortion at that
-location:
+Each ellipse graphically shows the magnitude and direction of distortion at
+that location:
 \itemize{
 \item The \strong{shape} of the ellipse shows the angular distortion (shear).
 \item The \strong{size} of the ellipse shows the areal distortion.
-\item The \strong{orientation} of the ellipse shows the direction of maximum scale.
+\item The \strong{orientation} of the ellipse shows the direction of maximum
+scale.
 }
 }
 \examples{

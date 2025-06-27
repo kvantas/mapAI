@@ -22,6 +22,7 @@ and the original data centroids, ready for use by \code{predict.pai_model}.
 \description{
 Calculates the four parameters of a 2D similarity (Helmert)
 transformation using a standard, numerically stable least-squares solution
-based on centroids. This is an internal function called by \code{train_pai_model}.
+based on centroids. This is an internal function called by
+\code{train_pai_model}.
 }
 \keyword{internal}

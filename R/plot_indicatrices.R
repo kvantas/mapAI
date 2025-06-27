@@ -1,27 +1,31 @@
 #' @title Plot Tissot's Indicatrices of Distortion
-#' @description Visualizes distortion by drawing Tissot's indicatrices (ellipses)
-#'   at their original source locations.
-#' @details
-#' This function creates a powerful visual representation of distortion, following
-#' the methodology of Boùùaert et al. (2016). It takes the results from
-#' `analyze_distortion()` and draws an ellipse at each analyzed point, centered
-#' on its **source coordinate**. This allows for a direct visual assessment of
-#' distortion on the historical map's geographic space.
+#' @description Visualizes distortion by drawing Tissot's indicatrices
+#'   (ellipses) at their original source locations.
+#' @details This function creates a powerful visual representation of
+#' distortion, following the methodology of Boùùaert et al. (2016). It takes the
+#' results from `analyze_distortion()` and draws an ellipse at each analyzed
+#' point, centered on its **source coordinate**. This allows for a direct visual
+#' assessment of distortion on the historical map's geographic space.
 #'
-#' Each ellipse graphically shows the magnitude and direction of distortion at that
-#' location:
+#' Each ellipse graphically shows the magnitude and direction of distortion at
+#' that location:
 #' \itemize{
 #'   \item The **shape** of the ellipse shows the angular distortion (shear).
 #'   \item The **size** of the ellipse shows the areal distortion.
-#'   \item The **orientation** of the ellipse shows the direction of maximum scale.
+#'   \item The **orientation** of the ellipse shows the direction of maximum
+#'   scale.
 #' }
 #'
-#' @param distortion_sf An `sf` object of **points** returned by `analyze_distortion()`.
-#'   It must contain the columns `a`, `b`, and `theta_a`.
-#' @param scale_factor A numeric value to control the size of the plotted ellipses
-#'   for better visibility. You will need to adjust this based on your map's scale.
-#' @param fill_color A character string specifying the fill color of the ellipses.
-#' @param border_color A character string specifying the border color of the ellipses.
+#' @param distortion_sf An `sf` object of **points** returned by
+#'   `analyze_distortion()`. It must contain the columns `a`, `b`, and
+#'   `theta_a`.
+#' @param scale_factor A numeric value to control the size of the plotted
+#'   ellipses for better visibility. You will need to adjust this based on your
+#'   map's scale.
+#' @param fill_color A character string specifying the fill color of the
+#'   ellipses.
+#' @param border_color A character string specifying the border color of the
+#'   ellipses.
 #'
 #' @return A `ggplot` object containing the distortion ellipses plotted in the
 #'   source coordinate space.
@@ -50,7 +54,11 @@ plot_indicatrices <- function(distortion_sf, scale_factor = 1,
 
   # --- Input Validation ---
   required_cols <- c("a", "b", "theta_a")
-  if (!inherits(distortion_sf, "sf")) stop("`distortion_sf` must be an sf object.", call. = FALSE)
+
+  if (!inherits(distortion_sf, "sf")) {
+    stop("`distortion_sf` must be an sf object.", call. = FALSE)
+    }
+
   if (!all(required_cols %in% names(distortion_sf))) {
     stop("Input data must be the output of `analyze_distortion()`.", call. = FALSE)
   }
@@ -63,7 +71,7 @@ plot_indicatrices <- function(distortion_sf, scale_factor = 1,
   indicatrices_list <- vector("list", nrow(distortion_sf))
 
   # --- Create Ellipse for each point ---
-  for (i in 1:nrow(distortion_sf)) {
+  for (i in seq_along(distortion_sf)) {
     point_data <- distortion_sf[i, ]
     # The center of the ellipse is its original SOURCE location
     center_coords <- source_coords[i, ]
@@ -76,7 +84,11 @@ plot_indicatrices <- function(distortion_sf, scale_factor = 1,
     base_ellipse <- cbind(a * cos(t), b * sin(t))
     closed_ellipse <- rbind(base_ellipse, base_ellipse[1,])
 
-    rotation_matrix <- matrix(c(cos(theta_rad), sin(theta_rad), -sin(theta_rad), cos(theta_rad)), 2, 2)
+    rotation_matrix <- matrix(c(cos(theta_rad),
+                                sin(theta_rad),
+                                -sin(theta_rad),
+                                cos(theta_rad)),
+                              2, 2)
 
     # Apply rotation, visibility scaling, and translation to the source location
     final_ellipse <- (closed_ellipse %*% rotation_matrix) * scale_factor
@@ -87,7 +99,8 @@ plot_indicatrices <- function(distortion_sf, scale_factor = 1,
   }
 
   # --- Create the final sf object for plotting ---
-  indicatrices_sf <- sf::st_sfc(indicatrices_list, crs = sf::st_crs(distortion_sf))
+  indicatrices_sf <- sf::st_sfc(indicatrices_list,
+                                crs = sf::st_crs(distortion_sf))
 
   # --- Create the plot ---
   p <- ggplot2::ggplot() +

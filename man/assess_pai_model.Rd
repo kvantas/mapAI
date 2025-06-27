@@ -19,11 +19,11 @@ assess_pai_model(
 \item{method}{A character string specifying the algorithm to assess. One of:
 "lm", "gam", "rf", "helmert", "tps".}
 
-\item{validation_type}{A character string specifying the cross-validation strategy.
-One of "random" (default) or "spatial".}
+\item{validation_type}{A character string specifying the cross-validation
+strategy. One of "random" (default) or "spatial".}
 
-\item{k_folds}{An integer specifying the number of folds for cross-validation.
-Defaults to 10 for "random" and 5 for "spatial".}
+\item{k_folds}{An integer specifying the number of folds for
+cross-validation. Defaults to 10 for "random" and 5 for "spatial".}
 
 \item{seed}{An integer for setting the random seed for reproducibility.}
 
@@ -38,28 +38,28 @@ A data frame summarizing the cross-validation results, containing:
 \item{SD_RMSE_2D}{The standard deviation of the 2D RMSE across all k-folds.}
 }
 \description{
-Performs k-fold cross-validation to provide a robust estimate of a
-PAI model's predictive performance, offering both random and spatial CV methods.
+Performs k-fold cross-validation to provide a robust estimate of
+a PAI model's predictive performance, offering both random and spatial CV
+methods.
 }
 \details{
-Model validation is crucial for understanding how well a model will generalize to
-new data. This function automates this process.
+Model validation is crucial for understanding how well a model will
+generalize to new data. This function automates this process.
 
 \strong{Validation Types}:
 \itemize{
-\item \strong{\code{random} (default)}: Standard k-fold cross-validation. Data is
-randomly partitioned into folds. This can produce overly optimistic results for
-spatial data due to spatial autocorrelation.
-\item \strong{\code{spatial}}: Spatial Cross-Validation (SCV). Homologous points are
-clustered into \code{k_folds} spatially distinct groups using k-means clustering on
-their coordinates. The model is then trained on k-1 groups and tested on the
-held-out group. This provides a more realistic estimate of performance when
-predicting to new geographic areas.
+\item \strong{\code{random} (default)}: Standard k-fold cross-validation. Data
+is randomly partitioned into folds. This can produce overly optimistic
+results for spatial data due to spatial autocorrelation.
+\item \strong{\code{spatial}}: Spatial Cross-Validation (SCV). Homologous
+points are clustered into \code{k_folds} spatially distinct groups using
+k-means clustering on their coordinates. The model is then trained on k-1
+groups and tested on the held-out group.
 }
-The function loops through the folds, trains a temporary model on the training
-data for each fold, predicts on the test data, and calculates the 2D Root
-Mean Squared Error (RMSE). The final output is the mean and standard deviation
-of the RMSEs across all folds.
+The function loops through the folds, trains a temporary model on the
+training data for each fold, predicts on the test data, and calculates the 2D
+Root Mean Squared Error (RMSE). The final output is the mean and standard
+deviation of the RMSEs across all folds.
 }
 \examples{
 \dontrun{

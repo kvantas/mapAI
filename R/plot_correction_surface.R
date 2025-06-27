@@ -1,30 +1,31 @@
 #' @title Plot the Learned Correction Surface
-#' @description Visualizes the spatial correction field (dx, dy) learned by a PAI model.
+#' @description Visualizes the spatial correction field (dx, dy) learned by a
+#'   PAI model.
 #'
-#' @details
-#' This function serves as a key diagnostic tool for understanding the behavior of
-#' a trained `pai_model`. It creates two raster plots: one for the `dx`
-#' (East-West) corrections and one for the `dy` (North-South) corrections.
+#' @details This function serves as a key diagnostic tool for understanding the
+#' behavior of a trained `pai_model`. It creates two raster plots: one for the
+#' `dx` (East-West) corrections and one for the `dy` (North-South) corrections.
 #'
-#' The color intensity on the plots reveals the magnitude of the correction at any
-#' given location. Contour lines show the gradient of the change, and black crosses
-#' mark the location of the original Ground Control Points (GCPs), showing where
-#' the model had direct information to learn from.
+#' The color intensity on the plots reveals the magnitude of the correction at
+#' any given location. Contour lines show the gradient of the change, and black
+#' crosses mark the location of the original Ground Control Points (GCPs),
+#' showing where the model had direct information to learn from.
 #'
 #' By examining these surfaces, users can:
 #' \itemize{
-#'   \item Understand the spatial nature of the distortion their model has learned.
+#'   \item Understand the spatial nature of the distortion their model has
+#'   learned.
 #'   \item Identify areas of high vs. low correction.
 #'   \item Spot potential issues like extreme corrections or unusual artifacts,
 #'     especially at the edges of the data where the model is extrapolating.
 #' }
 #'
 #' @param pai_model A trained `pai_model` object returned by `train_pai_model()`.
-#' @param gcp_data The `sf` object of homologous points that was used for training
-#'   the model.
-#' @param n_grid The resolution of the interpolation grid used to create the smooth
-#'   surface. Higher values create a more detailed plot but take longer to compute.
-#'   Defaults to 100.
+#' @param gcp_data The `sf` object of homologous points that was used for
+#'  training the model.
+#' @param n_grid The resolution of the interpolation grid used to create the
+#'  smooth surface. Higher values create a more detailed plot but take longer to
+#'   compute. Defaults to 100.
 #'
 #' @return A `patchwork` object containing two `ggplot` plots, one for `dx` and
 #'   one for `dy`.
@@ -60,8 +61,13 @@
 #' print(correction_plot)
 #' }
 plot_correction_surface <- function(pai_model, gcp_data, n_grid = 100) {
-  if (!inherits(pai_model, "pai_model")) stop("pai_model must be a valid pai_model object.")
-  if (!inherits(gcp_data, "sf")) stop("gcp_data must be a valid sf object.")
+  if (!inherits(pai_model, "pai_model")) {
+    stop("pai_model must be a valid pai_model object.")
+    }
+
+  if (!inherits(gcp_data, "sf")) {
+    stop("gcp_data must be a valid sf object.")
+    }
 
   bbox <- sf::st_bbox(gcp_data)
   grid_to_predict <- expand.grid(
@@ -74,7 +80,8 @@ plot_correction_surface <- function(pai_model, gcp_data, n_grid = 100) {
 
   # Plot for dx
   suppressWarnings(
-  p_dx <- ggplot(plot_data, aes(x = .data$source_x, y = .data$source_y, fill = .data$dx)) +
+  p_dx <- ggplot(plot_data,
+                 aes(x = .data$source_x, y = .data$source_y, fill = .data$dx)) +
     geom_raster() +
     geom_contour(aes(z = .data$dx), color = "white", alpha = 0.4, bins = 12) +
     scale_fill_viridis(option = "viridis", name = "dx") +
@@ -86,7 +93,8 @@ plot_correction_surface <- function(pai_model, gcp_data, n_grid = 100) {
   )
   # Plot for dy
   suppressWarnings(
-  p_dy <- ggplot(plot_data, aes(x = .data$source_x, y = .data$source_y, fill = .data$dy)) +
+  p_dy <- ggplot(plot_data,
+                 aes(x = .data$source_x, y = .data$source_y, fill = .data$dy)) +
     geom_raster() +
     geom_contour(aes(z = .data$dy), color = "white", alpha = 0.4, bins = 12) +
     scale_fill_viridis(option = "viridis", name = "dy") +

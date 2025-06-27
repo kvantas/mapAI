@@ -1,26 +1,29 @@
 #' @title Plot Model Residuals at Homologous Point Locations
-#' @description Creates a vector plot showing the residual errors of a trained PAI
-#'   model at the location of the Ground Control Points (GCPs).
+#' @description Creates a vector plot showing the residual errors of a trained
+#'   PAI model at the location of the Ground Control Points (GCPs).
 #'
-#' @details
-#' This is a crucial diagnostic function for assessing model performance. It answers
-#' the question: "What errors did the model fail to correct?"
+#' @details This is a crucial diagnostic function for assessing model
+#' performance. It answers the question: "What errors did the model fail to
+#' correct?"
 #'
-#' The function first predicts the correction for each GCP. It then calculates the
-#' model's predicted target coordinate for each point. The resulting arrows are
-#' drawn starting from this **predicted target location** and pointing to the
+#' The function first predicts the correction for each GCP. It then calculates
+#' the model's predicted target coordinate for each point. The resulting arrows
+#' are drawn starting from this **predicted target location** and pointing to
+#' the
 #' **true target location**.
 #'
 #' A perfect model would have zero-length residual vectors. The presence of long
-#' arrows or clear spatial patterns in the residuals may indicate that the chosen
-#' model was not complex enough to capture the full distortion pattern.
+#' arrows or clear spatial patterns in the residuals may indicate that the
+#' chosen model was not complex enough to capture the full distortion pattern.
 #'
 #' @param pai_model An object of class `pai_model` from `train_pai_model()`.
 #' @param gcp_data An `sf` object of homologous points, from `read_gcps()`.
 #' @param title A character string for the plot's main title.
 #' @param subtitle A character string for the plot's subtitle.
-#' @param arrow_color A character string specifying the color of the residual arrows.
-#' @param point_color A character string specifying the color of the points marking the predicted locations.
+#' @param arrow_color A character string specifying the color of the residual
+#'    arrows.
+#' @param point_color A character string specifying the color of the points
+#'    marking the predicted locations.
 #'
 #' @return A `ggplot` object, which can be further customized.
 #'
@@ -48,20 +51,27 @@
 #'                point_color = "#66c2a5"  # A lighter green
 #' )
 #'
-plot_residuals <- function(pai_model, gcp_data,
-                           title = "Model Residual Error Vectors",
-                           subtitle = "Arrows point from predicted to true target locations",
-                           arrow_color = "darkblue",
-                           point_color = "blue") {
+plot_residuals <- function(
+    pai_model, gcp_data,
+    title = "Model Residual Error Vectors",
+    subtitle = "Arrows point from predicted to true target locations",
+    arrow_color = "darkblue",
+    point_color = "blue") {
 
   # --- Input Validation ---
-  if (!inherits(pai_model, "pai_model")) stop("`pai_model` must be an object of class 'pai_model'.", call. = FALSE)
-  if (!inherits(gcp_data, "sf")) stop("`gcp_data` must be a valid `sf` object.", call. = FALSE)
+  if (!inherits(pai_model, "pai_model")) {
+    stop("`pai_model` must be an object of class 'pai_model'.", call. = FALSE)
+  }
+
+  if (!inherits(gcp_data, "sf")) {
+    stop("`gcp_data` must be a valid `sf` object.", call. = FALSE)
+  }
 
   message("Calculating model residuals...")
 
   # Predict the displacements
-  predicted_displacements <- predict(pai_model, newdata = sf::st_drop_geometry(gcp_data))
+  predicted_displacements <- predict(pai_model,
+                                     newdata = sf::st_drop_geometry(gcp_data))
 
   # Create a clean data frame for plotting
   plot_df <- sf::st_drop_geometry(gcp_data) %>%

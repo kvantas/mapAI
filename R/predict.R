@@ -1,27 +1,27 @@
 #' @title Predict Method for pai_model Objects
-#' @description Predicts spatial corrections (dx, dy) from a trained `pai_model` object.
-#'   This is an S3 method for the generic `predict()` function.
+#' @description Predicts spatial corrections (dx, dy) from a trained `pai_model`
+#'   object. This is an S3 method for the generic `predict()` function.
 #'
-#' @details
-#' This function provides the core prediction logic for all models created by
-#' `train_pai_model()`. As an S3 method, it should not be called directly (e.g.,
-#' `predict.pai_model(...)`), but rather through the generic `predict()` function
-#' (e.g., `predict(my_model, ...)`).
+#' @details This function provides the core prediction logic for all models
+#'   created by `train_pai_model()`. As an S3 method, it should not be called
+#'   directly (e.g., `predict.pai_model(...)`), but rather through the generic
+#'   `predict()` function (e.g., `predict(my_model, ...)`).
 #'
-#' Key features of this method include:
+#'   Key features of this method include:
 #' \itemize{
-#'   \item \strong{Automatic Model Handling:} It transparently handles the different
-#'     output structures of `helmert`,`tps`, `gam`, `lm`, and `rf` models, always returning a
-#'     consistent `data.frame`.
+#'   \item \strong{Automatic Model Handling:} It transparently handles the
+#'    different output structures of `helmert`,`tps`, `gam`, `lm`, and `rf`
+#'    models, always returning a consistent `data.frame`.
 #'   \item \strong{Robust NA Handling:} It correctly handles `NA` values in the
 #'     `newdata` predictors. Rows with `NA` inputs will produce `NA` outputs,
-#'     ensuring the output has the same number of rows as the input and preventing
-#'     errors from underlying prediction functions.
+#'     ensuring the output has the same number of rows as the input and
+#'     preventing errors from underlying prediction functions.
 #' }
 #'
-#' @param object A trained model object of class `pai_model` returned by `train_pai_model()`.
-#' @param newdata A `data.frame` with `source_x` and `source_y` columns for which
-#'   to generate predictions.
+#' @param object A trained model object of class `pai_model` returned by
+#'    `train_pai_model()`.
+#' @param newdata A `data.frame` with `source_x` and `source_y` columns for
+#'    which to generate predictions.
 #' @param ... Additional arguments passed on to the underlying predict methods
 #'   (e.g., `predict.lm`, `predict.gam`).
 #'
@@ -71,12 +71,15 @@
 #' print(predictions_from_rf)
 #' }
 predict.pai_model <- function(object, newdata, ...) {
+
   # --- 1. Input Validation ---
   if (missing(newdata) || is.null(newdata)) {
-    stop("The 'newdata' argument is required.", call. = FALSE)
+    stop("The 'newdata' argument is required.",
+         call. = FALSE)
   }
   if (!all(c("source_x", "source_y") %in% names(newdata))) {
-    stop("'newdata' must contain 'source_x' and 'source_y' columns.", call. = FALSE)
+    stop("'newdata' must contain 'source_x' and 'source_y' columns.",
+         call. = FALSE)
   }
 
   # Identify rows with NAs in the predictors. This is the only robust way

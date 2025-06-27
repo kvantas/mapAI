@@ -22,29 +22,33 @@ plot_residuals(
 
 \item{subtitle}{A character string for the plot's subtitle.}
 
-\item{arrow_color}{A character string specifying the color of the residual arrows.}
+\item{arrow_color}{A character string specifying the color of the residual
+arrows.}
 
-\item{point_color}{A character string specifying the color of the points marking the predicted locations.}
+\item{point_color}{A character string specifying the color of the points
+marking the predicted locations.}
 }
 \value{
 A \code{ggplot} object, which can be further customized.
 }
 \description{
-Creates a vector plot showing the residual errors of a trained PAI
-model at the location of the Ground Control Points (GCPs).
+Creates a vector plot showing the residual errors of a trained
+PAI model at the location of the Ground Control Points (GCPs).
 }
 \details{
-This is a crucial diagnostic function for assessing model performance. It answers
-the question: "What errors did the model fail to correct?"
+This is a crucial diagnostic function for assessing model
+performance. It answers the question: "What errors did the model fail to
+correct?"
 
-The function first predicts the correction for each GCP. It then calculates the
-model's predicted target coordinate for each point. The resulting arrows are
-drawn starting from this \strong{predicted target location} and pointing to the
+The function first predicts the correction for each GCP. It then calculates
+the model's predicted target coordinate for each point. The resulting arrows
+are drawn starting from this \strong{predicted target location} and pointing to
+the
 \strong{true target location}.
 
 A perfect model would have zero-length residual vectors. The presence of long
-arrows or clear spatial patterns in the residuals may indicate that the chosen
-model was not complex enough to capture the full distortion pattern.
+arrows or clear spatial patterns in the residuals may indicate that the
+chosen model was not complex enough to capture the full distortion pattern.
 }
 \examples{
 # --- 1. Load data and train a simple model ---
