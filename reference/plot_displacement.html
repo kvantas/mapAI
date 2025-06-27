@@ -60,8 +60,9 @@
 
 
 <dl><dt id="arg-gcp-data">gcp_data<a class="anchor" aria-label="anchor" href="#arg-gcp-data"></a></dt>
-<dd><p>An <code>sf</code> object of homologous points, typically the output of <code><a href="read_gcps.html">read_gcps()</a></code>.
-Must contain <code>source_x</code>, <code>source_y</code>, <code>target_x</code>, and <code>target_y</code> columns.</p></dd>
+<dd><p>An <code>sf</code> object of homologous points, typically the output of
+<code><a href="read_gcps.html">read_gcps()</a></code>. Must contain <code>source_x</code>, <code>source_y</code>, <code>target_x</code>, and
+<code>target_y</code> columns.</p></dd>
 
 
 <dt id="arg-title">title<a class="anchor" aria-label="anchor" href="#arg-title"></a></dt>
@@ -73,32 +74,36 @@ Must contain <code>source_x</code>, <code>source_y</code>, <code>target_x</code>
 
 
 <dt id="arg-arrow-color">arrow_color<a class="anchor" aria-label="anchor" href="#arg-arrow-color"></a></dt>
-<dd><p>A character string specifying the color of the displacement arrows.</p></dd>
+<dd><p>A character string specifying the color of the
+displacement arrows.</p></dd>
 
 
 <dt id="arg-point-color">point_color<a class="anchor" aria-label="anchor" href="#arg-point-color"></a></dt>
-<dd><p>A character string specifying the color of the points marking the source locations.</p></dd>
+<dd><p>A character string specifying the color of the points
+marking the source locations.</p></dd>
 
 </dl></div>
     <div class="section level2">
     <h2 id="value">Value<a class="anchor" aria-label="anchor" href="#value"></a></h2>
-    <p>A <code>ggplot</code> object, which can be further customized using standard <code>ggplot2</code> syntax.</p>
+    <p>A <code>ggplot</code> object, which can be further customized using standard
+<code>ggplot2</code> syntax.</p>
     </div>
     <div class="section level2">
     <h2 id="details">Details<a class="anchor" aria-label="anchor" href="#details"></a></h2>
     <p>This function is a key exploratory tool for understanding the nature
 and magnitude of positional error in a dataset before correction. It plots
-arrows that originate at the distorted <code>source</code> coordinates and point to the
-correct <code>target</code> coordinates. This provides an immediate visual sense of the
-spatial patterns in the distortion (e.g., rotation, scaling, or non-linear warping).</p>
+arrows that originate at the distorted <code>source</code> coordinates and point to
+the correct <code>target</code> coordinates. This provides an immediate visual sense
+of the spatial patterns in the distortion (e.g., rotation, scaling, or
+non-linear warping).</p>
     </div>
 
     <div class="section level2">
     <h2 id="ref-examples">Examples<a class="anchor" aria-label="anchor" href="#ref-examples"></a></h2>
     <div class="sourceCode"><pre class="sourceCode r"><code><span class="r-in"><span><span class="co"># --- 1. First, create a demo dataset to work with ---</span></span></span>
 <span class="r-in"><span><span class="va">demo_files</span> <span class="op">&lt;-</span> <span class="fu"><a href="create_demo_data.html">create_demo_data</a></span><span class="op">(</span>type <span class="op">=</span> <span class="st">"complex"</span><span class="op">)</span></span></span>
-<span class="r-msg co"><span class="r-pr">#&gt;</span>    -&gt; Homologous points saved to: /tmp/Rtmp5ysmUo/demo_gcps.csv</span>
-<span class="r-msg co"><span class="r-pr">#&gt;</span>    -&gt; Distorted map saved to: /tmp/Rtmp5ysmUo/demo_map.shp</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span>    -&gt; Homologous points saved to: /tmp/Rtmpujumw0/demo_gcps.csv</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span>    -&gt; Distorted map saved to: /tmp/Rtmpujumw0/demo_map.shp</span>
 <span class="r-in"><span><span class="va">gcp_data</span> <span class="op">&lt;-</span> <span class="fu"><a href="read_gcps.html">read_gcps</a></span><span class="op">(</span>gcp_path <span class="op">=</span> <span class="va">demo_files</span><span class="op">$</span><span class="va">gcp_path</span>, crs <span class="op">=</span> <span class="fl">3857</span><span class="op">)</span></span></span>
 <span class="r-in"><span></span></span>
 <span class="r-in"><span><span class="co"># --- 2. Create the default displacement plot ---</span></span></span>
