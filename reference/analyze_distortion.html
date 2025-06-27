@@ -125,7 +125,7 @@ effectively zero, resulting in metrics indicating no local distortion (e.g.,
 <span class="r-msg co"><span class="r-pr">#&gt;</span> Training 'gam' model...</span>
 <span class="r-in"><span></span></span>
 <span class="r-in"><span><span class="co"># --- 2. Create a regular grid of POINTS for analysis ---</span></span></span>
-<span class="r-in"><span><span class="va">analysis_points</span> <span class="op">&lt;-</span> <span class="fu">sf</span><span class="fu">::</span><span class="fu"><a href="https://r-spatial.github.io/sf/reference/st_make_grid.html" class="external-link">st_make_grid</a></span><span class="op">(</span><span class="va">gcps</span>, n <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="fl">20</span>, <span class="fl">20</span><span class="op">)</span><span class="op">)</span> <span class="op"><a href="https://magrittr.tidyverse.org/reference/pipe.html" class="external-link">%&gt;%</a></span></span></span>
+<span class="r-in"><span><span class="va">analysis_points</span> <span class="op">&lt;-</span> <span class="fu">sf</span><span class="fu">::</span><span class="fu"><a href="https://r-spatial.github.io/sf/reference/st_make_grid.html" class="external-link">st_make_grid</a></span><span class="op">(</span><span class="va">gcps</span>, n <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="fl">25</span>, <span class="fl">25</span><span class="op">)</span><span class="op">)</span> <span class="op"><a href="https://magrittr.tidyverse.org/reference/pipe.html" class="external-link">%&gt;%</a></span></span></span>
 <span class="r-in"><span>  <span class="fu">sf</span><span class="fu">::</span><span class="fu"><a href="https://r-spatial.github.io/sf/reference/geos_unary.html" class="external-link">st_centroid</a></span><span class="op">(</span><span class="op">)</span> <span class="op"><a href="https://magrittr.tidyverse.org/reference/pipe.html" class="external-link">%&gt;%</a></span></span></span>
 <span class="r-in"><span>  <span class="fu">sf</span><span class="fu">::</span><span class="fu"><a href="https://r-spatial.github.io/sf/reference/sf.html" class="external-link">st_sf</a></span><span class="op">(</span><span class="op">)</span></span></span>
 <span class="r-in"><span></span></span>
@@ -135,32 +135,15 @@ effectively zero, resulting in metrics indicating no local distortion (e.g.,
 <span class="r-msg co"><span class="r-pr">#&gt;</span> Finalizing metrics from derivatives...</span>
 <span class="r-msg co"><span class="r-pr">#&gt;</span> Distortion analysis complete.</span>
 <span class="r-in"><span></span></span>
-<span class="r-in"><span><span class="co"># --- 4. Inspect the rich output ---</span></span></span>
-<span class="r-in"><span><span class="co"># Note the new columns like 'airy_kavrayskiy'.</span></span></span>
-<span class="r-in"><span><span class="fu">dplyr</span><span class="fu">::</span><span class="fu"><a href="https://pillar.r-lib.org/reference/glimpse.html" class="external-link">glimpse</a></span><span class="op">(</span><span class="va">distortion_results</span><span class="op">)</span></span></span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> Rows: 400</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> Columns: 9</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> $ geometry               <span style="color: #949494; font-style: italic;">&lt;POINT [m]&gt;</span> POINT (268471.1 4488204)<span style="color: #949494;">, </span>POINT (268501.4…</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> $ a                      <span style="color: #949494; font-style: italic;">&lt;dbl&gt;</span> 1.002472<span style="color: #949494;">, </span>1.001961<span style="color: #949494;">, </span>1.001778<span style="color: #949494;">, </span>1.001994<span style="color: #949494;">, </span>1.00227…</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> $ b                      <span style="color: #949494; font-style: italic;">&lt;dbl&gt;</span> 0.9988034<span style="color: #949494;">, </span>0.9976392<span style="color: #949494;">, </span>0.9958183<span style="color: #949494;">, </span>0.9961351<span style="color: #949494;">, </span>0.9…</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> $ area_scale             <span style="color: #949494; font-style: italic;">&lt;dbl&gt;</span> 1.0012726<span style="color: #949494;">, </span>0.9995951<span style="color: #949494;">, </span>0.9975887<span style="color: #949494;">, </span>0.9981215<span style="color: #949494;">, </span>1.0…</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> $ log2_area_scale        <span style="color: #949494; font-style: italic;">&lt;dbl&gt;</span> 0.0018348439<span style="color: #949494;">, </span>-0.0005842103<span style="color: #949494;">, </span>-0.0034829996<span style="color: #949494;">, </span>-0.…</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> $ max_shear              <span style="color: #949494; font-style: italic;">&lt;dbl&gt;</span> 0.10503794<span style="color: #949494;">, </span>0.12382367<span style="color: #949494;">, </span>0.17093118<span style="color: #949494;">, </span>0.16800630<span style="color: #949494;">,</span>…</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> $ max_angular_distortion <span style="color: #949494; font-style: italic;">&lt;dbl&gt;</span> 0.003666516<span style="color: #949494;">, </span>0.004322261<span style="color: #949494;">, </span>0.005966624<span style="color: #949494;">, </span>0.005864…</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> $ airy_kavrayskiy        <span style="color: #949494; font-style: italic;">&lt;dbl&gt;</span> 3.765217e-06<span style="color: #949494;">, </span>4.711488e-06<span style="color: #949494;">, </span>1.035730e-05<span style="color: #949494;">, </span>9.482…</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> $ theta_a                <span style="color: #949494; font-style: italic;">&lt;dbl&gt;</span> 52.97184<span style="color: #949494;">, </span>63.52916<span style="color: #949494;">, </span>70.28931<span style="color: #949494;">, </span>67.12323<span style="color: #949494;">, </span>59.3661…</span>
-<span class="r-in"><span></span></span>
-<span class="r-in"><span><span class="co"># --- 5. Visualize the Airy-Kavrayskiy measure ---</span></span></span>
-<span class="r-in"><span><span class="co"># This plot shows areas of combined areal and angular distortion.</span></span></span>
+<span class="r-in"><span><span class="co"># --- 4. Visualize the area scale ---</span></span></span>
 <span class="r-in"><span><span class="fu"><a href="plot_distortion_surface.html">plot_distortion_surface</a></span><span class="op">(</span></span></span>
 <span class="r-in"><span>  <span class="va">distortion_results</span>,</span></span>
-<span class="r-in"><span>  metric <span class="op">=</span> <span class="st">"airy_kavrayskiy"</span>,</span></span>
-<span class="r-in"><span>  gcp_data <span class="op">=</span> <span class="va">gcps</span></span></span>
-<span class="r-in"><span><span class="op">)</span></span></span>
-<span class="r-msg co"><span class="r-pr">#&gt;</span> Scattered points detected. Creating a point plot with geom_point().</span>
-<span class="r-msg co"><span class="r-pr">#&gt;</span> For a continuous surface plot, run analyze_distortion() on a regular grid of points.</span>
-<span class="r-msg co"><span class="r-pr">#&gt;</span> Coordinate system already present. Adding new coordinate system, which will</span>
-<span class="r-msg co"><span class="r-pr">#&gt;</span> replace the existing one.</span>
+<span class="r-in"><span>  metric <span class="op">=</span> <span class="st">"area_scale"</span><span class="op">)</span></span></span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span> Regular grid detected. Creating a surface plot with geom_raster().</span>
+<span class="r-wrn co"><span class="r-pr">#&gt;</span> <span class="warning">Warning: </span>Raster pixels are placed at uneven horizontal intervals and will be shifted</span>
+<span class="r-wrn co"><span class="r-pr">#&gt;</span> <span style="color: #00BBBB;">ℹ</span> Consider using `geom_tile()` instead.</span>
+<span class="r-wrn co"><span class="r-pr">#&gt;</span> <span class="warning">Warning: </span>Raster pixels are placed at uneven horizontal intervals and will be shifted</span>
+<span class="r-wrn co"><span class="r-pr">#&gt;</span> <span style="color: #00BBBB;">ℹ</span> Consider using `geom_tile()` instead.</span>
 <span class="r-plt img"><img src="analyze_distortion-1.png" alt="" width="700" height="433"></span>
 <span class="r-in"><span></span></span>
 </code></pre></div>

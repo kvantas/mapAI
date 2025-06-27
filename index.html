@@ -57,41 +57,43 @@
 </h1></div>
 <!-- badges: start -->
 
-<p>The <code>mapAI</code> package provides an end-to-end toolkit in R for the <strong>Positional Accuracy Improvement (PAI)</strong> of historical vector maps. It uses modern machine learning and statistical models to learn the complex geometric distortions inherent in historical cartographic documents and applies a correction to improve their geometric accuracy.</p>
-<p>The package is designed for researchers and practitioners in geomatics who need to integrate historical maps into modern GIS datasets.</p>
+<p>The <code>mapAI</code> package provides a comprehensive, end-to-end toolkit in R for the <strong>Positional Accuracy Improvement (PAI)</strong> of historical vector maps. While many tools can correct a map’s geometry, the underlying transformation often remains a “black box.” <code>mapAI</code> bridges this gap by integrating high-accuracy correction models with a powerful suite of <strong>distortion analysis tools</strong>, aligning the process with modern principles of <strong>Explainable AI (XAI)</strong>.</p>
+<p>The package is designed for researchers and practitioners in geomatics who need not only to correct historical maps but also to understand and quantify the nature of their geometric distortions.</p>
 <div class="section level2">
 <h2 id="overview">Overview<a class="anchor" aria-label="anchor" href="#overview"></a>
 </h2>
-<p>The core workflow of <code>mapAI</code> involves:</p>
+<p>The <code>mapAI</code> framework allows you to:</p>
 <ol style="list-style-type: decimal">
 <li>
-<strong>Reading Data</strong>: Easily load your distorted map (<code>.shp</code>, etc.) and a corresponding set of homologous points (GCPs) from a CSV file.</li>
+<strong>Import Data</strong>: Easily load distorted vector maps and their corresponding homologous points (GCPs).</li>
 <li>
-<strong>Training a Model</strong>: Use <code><a href="reference/train_pai_model.html">train_pai_model()</a></code> to train one of several correction models (<code>lm</code>, <code>rf</code>, <code>gam</code>, <code>helmert</code>) to learn the distortion pattern from your GCPs.</li>
+<strong>Train a Model</strong>: Select from a suite of PAI models (<code>helmert</code>, <code>lm</code>, <code>tps</code>, <code>rf</code>, <code>gam</code>) to learn the distortion pattern.</li>
 <li>
-<strong>Applying the Correction</strong>: Use <code><a href="reference/apply_pai_model.html">apply_pai_model()</a></code> to apply the trained model to every vertex of your historical map, generating a new, corrected <code>sf</code> object.</li>
+<strong>Acess the Model’s Performance</strong>: Perform k-fold cross-validation to provide a robust estimate of a PAI model’s predictive performance, using both random and spatial CV methods.</li>
 <li>
-<strong>Analyzing Distortion</strong>: Go beyond simple correction by using functions like <code><a href="reference/analyze_distortion.html">analyze_distortion()</a></code> and <code><a href="reference/plot_indicatrices.html">plot_indicatrices()</a></code> to perform a detailed differential distortion analysis based on Tissot’s indicatrix theory.</li>
+<strong>Correct Geometry</strong>: Apply the trained model to warp the historical map into its corrected geometric state.</li>
 <li>
-<strong>Exporting Data</strong> Easily export the corrected distorted map to various file formats (<code>.shp</code>, etc.).</li>
+<strong>Analyze and Explain</strong>: Use advanced distortion analysis functions, based on Tissot’s indicatrix theory, to quantify <em>how</em> the model handles the the map’s distortions. This allows for deeper cartographic and historical insights, turning the model from a black box into an explanatory tool.</li>
+<li>
+<strong>Export Results</strong>: Save the corrected map to standard geospatial file formats.</li>
 </ol>
 </div>
 <div class="section level2">
 <h2 id="installation">Installation<a class="anchor" aria-label="anchor" href="#installation"></a>
 </h2>
-<p>You can install the development version of mapAI from <a href="https://github.com/" class="external-link">GitHub</a> with:</p>
+<p>You can install the development version of <code>mapAI</code> from <a href="https://github.com/" class="external-link">GitHub</a> using the <code>pak</code> package:</p>
 <div class="sourceCode" id="cb1"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="co"># install.packages("pak")</span></span>
 <span><span class="fu">pak</span><span class="fu">::</span><span class="fu"><a href="https://pak.r-lib.org/reference/pak.html" class="external-link">pak</a></span><span class="op">(</span><span class="st">"kvantas/mapAI"</span><span class="op">)</span></span></code></pre></div>
 </div>
 <div class="section level2">
-<h2 id="example">Example<a class="anchor" aria-label="anchor" href="#example"></a>
+<h2 id="core-workflow-a-complete-example">Core Workflow: A Complete Example<a class="anchor" aria-label="anchor" href="#core-workflow-a-complete-example"></a>
 </h2>
-<p>This example demonstrates the main workflow from start to finish. We will first generate a synthetic data set representing a distorted map and then use the package’s functions to correct it.</p>
+<p>This example demonstrates the primary workflow. We will first generate a synthetic dataset representing a distorted map and then use the package’s functions to correct it.</p>
 <div class="section level3">
 <h3 id="id_1-load-libraries-and-create-demo-data">1. Load Libraries and Create Demo Data<a class="anchor" aria-label="anchor" href="#id_1-load-libraries-and-create-demo-data"></a>
 </h3>
-<p>We begin by loading the necessary libraries and using <code><a href="reference/create_demo_data.html">create_demo_data()</a></code> to generate a test case. This function creates a distorted grid shape file and a corresponding CSV file of control points in a temporary directory.</p>
+<p>We begin by using <code><a href="reference/create_demo_data.html">create_demo_data()</a></code> to generate a test case with complex, noisy distortions.</p>
 <div class="sourceCode" id="cb2"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="kw"><a href="https://rdrr.io/r/base/library.html" class="external-link">library</a></span><span class="op">(</span><span class="va"><a href="https://kvantas.github.io/mapAI/">mapAI</a></span><span class="op">)</span></span>
 <span><span class="kw"><a href="https://rdrr.io/r/base/library.html" class="external-link">library</a></span><span class="op">(</span><span class="va"><a href="https://r-spatial.github.io/sf/" class="external-link">sf</a></span><span class="op">)</span></span>
@@ -101,81 +103,59 @@
 <span><span class="co"># Generate a shapefile and a GCPs CSV with complex noisy distortions</span></span>
 <span><span class="co"># The function returns a list containing the paths to these new files.</span></span>
 <span><span class="va">demo_files</span> <span class="op">&lt;-</span> <span class="fu"><a href="reference/create_demo_data.html">create_demo_data</a></span><span class="op">(</span>type <span class="op">=</span> <span class="st">"complex"</span>, seed <span class="op">=</span> <span class="fl">42</span><span class="op">)</span></span>
-<span><span class="co">#&gt;    -&gt; Homologous points saved to: /var/folders/yh/kq6cp_457lg059f3l02r57s80000gn/T//RtmpKRiB40/demo_gcps.csv</span></span>
-<span><span class="co">#&gt;    -&gt; Distorted map saved to: /var/folders/yh/kq6cp_457lg059f3l02r57s80000gn/T//RtmpKRiB40/demo_map.shp</span></span></code></pre></div>
+<span><span class="co">#&gt;    -&gt; Homologous points saved to: /var/folders/yh/kq6cp_457lg059f3l02r57s80000gn/T//RtmpkuWboB/demo_gcps.csv</span></span>
+<span><span class="co">#&gt;    -&gt; Distorted map saved to: /var/folders/yh/kq6cp_457lg059f3l02r57s80000gn/T//RtmpkuWboB/demo_map.shp</span></span></code></pre></div>
 </div>
 <div class="section level3">
-<h3 id="id_2-read-the-data-into-r">2. Read the Data into R<a class="anchor" aria-label="anchor" href="#id_2-read-the-data-into-r"></a>
+<h3 id="id_2-read-data-and-train-a-model">2. Read Data and Train a Model<a class="anchor" aria-label="anchor" href="#id_2-read-data-and-train-a-model"></a>
 </h3>
-<p>Next, we use the package’s reading functions to load the files we just created. When using your own data, you would simply replace the file paths here with the paths to your own <code>.shp</code> and <code>.csv</code> files.</p>
+<p>We load the generated files and train a <strong>Generalized Additive Model (<code>gam</code>)</strong>, which is ideal for capturing the smooth, non-linear distortions present in the demo data.</p>
 <div class="sourceCode" id="cb3"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="co"># Load the homologous points (GCPs)</span></span>
-<span><span class="co"># It is crucial to provide the correct Coordinate Reference System (CRS).</span></span>
+<code class="sourceCode R"><span><span class="co"># Load the homologous points (GCPs) and the distorted vector map</span></span>
 <span><span class="va">gcp_data</span> <span class="op">&lt;-</span> <span class="fu"><a href="reference/read_gcps.html">read_gcps</a></span><span class="op">(</span>gcp_path <span class="op">=</span> <span class="va">demo_files</span><span class="op">$</span><span class="va">gcp_path</span>, crs <span class="op">=</span> <span class="fl">2100</span><span class="op">)</span></span>
+<span><span class="va">map_to_correct</span> <span class="op">&lt;-</span> <span class="fu"><a href="reference/read_map.html">read_map</a></span><span class="op">(</span>shp_path <span class="op">=</span> <span class="va">demo_files</span><span class="op">$</span><span class="va">shp_path</span>, crs <span class="op">=</span> <span class="fl">2100</span><span class="op">)</span></span>
 <span></span>
-<span><span class="co"># Load the distorted vector map</span></span>
-<span><span class="va">map_to_correct</span> <span class="op">&lt;-</span> <span class="fu"><a href="reference/read_map.html">read_map</a></span><span class="op">(</span>shp_path <span class="op">=</span> <span class="va">demo_files</span><span class="op">$</span><span class="va">shp_path</span>, crs <span class="op">=</span> <span class="fl">2100</span><span class="op">)</span></span></code></pre></div>
-</div>
-<div class="section level3">
-<h3 id="id_3-train-a-correction-model">3. Train a Correction Model<a class="anchor" aria-label="anchor" href="#id_3-train-a-correction-model"></a>
-</h3>
-<p>We’ll train a <strong>Generalized Additive Model (<code>gam</code>)</strong>, which is an excellent choice as it is flexible enough to capture the complex, non-linear distortions in our demo data.</p>
-<div class="sourceCode" id="cb4"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="co"># Train the model using our GCPs</span></span>
+<span><span class="co"># Train the GAM model using the GCPs</span></span>
 <span><span class="va">gam_model</span> <span class="op">&lt;-</span> <span class="fu"><a href="reference/train_pai_model.html">train_pai_model</a></span><span class="op">(</span><span class="va">gcp_data</span>, method <span class="op">=</span> <span class="st">"gam"</span><span class="op">)</span></span>
 <span><span class="co">#&gt; Training 'gam' model...</span></span></code></pre></div>
 </div>
 <div class="section level3">
-<h3 id="id_4-apply-the-model-to-correct-the-map">4. Apply the Model to Correct the Map<a class="anchor" aria-label="anchor" href="#id_4-apply-the-model-to-correct-the-map"></a>
+<h3 id="id_3-apply-correction-and-visualize">3. Apply Correction and Visualize<a class="anchor" aria-label="anchor" href="#id_3-apply-correction-and-visualize"></a>
 </h3>
-<p>Now we apply this trained model to our distorted grid that represents the historical map. The function returns a new <code>sf</code> object with the corrected geometries.</p>
-<div class="sourceCode" id="cb5"><pre class="downlit sourceCode r">
+<p>We apply the trained model to our distorted grid. The resulting plot, which overlays the corrected grid on the original, provides a clear visual confirmation of what the model does to the distorted map.</p>
+<div class="sourceCode" id="cb4"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="co"># Apply the model to the distorted map</span></span>
 <span><span class="va">corrected_map</span> <span class="op">&lt;-</span> <span class="fu"><a href="reference/apply_pai_model.html">apply_pai_model</a></span><span class="op">(</span><span class="va">gam_model</span>, <span class="va">map_to_correct</span><span class="op">)</span></span>
 <span><span class="co">#&gt; Applying PAI model to map features...</span></span>
-<span><span class="co">#&gt; Correction complete.</span></span></code></pre></div>
-</div>
-<div class="section level3">
-<h3 id="id_5-visualize-the-result">5. Visualize the Result<a class="anchor" aria-label="anchor" href="#id_5-visualize-the-result"></a>
-</h3>
-<p>The most effective way to see the result is to plot the corrected map overlaid on the original. The “warped”, noisy, grid being transformed back into a more regular grid provides a clear visual confirmation of the positional improvement.</p>
-<div class="sourceCode" id="cb6"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="co"># For easy plotting, we add a 'status' column to each map</span></span>
+<span><span class="co">#&gt; Correction complete.</span></span>
+<span></span>
+<span><span class="co"># For easy plotting, add a 'status' column and combine the maps</span></span>
 <span><span class="va">map_to_correct</span><span class="op">$</span><span class="va">status</span> <span class="op">&lt;-</span> <span class="st">"Original (Distorted)"</span></span>
 <span><span class="va">corrected_map</span><span class="op">$</span><span class="va">status</span> <span class="op">&lt;-</span> <span class="st">"Corrected"</span></span>
+<span><span class="va">comparison_data</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/cbind.html" class="external-link">rbind</a></span><span class="op">(</span><span class="va">map_to_correct</span><span class="op">[</span>, <span class="st">"status"</span><span class="op">]</span>, <span class="va">corrected_map</span><span class="op">[</span>, <span class="st">"status"</span><span class="op">]</span><span class="op">)</span></span>
 <span></span>
-<span><span class="co"># Combine them into a single sf object for ggplot2</span></span>
-<span><span class="va">comparison_data</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/cbind.html" class="external-link">rbind</a></span><span class="op">(</span></span>
-<span>  <span class="va">map_to_correct</span><span class="op">[</span>, <span class="st">"status"</span><span class="op">]</span>,</span>
-<span>  <span class="va">corrected_map</span><span class="op">[</span>, <span class="st">"status"</span><span class="op">]</span></span>
-<span><span class="op">)</span></span>
-<span></span>
-<span><span class="co"># Create a plot comparing the original and corrected grids</span></span>
+<span><span class="co"># Create the final comparison plot</span></span>
 <span><span class="fu"><a href="https://ggplot2.tidyverse.org/reference/ggplot.html" class="external-link">ggplot</a></span><span class="op">(</span><span class="va">comparison_data</span><span class="op">)</span> <span class="op">+</span></span>
 <span>  <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/ggsf.html" class="external-link">geom_sf</a></span><span class="op">(</span><span class="fu"><a href="https://ggplot2.tidyverse.org/reference/aes.html" class="external-link">aes</a></span><span class="op">(</span>color <span class="op">=</span> <span class="va">status</span>, linetype <span class="op">=</span> <span class="va">status</span><span class="op">)</span>, fill <span class="op">=</span> <span class="cn">NA</span>, linewidth <span class="op">=</span> <span class="fl">0.7</span><span class="op">)</span> <span class="op">+</span></span>
-<span>  <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/scale_manual.html" class="external-link">scale_color_manual</a></span><span class="op">(</span></span>
-<span>    name <span class="op">=</span> <span class="st">"Map Status"</span>,</span>
-<span>    values <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"Original (Distorted)"</span> <span class="op">=</span> <span class="st">"grey50"</span>, <span class="st">"Corrected"</span> <span class="op">=</span> <span class="st">"#e41a1c"</span><span class="op">)</span></span>
-<span>  <span class="op">)</span> <span class="op">+</span></span>
-<span>  <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/scale_manual.html" class="external-link">scale_linetype_manual</a></span><span class="op">(</span></span>
-<span>    name <span class="op">=</span> <span class="st">"Map Status"</span>,</span>
-<span>    values <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"Original (Distorted)"</span> <span class="op">=</span> <span class="st">"dashed"</span>, <span class="st">"Corrected"</span> <span class="op">=</span> <span class="st">"solid"</span><span class="op">)</span></span>
-<span>  <span class="op">)</span> <span class="op">+</span></span>
-<span>  <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/labs.html" class="external-link">labs</a></span><span class="op">(</span></span>
-<span>    title <span class="op">=</span> <span class="st">"Positional Correction of a Distorted Grid"</span>,</span>
-<span>    subtitle <span class="op">=</span> <span class="st">"Overlay of original (dashed) and mapAI-corrected (solid) geometries"</span></span>
-<span>  <span class="op">)</span> <span class="op">+</span></span>
+<span>  <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/scale_manual.html" class="external-link">scale_color_manual</a></span><span class="op">(</span>name <span class="op">=</span> <span class="st">"Map Status"</span>, values <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"Original (Distorted)"</span> <span class="op">=</span> <span class="st">"grey50"</span>, <span class="st">"Corrected"</span> <span class="op">=</span> <span class="st">"#e41a1c"</span><span class="op">)</span><span class="op">)</span> <span class="op">+</span></span>
+<span>  <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/scale_manual.html" class="external-link">scale_linetype_manual</a></span><span class="op">(</span>name <span class="op">=</span> <span class="st">"Map Status"</span>, values <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"Original (Distorted)"</span> <span class="op">=</span> <span class="st">"dashed"</span>, <span class="st">"Corrected"</span> <span class="op">=</span> <span class="st">"solid"</span><span class="op">)</span><span class="op">)</span> <span class="op">+</span></span>
+<span>  <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/labs.html" class="external-link">labs</a></span><span class="op">(</span>title <span class="op">=</span> <span class="st">"Positional Correction of a Distorted Grid"</span>,</span>
+<span>       subtitle <span class="op">=</span> <span class="st">"Overlay of original (dashed) and mapAI-corrected (solid) geometries"</span><span class="op">)</span> <span class="op">+</span></span>
 <span>  <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/ggtheme.html" class="external-link">theme_minimal</a></span><span class="op">(</span><span class="op">)</span></span></code></pre></div>
-<p><img src="reference/figures/README-example-plot-1.png" width="100%"></p>
+<p><img src="reference/figures/README-apply-and-visualize-1.png" width="100%"></p>
+<hr>
 </div>
 </div>
 <div class="section level2">
-<h2 id="advanced-distortion-analysis">Advanced: Distortion Analysis<a class="anchor" aria-label="anchor" href="#advanced-distortion-analysis"></a>
+<h2 id="from-correction-to-explanation-advanced-distortion-analysis">From Correction to Explanation: Advanced Distortion Analysis<a class="anchor" aria-label="anchor" href="#from-correction-to-explanation-advanced-distortion-analysis"></a>
 </h2>
-<p><code>mapAI</code> is more than just a correction tool. You can also perform a detailed analysis of the distortion that the model learns. For example, you can analyze the maximum shear (<code>max_shear</code>) across the map and visualize it as a surface.</p>
-<div class="sourceCode" id="cb7"><pre class="downlit sourceCode r">
+<p>A key challenge with data-driven models is understanding <em>what</em> they have learned. <code>mapAI</code> directly addresses this by providing tools to “open the black box” and analyze the properties of the learned transformation.</p>
+<div class="section level3">
+<h3 id="id_4-quantify-and-visualize-the-distortion-field">4. Quantify and Visualize the Distortion Field<a class="anchor" aria-label="anchor" href="#id_4-quantify-and-visualize-the-distortion-field"></a>
+</h3>
+<p>The <code><a href="reference/analyze_distortion.html">analyze_distortion()</a></code> function computes local distortion metrics across the map space. This allows us to move from a simple visual assessment to a quantitative map of the distortion.</p>
+<div class="sourceCode" id="cb5"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="co"># 1. Create a grid of points for analysis using the pipe (%&gt;%)</span></span>
-<span><span class="co">#    We need the magrittr package for the pipe if not loading dplyr.</span></span>
 <span><span class="kw"><a href="https://rdrr.io/r/base/library.html" class="external-link">library</a></span><span class="op">(</span><span class="va"><a href="https://magrittr.tidyverse.org" class="external-link">magrittr</a></span><span class="op">)</span></span>
 <span><span class="va">analysis_points</span> <span class="op">&lt;-</span> <span class="fu">sf</span><span class="fu">::</span><span class="fu"><a href="https://r-spatial.github.io/sf/reference/st_make_grid.html" class="external-link">st_make_grid</a></span><span class="op">(</span><span class="va">gcp_data</span>, n <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="fl">25</span>, <span class="fl">25</span><span class="op">)</span><span class="op">)</span> <span class="op"><a href="https://magrittr.tidyverse.org/reference/pipe.html" class="external-link">%&gt;%</a></span></span>
 <span>  <span class="fu">sf</span><span class="fu">::</span><span class="fu"><a href="https://r-spatial.github.io/sf/reference/geos_unary.html" class="external-link">st_centroid</a></span><span class="op">(</span><span class="op">)</span> <span class="op"><a href="https://magrittr.tidyverse.org/reference/pipe.html" class="external-link">%&gt;%</a></span></span>
@@ -184,14 +164,24 @@
 <span><span class="co"># 2. Analyze the distortion using our trained GAM model</span></span>
 <span><span class="va">distortion_results</span> <span class="op">&lt;-</span> <span class="fu"><a href="reference/analyze_distortion.html">analyze_distortion</a></span><span class="op">(</span><span class="va">gam_model</span>, <span class="va">analysis_points</span><span class="op">)</span></span>
 <span></span>
-<span><span class="co"># 3. Plot the shear distortion surface</span></span>
-<span><span class="fu"><a href="reference/plot_distortion_surface.html">plot_distortion_surface</a></span><span class="op">(</span></span>
-<span>  <span class="va">distortion_results</span>,</span>
-<span>  metric <span class="op">=</span> <span class="st">"max_shear"</span>,</span>
-<span>  gcp_data <span class="op">=</span> <span class="va">gcp_data</span></span>
-<span><span class="op">)</span> <span class="op">+</span></span>
-<span><span class="fu"><a href="https://ggplot2.tidyverse.org/reference/labs.html" class="external-link">labs</a></span><span class="op">(</span>title <span class="op">=</span> <span class="st">"Maximum Shear Distortion (°)"</span><span class="op">)</span></span></code></pre></div>
-<p><img src="reference/figures/README-advanced-analysis-1.png" width="100%"> This shows how <code>mapAI</code> can be used for both practical correction and deeper analysis about the distortions of a historical map.</p>
+<span><span class="co"># 3. Plot the distortion surfaces</span></span>
+<span><span class="va">plot_area</span> <span class="op">&lt;-</span> <span class="fu"><a href="reference/plot_distortion_surface.html">plot_distortion_surface</a></span><span class="op">(</span></span>
+<span>  <span class="va">distortion_results</span>, metric <span class="op">=</span> <span class="st">"log2_area_scale"</span>, diverging <span class="op">=</span> <span class="cn">TRUE</span></span>
+<span><span class="op">)</span> <span class="op">+</span> <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/labs.html" class="external-link">labs</a></span><span class="op">(</span>title <span class="op">=</span> <span class="st">"Areal Distortion (log2σ)"</span><span class="op">)</span></span>
+<span></span>
+<span><span class="va">plot_shear</span> <span class="op">&lt;-</span> <span class="fu"><a href="reference/plot_distortion_surface.html">plot_distortion_surface</a></span><span class="op">(</span></span>
+<span>  <span class="va">distortion_results</span>, metric <span class="op">=</span> <span class="st">"max_shear"</span></span>
+<span><span class="op">)</span> <span class="op">+</span> <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/labs.html" class="external-link">labs</a></span><span class="op">(</span>title <span class="op">=</span> <span class="st">"Maximum Shear Distortion (°)"</span><span class="op">)</span></span>
+<span></span>
+<span><span class="co"># Combine plots using the patchwork library</span></span>
+<span><span class="kw">if</span> <span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/ns-load.html" class="external-link">requireNamespace</a></span><span class="op">(</span><span class="st">"patchwork"</span>, quietly <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span><span class="op">)</span> <span class="op">{</span></span>
+<span>  <span class="va">plot_area</span> <span class="op">+</span> <span class="va">plot_shear</span></span>
+<span><span class="op">}</span> <span class="kw">else</span> <span class="op">{</span></span>
+<span>  <span class="va">plot_area</span></span>
+<span><span class="op">}</span></span></code></pre></div>
+<p><img src="reference/figures/README-advanced-analysis-1.png" width="100%"> These plots provide a detailed map of where the model learned to apply the most significant stretching, shrinking, and shearing, offering insights that may correlate with physical map degradation or historical cartographic techniques.</p>
+<p>By providing these tools, <code>mapAI</code> empowers researchers to not only correct their historical maps with high accuracy but also to gain a deeper, quantitative understanding of their geometric properties.</p>
+</div>
 </div>
 </div>
   </main><aside class="col-md-3"><div class="license">
@@ -220,7 +210,7 @@
 <div class="dev-status">
 <h2 data-toc-skip>Dev status</h2>
 <ul class="list-unstyled">
-<li><a href="https://codecov.io/gh/kvantas/mapAI" class="external-link"><img src="https://codecov.io/gh/kvantas/mapAI/branch/master/graph/badge.svg?token=8dbGQrCCnz" alt="codecov"></a></li>
+<li><a href="https://codecov.io/gh/kvantas/mapAI" class="external-link"><img src="https://app.codecov.io/gh/kvantas/mapAI/branch/master/graph/badge.svg?token=8dbGQrCCnz" alt="codecov"></a></li>
 <li><a href="https://lifecycle.r-lib.org/articles/stages.html#stable" class="external-link"><img src="https://img.shields.io/badge/lifecycle-stable-brightgreen.svg" alt="Lifecycle: stable"></a></li>
 <li><a href="https://github.com/kvantas/mapAI/actions/workflows/R-CMD-check.yaml" class="external-link"><img src="https://github.com/kvantas/mapAI/actions/workflows/R-CMD-check.yaml/badge.svg" alt="R-CMD-check"></a></li>
 </ul>
