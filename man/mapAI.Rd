@@ -50,7 +50,7 @@ the advanced vignette:
 \code{vignette("swiss-analysis", package = "mapAI")}
 
 The project's source code and issue tracker can be found on GitHub:
-\url{https://github.com/your-username/mapAI}
+\url{https://github.com/kvantas/mapAI}
 }
 \author{
 \strong{Maintainer}: Konstantinos Vantas \email{kon.vantas@gmail.com} (\href{https://orcid.org/0000-0001-6387-8791}{ORCID})

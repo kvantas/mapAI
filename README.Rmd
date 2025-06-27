@@ -16,42 +16,42 @@ knitr::opts_chunk$set(
 # mapAI
 
 <!-- badges: start -->
-[![codecov](https://codecov.io/gh/kvantas/mapAI/branch/master/graph/badge.svg?token=8dbGQrCCnz)](https://codecov.io/gh/kvantas/mapAI)
+[![codecov](https://app.codecov.io/gh/kvantas/mapAI/branch/master/graph/badge.svg?token=8dbGQrCCnz)](https://codecov.io/gh/kvantas/mapAI)
 [![Lifecycle: stable](https://img.shields.io/badge/lifecycle-stable-brightgreen.svg)](https://lifecycle.r-lib.org/articles/stages.html#stable)
 [![R-CMD-check](https://github.com/kvantas/mapAI/actions/workflows/R-CMD-check.yaml/badge.svg)](https://github.com/kvantas/mapAI/actions/workflows/R-CMD-check.yaml)
 <!-- badges: end -->
 
-The `mapAI` package provides an end-to-end toolkit in R for the **Positional Accuracy Improvement (PAI)** of historical vector maps. It uses modern machine learning and statistical models to learn the complex geometric distortions inherent in historical cartographic documents and applies a correction to improve their geometric accuracy.
+The `mapAI` package provides a comprehensive, end-to-end toolkit in R for the **Positional Accuracy Improvement (PAI)** of historical vector maps. While many tools can correct a map's geometry, the underlying transformation often remains a "black box." `mapAI` bridges this gap by integrating high-accuracy correction models with a powerful suite of **distortion analysis tools**, aligning the process with modern principles of **Explainable AI (XAI)**.
 
-The package is designed for researchers and practitioners in geomatics who need to integrate historical maps into modern GIS datasets.
+The package is designed for researchers and practitioners in geomatics who need not only to correct historical maps but also to understand and quantify the nature of their geometric distortions.
 
 ## Overview
 
-The core workflow of `mapAI` involves:
+The `mapAI` framework allows you to:
 
-1.  **Reading Data**: Easily load your distorted map (`.shp`, etc.) and a corresponding set of homologous points (GCPs) from a CSV file.
-2.  **Training a Model**: Use `train_pai_model()` to train one of several correction models (`lm`, `rf`, `gam`, `helmert`) to learn the distortion pattern from your GCPs.
-3.  **Applying the Correction**: Use `apply_pai_model()` to apply the trained model to every vertex of your historical map, generating a new, corrected `sf` object.
-4.  **Analyzing Distortion**: Go beyond simple correction by using functions like `analyze_distortion()` and `plot_indicatrices()` to perform a detailed differential distortion analysis based on Tissot's indicatrix theory.
-5. **Exporting Data** Easily export the corrected distorted map to various file formats (`.shp`, etc.).
-
+1.  **Import  Data**: Easily load distorted vector maps and their corresponding homologous points (GCPs).
+2.  **Train a Model**: Select from a suite of PAI models (`helmert`, `lm`, `tps`, `rf`, `gam`) to learn the distortion pattern.
+3. **Acess the Model's Performance**: Perform k-fold cross-validation to provide a robust estimate of a PAI model's predictive performance, using both random and spatial CV methods.
+4.  **Correct Geometry**: Apply the trained model to warp the historical map into its corrected geometric state.
+5.  **Analyze and Explain**: Use advanced distortion analysis functions, based on Tissot's indicatrix theory, to quantify *how* the model handles the the map's distortions. This allows for deeper cartographic and historical insights, turning the model from a black box into an explanatory tool.
+6.  **Export Results**: Save the corrected map to standard geospatial file formats.
 
 ## Installation
 
-You can install the development version of mapAI from [GitHub](https://github.com/) with:
+You can install the development version of `mapAI` from [GitHub](https://github.com/) using the `pak` package:
 
 ``` r
 # install.packages("pak")
 pak::pak("kvantas/mapAI")
 ```
 
-## Example
+## Core Workflow: A Complete Example
 
-This example demonstrates the main workflow from start to finish. We will first generate a synthetic data set representing a distorted map and then use the package's functions to correct it.
+This example demonstrates the primary workflow. We will first generate a synthetic dataset representing a distorted map and then use the package's functions to correct it.
 
 ### 1. Load Libraries and Create Demo Data
 
-We begin by loading the necessary libraries and using `create_demo_data()` to generate a test case. This function creates a distorted grid shape file and a corresponding CSV file of control points in a temporary directory.
+We begin by using `create_demo_data()` to generate a test case with complex, noisy distortions.
 
 ```{r setup}
 library(mapAI)
@@ -63,77 +63,54 @@ library(ggplot2)
 demo_files <- create_demo_data(type = "complex", seed = 42)
 ```
 
-### 2. Read the Data into R
+### 2. Read Data and Train a Model
 
-Next, we use the package's reading functions to load the files we just created. When using your own data, you would simply replace the file paths here with the paths to your own `.shp` and `.csv` files.
+We load the generated files and train a **Generalized Additive Model (`gam`)**, which is ideal for capturing the smooth, non-linear distortions present in the demo data.
 
-```{r load-data}
-# Load the homologous points (GCPs)
-# It is crucial to provide the correct Coordinate Reference System (CRS).
+```{r load-and-train}
+# Load the homologous points (GCPs) and the distorted vector map
 gcp_data <- read_gcps(gcp_path = demo_files$gcp_path, crs = 2100)
-
-# Load the distorted vector map
 map_to_correct <- read_map(shp_path = demo_files$shp_path, crs = 2100)
-```
 
-### 3. Train a Correction Model
-
-We'll train a **Generalized Additive Model (`gam`)**, which is an excellent choice as it is flexible enough to capture the complex, non-linear distortions in our demo data.
-
-```{r train}
-# Train the model using our GCPs
+# Train the GAM model using the GCPs
 gam_model <- train_pai_model(gcp_data, method = "gam")
 ```
 
-### 4. Apply the Model to Correct the Map
+### 3. Apply Correction and Visualize
 
-Now we apply this trained model to our distorted grid that represents the historical map. The function returns a new `sf` object with the corrected geometries.
+We apply the trained model to our distorted grid. The resulting plot, which overlays the corrected grid on the original, provides a clear visual confirmation of what the model does to the distorted map.
 
-```{r apply}
+```{r apply-and-visualize, fig.show='hold'}
 # Apply the model to the distorted map
 corrected_map <- apply_pai_model(gam_model, map_to_correct)
-```
 
-### 5. Visualize the Result
-
-The most effective way to see the result is to plot the corrected map overlaid on the original. The "warped", noisy, grid being transformed back into a more regular grid provides a clear visual confirmation of the positional improvement.
-
-```{r example-plot, fig.show='hold'}
-# For easy plotting, we add a 'status' column to each map
+# For easy plotting, add a 'status' column and combine the maps
 map_to_correct$status <- "Original (Distorted)"
 corrected_map$status <- "Corrected"
+comparison_data <- rbind(map_to_correct[, "status"], corrected_map[, "status"])
 
-# Combine them into a single sf object for ggplot2
-comparison_data <- rbind(
-  map_to_correct[, "status"],
-  corrected_map[, "status"]
-)
-
-# Create a plot comparing the original and corrected grids
+# Create the final comparison plot
 ggplot(comparison_data) +
   geom_sf(aes(color = status, linetype = status), fill = NA, linewidth = 0.7) +
-  scale_color_manual(
-    name = "Map Status",
-    values = c("Original (Distorted)" = "grey50", "Corrected" = "#e41a1c")
-  ) +
-  scale_linetype_manual(
-    name = "Map Status",
-    values = c("Original (Distorted)" = "dashed", "Corrected" = "solid")
-  ) +
-  labs(
-    title = "Positional Correction of a Distorted Grid",
-    subtitle = "Overlay of original (dashed) and mapAI-corrected (solid) geometries"
-  ) +
+  scale_color_manual(name = "Map Status", values = c("Original (Distorted)" = "grey50", "Corrected" = "#e41a1c")) +
+  scale_linetype_manual(name = "Map Status", values = c("Original (Distorted)" = "dashed", "Corrected" = "solid")) +
+  labs(title = "Positional Correction of a Distorted Grid",
+       subtitle = "Overlay of original (dashed) and mapAI-corrected (solid) geometries") +
   theme_minimal()
 ```
 
-## Advanced: Distortion Analysis
+---
 
-`mapAI` is more than just a correction tool. You can also perform a detailed analysis of the distortion that the model learns. For example, you can analyze the maximum shear (`max_shear`) across the map and visualize it as a surface.
+## From Correction to Explanation: Advanced Distortion Analysis
+
+A key challenge with data-driven models is understanding *what* they have learned. `mapAI` directly addresses this by providing tools to "open the black box" and analyze the properties of the learned transformation.
+
+### 4. Quantify and Visualize the Distortion Field
+
+The `analyze_distortion()` function computes local distortion metrics across the map space. This allows us to move from a simple visual assessment to a quantitative map of the distortion.
 
 ```{r advanced-analysis, message=FALSE, warning=FALSE}
 # 1. Create a grid of points for analysis using the pipe (%>%)
-#    We need the magrittr package for the pipe if not loading dplyr.
 library(magrittr)
 analysis_points <- sf::st_make_grid(gcp_data, n = c(25, 25)) %>%
   sf::st_centroid() %>%
@@ -142,12 +119,23 @@ analysis_points <- sf::st_make_grid(gcp_data, n = c(25, 25)) %>%
 # 2. Analyze the distortion using our trained GAM model
 distortion_results <- analyze_distortion(gam_model, analysis_points)
 
-# 3. Plot the shear distortion surface
-plot_distortion_surface(
-  distortion_results,
-  metric = "max_shear",
-  gcp_data = gcp_data
-) +
-labs(title = "Maximum Shear Distortion (°)")
+# 3. Plot the distortion surfaces
+plot_area <- plot_distortion_surface(
+  distortion_results, metric = "log2_area_scale", diverging = TRUE
+) + labs(title = "Areal Distortion (log2σ)")
+
+plot_shear <- plot_distortion_surface(
+  distortion_results, metric = "max_shear"
+) + labs(title = "Maximum Shear Distortion (°)")
+
+# Combine plots using the patchwork library
+if (requireNamespace("patchwork", quietly = TRUE)) {
+  plot_area + plot_shear
+} else {
+  plot_area
+}
 ```
-This shows how `mapAI` can be used for both practical correction and deeper analysis about  the distortions of a historical map.
+These plots provide a detailed map of where the model learned to apply the most significant stretching, shrinking, and shearing, offering insights that may correlate with physical map degradation or historical cartographic techniques.
+
+By providing these tools, `mapAI` empowers researchers to not only correct their historical maps with high accuracy but also to gain a deeper, quantitative understanding of their geometric properties.
+

@@ -47,7 +47,7 @@
 #' `vignette("swiss-analysis", package = "mapAI")`
 #'
 #' The project's source code and issue tracker can be found on GitHub:
-#' <https://github.com/your-username/mapAI>
+#' <https://github.com/kvantas/mapAI>
 #'
 #' @name mapAI
 #' @aliases mapAI-package

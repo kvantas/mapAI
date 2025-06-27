@@ -57,24 +57,17 @@
 #' gam_model <- train_pai_model(gcps, method = "gam")
 #'
 #' # --- 2. Create a regular grid of POINTS for analysis ---
-#' analysis_points <- sf::st_make_grid(gcps, n = c(20, 20)) %>%
+#' analysis_points <- sf::st_make_grid(gcps, n = c(25, 25)) %>%
 #'   sf::st_centroid() %>%
 #'   sf::st_sf()
 #'
 #' # --- 3. Run the distortion analysis ---
 #' distortion_results <- analyze_distortion(gam_model, analysis_points)
 #'
-#' # --- 4. Inspect the rich output ---
-#' # Note the new columns like 'airy_kavrayskiy'.
-#' dplyr::glimpse(distortion_results)
-#'
-#' # --- 5. Visualize the Airy-Kavrayskiy measure ---
-#' # This plot shows areas of combined areal and angular distortion.
+#' # --- 4. Visualize the area scale ---
 #' plot_distortion_surface(
 #'   distortion_results,
-#'   metric = "airy_kavrayskiy",
-#'   gcp_data = gcps
-#' )
+#'   metric = "area_scale")
 #'
 analyze_distortion <- function(pai_model, points_to_analyze, reference_scale = 1) {
 
