@@ -5,6 +5,7 @@
 
 <!-- badges: start -->
 
+[![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.15767080.svg)](https://doi.org/10.5281/zenodo.15767080)
 [![codecov](https://codecov.io/gh/kvantas/mapAI/branch/master/graph/badge.svg?token=8dbGQrCCnz)](https://codecov.io/gh/kvantas/mapAI)
 [![Lifecycle:
 stable](https://img.shields.io/badge/lifecycle-stable-brightgreen.svg)](https://lifecycle.r-lib.org/articles/stages.html#stable)
@@ -13,15 +14,9 @@ stable](https://img.shields.io/badge/lifecycle-stable-brightgreen.svg)](https://
 
 The `mapAI` package provides a comprehensive, end-to-end toolkit in R
 for the **Positional Accuracy Improvement (PAI)** of historical vector
-maps. While many tools can correct a map’s geometry, the underlying
-transformation often remains a “black box.” `mapAI` bridges this gap by
-integrating high-accuracy correction models with a powerful suite of
-**distortion analysis tools**, aligning the process with modern
-principles of **Explainable AI (XAI)**.
-
-The package is designed for researchers and practitioners in geomatics
-who need not only to correct historical maps but also to understand and
-quantify the nature of their geometric distortions.
+maps. The package is designed for researchers and practitioners in
+Geomatics who need not only to correct historical maps but also to
+understand and quantify the nature of their geometric distortions.
 
 ## Overview
 
@@ -74,8 +69,8 @@ library(ggplot2)
 # Generate a shapefile and a GCPs CSV with complex noisy distortions
 # The function returns a list containing the paths to these new files.
 demo_files <- create_demo_data(type = "complex", seed = 42)
-#>    -> Homologous points saved to: /var/folders/yh/kq6cp_457lg059f3l02r57s80000gn/T//RtmpKuglAg/demo_gcps.csv
-#>    -> Distorted map saved to: /var/folders/yh/kq6cp_457lg059f3l02r57s80000gn/T//RtmpKuglAg/demo_map.shp
+#>    -> Homologous points saved to: /var/folders/yh/kq6cp_457lg059f3l02r57s80000gn/T//RtmpeTylzR/demo_gcps.csv
+#>    -> Distorted map saved to: /var/folders/yh/kq6cp_457lg059f3l02r57s80000gn/T//RtmpeTylzR/demo_map.shp
 ```
 
 ### 2. Read Data and Train a Model
