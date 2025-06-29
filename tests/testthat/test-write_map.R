@@ -61,4 +61,6 @@ test_that("write_map handles invalid inputs gracefully", {
   temp_path <- tempfile(fileext = ".gpkg")
   expect_error(write_map(as.data.frame(parcels), temp_path), "`map` must be a valid `sf` object.")
   expect_error(write_map(parcels, file_path = 12345), "`file_path` must be a single character string.")
+  temp_path <- tempfile(fileext = ".xxx")
+  expect_error(suppressWarnings( write_map(parcels, temp_path)) )
 })

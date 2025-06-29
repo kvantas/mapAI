@@ -56,8 +56,9 @@ train_pai_model <- function(gcp_data, method, seed = 123, ...) {
   n_points <- nrow(gcp_data)
   if (method %in% c("gam", "rf") && n_points < 60) {
     error_message <- sprintf(
-      "Method '%s' requires at least 60 data points for stable results, but you provided %d.
-Please use simpler models like 'lm' or 'helmert' for small datasets.",
+      "Method '%s' requires at least 60 data points for stable results,
+      but you provided %d. Please use simpler models like 'lm' or 'helmert'
+      for small datasets.",
       method, n_points
     )
     stop(error_message, call. = FALSE)
@@ -96,8 +97,6 @@ Please use simpler models like 'lm' or 'helmert' for small datasets.",
           return(stats::lm(formula, data = data, ...))
         } else if (method == "rf") {
           return(ranger::ranger(formula, data = data, ...))
-        } else {
-          stop("Invalid method specified. Choose from 'lm', 'tps', 'gam', 'rf', or 'helmert'.", call. = FALSE)
         }
       }
       model_fit <- list(

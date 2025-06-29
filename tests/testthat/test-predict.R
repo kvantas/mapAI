@@ -13,6 +13,16 @@ model_lm <- train_pai_model(gcp_data, method = "lm")
 model_gam <- train_pai_model(gcp_data, method = "gam")
 model_tps <- train_pai_model(gcp_data, method = "tps")
 
+test_that("predict.pai_model() validates input correctly", {
+
+expect_error(predictions <- predict(model_rf, newdata = NULL))
+
+expect_error(predictions <- predict(model_rf,
+                                      newdata = data.frame(dx = 3)))
+
+
+
+})
 
 test_that("predict.pai_model() returns a correctly structured data frame", {
   predictions <- predict(model_rf, newdata = sf::st_drop_geometry(new_gcp_data))

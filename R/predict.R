@@ -82,6 +82,7 @@ predict.pai_model <- function(object, newdata, ...) {
          call. = FALSE)
   }
 
+  # --- 2. Handle NA values ---
   # Identify rows with NAs in the predictors. This is the only robust way
   # to handle libraries (like ranger) that have internal NA imputation.
   predictor_cols <- c("source_x", "source_y")

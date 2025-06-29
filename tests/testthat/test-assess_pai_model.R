@@ -2,6 +2,15 @@
 
 gcp_data <- read_gcps(gcp_path = DEMO_FILES$gcp_path, crs = 3857)
 
+test_that("assess_pai_model()  handels arguments corectly", {
+
+expect_error( assess_pai_model(list(), method = "rf"))
+expect_error( assess_pai_model(gcp_data, method = "rf", validation_type = "xxx"))
+expect_no_error(assess_pai_model(gcp_data,k_folds = NULL, method = "rf"))
+
+})
+
+
 test_that("assess_pai_model() returns a correctly structured data frame", {
   methods_to_test <- c("rf", "lm", "gam", "helmert", "tps")
   validation_types <- c("random", "spatial")
