@@ -2,14 +2,11 @@
 #'
 #' @description The `mapAI` package provides a cohesive, end-to-end toolkit in R
 #' for the Positional Accuracy Improvement (PAI) and distortion analysis of
-#' historical vector maps. It uses a suite of statistical and machine learning
-#' models to learn the complex geometric distortions inherent in historical
-#' cartographic documents and applies a correction to use in modern GIS
-#' applications.
+#' vector maps.
 #'
 #' @details The package is designed for researchers and practitioners in
-#' geomatics, GIS, and the digital humanities. It provides a complete, modular
-#' workflow that guides the user from data ingestion to final analysis and
+#' geomatics and GIS, It provides a complete, modular
+#' workflow that guides the user from importing data to final analysis and
 #' visualization.
 #'
 #' ## The Core Workflow
@@ -30,7 +27,7 @@
 #' to get a geometrically corrected version using `apply_pai_model()`.
 #'
 #' 4.  **Distortion Analysis & Visualization:** Go beyond correction to quantify
-#' and understand the distortion itself.
+#' and understand the distortion that learns a PAI model itself.
 #'     \itemize{
 #'       \item Use `analyze_distortion()` to compute detailed metrics based on
 #'       Tissot's indicatrix theory (e.g., areal scale, angular distortion).

@@ -22,8 +22,8 @@ knitr::opts_chunk$set(
 [![R-CMD-check](https://github.com/kvantas/mapAI/actions/workflows/R-CMD-check.yaml/badge.svg)](https://github.com/kvantas/mapAI/actions/workflows/R-CMD-check.yaml)
 <!-- badges: end -->
 
-The `mapAI` package provides a comprehensive, end-to-end toolkit in R for the **Positional Accuracy Improvement (PAI)** of historical vector maps.
-The package is designed for researchers and practitioners in Geomatics who need not only to correct historical maps but also to understand and quantify the nature of their geometric distortions.
+The `mapAI` package provides a comprehensive, end-to-end toolkit in R for the **Positional Accuracy Improvement (PAI)** of vector maps.
+The package is designed for researchers and practitioners in Geoinformatics and GIS who need not only to to improve the geometric quality of vector maps but also to understand and quantify the nature of their geometric distortions.
 
 ## Overview
 

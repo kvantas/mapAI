@@ -128,9 +128,10 @@ create_mock_pai_model <- function(method) {
   )
 }
 
-# This is the core of the solution. We define a `predict` method for our test class.
-# When `predict()` is called on a 'mock_pai_model' object during a test, this version
-# runs instead of the real `predict.pai_model`, giving us full, predictable control.
+# This is the core of the solution. We define a `predict` method for our test
+# class. When `predict()` is called on a 'mock_pai_model' object during a test,
+# this version runs instead of the real `predict.pai_model`, giving us full,
+# predictable control.
 predict.mock_pai_model <- function(object, newdata, ...) {
   # Execute the simple prediction function we stored inside the object.
   object$predictor(newdata)

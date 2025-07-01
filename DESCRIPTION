@@ -1,5 +1,5 @@
 Package: mapAI
-Title: An R Package for Positional Accuracy Improvement of Historical Maps
+Title: An R Package for Positional Accuracy Improvement of Vector Maps
 Version: 0.1.0
 Authors@R: 
     person(given = "Konstantinos",
@@ -7,7 +7,7 @@ Authors@R:
            role = c("aut", "cre"),
            email = "kon.vantas@gmail.com",
            comment = c(ORCID = "0000-0001-6387-8791"))
-Description: An R package for Positional Accuracy  Improvement of Historical 
+Description: An R package for Positional Accuracy  Improvement of Vector 
     Maps that uses supervised learning algorithms. It uses as input a csv file
     with homologous points and a vector map of the area of interest in order to
     correct it.

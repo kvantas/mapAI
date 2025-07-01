@@ -1,11 +1,7 @@
   bibentry(
-  bibtype  = "Article",
-  title    = "Supervised Learning for Positional Accuracy Improvement of Historical Maps: A Systematic Comparison and Validation",
-  author   = "Vantas Konstantinos and Mirkopoulou Vasiliki",
-  journal  = "Transactions in GIS",
+  bibtype  = "Misc",
+  title    = "mapAI: An R Package for Positional Accuracy Improvement of Vector Geospatial Data",
+  author   = "Vantas Konstantinos",
   year     = "2025",
-  volume   = "29",
-  number   = "4",
-  pages    = "e70076",
-  doi      = "https://doi.org/10.1111/tgis.70076"
+  doi      = "https://doi.org/10.5281/zenodo.15767080"
 )
