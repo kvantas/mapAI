@@ -1,9 +1,9 @@
 library(magrittr)
 data(swiss_cps)
-gam_model <- train_pai_model(swiss_cps, method = "gam")
+gam_model <- train_pai_model(swiss_cps, method = "tps")
 
 # --- 2. Create a regular grid of POINTS for analysis ---
-analysis_points <- sf::st_make_grid(swiss_cps, n = c(40, 40)) %>%
+analysis_points <- sf::st_make_grid(swiss_cps, n = c(20, 20)) %>%
   sf::st_centroid() %>%
   sf::st_sf()
 
@@ -25,6 +25,7 @@ plot_distortion_surface(
   diverging = TRUE
 )
 
+mapAI::plot_correction_surface(gam_model, swiss_cps)
 
 plot_distortion_surface(
   distortion_on_grid,
