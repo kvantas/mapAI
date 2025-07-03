@@ -110,8 +110,8 @@ into R using the package’s reading functions.</p>
 <div class="sourceCode" id="cb2"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="co"># Create the shapefile and GCPs CSV in a temporary directory</span></span>
 <span><span class="va">demo_files</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/create_demo_data.html">create_demo_data</a></span><span class="op">(</span>type <span class="op">=</span> <span class="st">"complex"</span>, seed <span class="op">=</span> <span class="fl">123</span><span class="op">)</span></span>
-<span><span class="co">#&gt;    -&gt; Homologous points saved to: /tmp/RtmpqTR6Or/demo_gcps.csv</span></span>
-<span><span class="co">#&gt;    -&gt; Distorted map saved to: /tmp/RtmpqTR6Or/demo_map.shp</span></span>
+<span><span class="co">#&gt;    -&gt; Homologous points saved to: /tmp/Rtmp6CFfWG/demo_gcps.csv</span></span>
+<span><span class="co">#&gt;    -&gt; Distorted map saved to: /tmp/Rtmp6CFfWG/demo_map.shp</span></span>
 <span></span>
 <span><span class="co"># Load the GCPs (homologous points) from the demo file</span></span>
 <span><span class="va">gcp_data</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/read_gcps.html">read_gcps</a></span><span class="op">(</span>gcp_path <span class="op">=</span> <span class="va">demo_files</span><span class="op">$</span><span class="va">gcp_path</span>, crs <span class="op">=</span> <span class="fl">3857</span><span class="op">)</span></span>
