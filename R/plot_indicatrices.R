@@ -54,11 +54,7 @@ plot_indicatrices <- function(distortion_sf, scale_factor = 1,
 
   # --- Input Validation ---
   required_cols <- c("a", "b", "theta_a")
-
-  if (!inherits(distortion_sf, "sf")) {
-    stop("`distortion_sf` must be an sf object.", call. = FALSE)
-    }
-
+  if (!inherits(distortion_sf, "sf")) stop("`distortion_sf` must be an sf object.", call. = FALSE)
   if (!all(required_cols %in% names(distortion_sf))) {
     stop("Input data must be the output of `analyze_distortion()`.", call. = FALSE)
   }
@@ -71,7 +67,7 @@ plot_indicatrices <- function(distortion_sf, scale_factor = 1,
   indicatrices_list <- vector("list", nrow(distortion_sf))
 
   # --- Create Ellipse for each point ---
-  for (i in seq_along(nrow(distortion_sf))) {
+  for (i in 1:nrow(distortion_sf)) {
     point_data <- distortion_sf[i, ]
     # The center of the ellipse is its original SOURCE location
     center_coords <- source_coords[i, ]
@@ -84,11 +80,7 @@ plot_indicatrices <- function(distortion_sf, scale_factor = 1,
     base_ellipse <- cbind(a * cos(t), b * sin(t))
     closed_ellipse <- rbind(base_ellipse, base_ellipse[1,])
 
-    rotation_matrix <- matrix(c(cos(theta_rad),
-                                sin(theta_rad),
-                                -sin(theta_rad),
-                                cos(theta_rad)),
-                              2, 2)
+    rotation_matrix <- matrix(c(cos(theta_rad), sin(theta_rad), -sin(theta_rad), cos(theta_rad)), 2, 2)
 
     # Apply rotation, visibility scaling, and translation to the source location
     final_ellipse <- (closed_ellipse %*% rotation_matrix) * scale_factor
@@ -99,8 +91,7 @@ plot_indicatrices <- function(distortion_sf, scale_factor = 1,
   }
 
   # --- Create the final sf object for plotting ---
-  indicatrices_sf <- sf::st_sfc(indicatrices_list,
-                                crs = sf::st_crs(distortion_sf))
+  indicatrices_sf <- sf::st_sfc(indicatrices_list, crs = sf::st_crs(distortion_sf))
 
   # --- Create the plot ---
   p <- ggplot2::ggplot() +
