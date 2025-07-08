@@ -102,8 +102,8 @@ non-linear warping).</p>
     <h2 id="ref-examples">Examples<a class="anchor" aria-label="anchor" href="#ref-examples"></a></h2>
     <div class="sourceCode"><pre class="sourceCode r"><code><span class="r-in"><span><span class="co"># --- 1. First, create a demo dataset to work with ---</span></span></span>
 <span class="r-in"><span><span class="va">demo_files</span> <span class="op">&lt;-</span> <span class="fu"><a href="create_demo_data.html">create_demo_data</a></span><span class="op">(</span>type <span class="op">=</span> <span class="st">"complex"</span><span class="op">)</span></span></span>
-<span class="r-msg co"><span class="r-pr">#&gt;</span>    -&gt; Homologous points saved to: /tmp/RtmpqA26mY/demo_gcps.csv</span>
-<span class="r-msg co"><span class="r-pr">#&gt;</span>    -&gt; Distorted map saved to: /tmp/RtmpqA26mY/demo_map.shp</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span>    -&gt; Homologous points saved to: /tmp/RtmpyJXYJK/demo_gcps.csv</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span>    -&gt; Distorted map saved to: /tmp/RtmpyJXYJK/demo_map.shp</span>
 <span class="r-in"><span><span class="va">gcp_data</span> <span class="op">&lt;-</span> <span class="fu"><a href="read_gcps.html">read_gcps</a></span><span class="op">(</span>gcp_path <span class="op">=</span> <span class="va">demo_files</span><span class="op">$</span><span class="va">gcp_path</span>, crs <span class="op">=</span> <span class="fl">3857</span><span class="op">)</span></span></span>
 <span class="r-in"><span></span></span>
 <span class="r-in"><span><span class="co"># --- 2. Create the default displacement plot ---</span></span></span>
