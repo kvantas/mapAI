@@ -4,7 +4,7 @@
 \alias{plot_correction_surface}
 \title{Plot the Learned Correction Surface}
 \usage{
-plot_correction_surface(pai_model, gcp_data, n_grid = 100)
+plot_correction_surface(pai_model, gcp_data, n_grid = 100, plot_gcps = TRUE)
 }
 \arguments{
 \item{pai_model}{A trained \code{pai_model} object returned by \code{train_pai_model()}.}
@@ -15,6 +15,9 @@ training the model.}
 \item{n_grid}{The resolution of the interpolation grid used to create the
 smooth surface. Higher values create a more detailed plot but take longer to
 compute. Defaults to 100.}
+
+\item{plot_gcps}{A logical value indicating whether to plot the GCP
+locations on the correction surfaces. Defaults to \code{TRUE}.}
 }
 \value{
 A \code{patchwork} object containing two \code{ggplot} plots, one for \code{dx} and
@@ -66,5 +69,13 @@ correction_plot <- plot_correction_surface(
 
 # To display the plot in an interactive session:
 print(correction_plot)
+
+# You can also hide the GCPs
+correction_plot_no_gcps <- plot_correction_surface(
+  pai_model = pai_model_gam,
+  gcp_data = gcps,
+  plot_gcps = FALSE
+)
+print(correction_plot_no_gcps)
 }
 }

@@ -26,6 +26,8 @@
 #' @param n_grid The resolution of the interpolation grid used to create the
 #'  smooth surface. Higher values create a more detailed plot but take longer to
 #'   compute. Defaults to 100.
+#' @param plot_gcps A logical value indicating whether to plot the GCP
+#' locations on the correction surfaces. Defaults to `TRUE`.
 #'
 #' @return A `patchwork` object containing two `ggplot` plots, one for `dx` and
 #'   one for `dy`.
@@ -59,11 +61,22 @@
 #'
 #' # To display the plot in an interactive session:
 #' print(correction_plot)
+#'
+#' # You can also hide the GCPs
+#' correction_plot_no_gcps <- plot_correction_surface(
+#'   pai_model = pai_model_gam,
+#'   gcp_data = gcps,
+#'   plot_gcps = FALSE
+#' )
+#' print(correction_plot_no_gcps)
 #' }
-plot_correction_surface <- function(pai_model, gcp_data, n_grid = 100) {
+plot_correction_surface <- function(pai_model,
+                                    gcp_data,
+                                    n_grid = 100,
+                                    plot_gcps = TRUE) {
   if (!inherits(pai_model, "pai_model")) {
     stop("pai_model must be a valid pai_model object.")
-    }
+  }
 
   if (!inherits(gcp_data, "sf")) {
     stop("gcp_data must be a valid sf object.")
@@ -85,9 +98,6 @@ plot_correction_surface <- function(pai_model, gcp_data, n_grid = 100) {
     geom_raster() +
     geom_contour(aes(z = .data$dx), color = "white", alpha = 0.4, bins = 12) +
     scale_fill_viridis(option = "viridis", name = "dx") +
-    geom_point(data = gcp_data, inherit.aes = FALSE,
-               mapping = aes(x = .data$source_x, y = .data$source_y),
-               shape = 3, color = "black", size = 0.8, alpha = 0.7) +
     labs(title = "Correction Surface (dx)", x = "X", y = "Y") +
     coord_equal() + theme_minimal()
   )
@@ -98,11 +108,20 @@ plot_correction_surface <- function(pai_model, gcp_data, n_grid = 100) {
     geom_raster() +
     geom_contour(aes(z = .data$dy), color = "white", alpha = 0.4, bins = 12) +
     scale_fill_viridis(option = "viridis", name = "dy") +
-    geom_point(data = gcp_data, inherit.aes = FALSE,
-               mapping = aes(x = .data$source_x, y = .data$source_y),
-               shape = 3, color = "black", size = 0.8, alpha = 0.7) +
     labs(title = "Correction Surface (dy)", x = "X", y = "Y") +
     coord_equal() + theme_minimal()
 )
+  if (plot_gcps) {
+    p_dx <- p_dx + geom_point(data = gcp_data, inherit.aes = FALSE,
+                              mapping = aes(x = .data$source_x,
+                                            y = .data$source_y),
+                              shape = 3, color = "black", size = 0.8,
+                              alpha = 0.7)
+    p_dy <- p_dy + geom_point(data = gcp_data, inherit.aes = FALSE,
+                              mapping = aes(x = .data$source_x,
+                                            y = .data$source_y),
+                              shape = 3, color = "black", size = 0.8,
+                              alpha = 0.7)
+  }
   return(p_dx + p_dy)
 }
