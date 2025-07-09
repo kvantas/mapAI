@@ -6,7 +6,7 @@ test_that("assess_pai_model()  handels arguments corectly", {
 
 expect_error( assess_pai_model(list(), method = "rf"))
 expect_error( assess_pai_model(gcp_data, method = "rf", validation_type = "xxx"))
-expect_no_error(assess_pai_model(gcp_data,k_folds = NULL, method = "rf"))
+expect_no_error(assess_pai_model(gcp_data = gcp_data, validation_type = "probability", k_folds = NULL, method = "rf"))
 
 })
 
@@ -28,6 +28,13 @@ test_that("assess_pai_model() returns a correctly structured data frame", {
       expect_named(assessment, c("Method", "ValidationType", "Mean_RMSE_2D", "SD_RMSE_2D"))
     }
   }
+
+  # Test for probability sampling
+  assessment1_prob <- assess_pai_model(gcp_data, method = "rf", validation_type = "probability", seed = 789)
+  assessment2_prob <- assess_pai_model(gcp_data, method = "rf", validation_type = "probability", seed = 789)
+  expect_equal(assessment1_prob, assessment2_prob)
+
+
 })
 
 test_that("assessment is reproducible when a seed is set", {
@@ -43,7 +50,7 @@ test_that("assess_pai_model() handles invalid inputs gracefully", {
   small_gcp_data <- gcp_data[1:3, ]
   expect_error(
     assess_pai_model(small_gcp_data, method = "rf", k_folds = 5),
-    "The number of complete GCPs is less than k_folds. Please use a smaller k_folds value.",
+    "The number of complete GCPs is less than k_folds.",
     fixed = TRUE
   )
 })

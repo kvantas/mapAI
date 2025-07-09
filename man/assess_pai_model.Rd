@@ -2,13 +2,15 @@
 % Please edit documentation in R/assess_pai_model.R
 \name{assess_pai_model}
 \alias{assess_pai_model}
-\title{Assess PAI Model Performance Using Cross-Validation}
+\title{Assess PAI Model Performance}
 \usage{
 assess_pai_model(
   gcp_data,
   method,
   validation_type = "random",
   k_folds = 5,
+  train_split_ratio = 0.8,
+  n_strata = 4,
   seed = 123,
   ...
 )
@@ -19,28 +21,31 @@ assess_pai_model(
 \item{method}{A character string specifying the algorithm to assess. One of:
 "lm", "gam", "rf", "helmert", "tps".}
 
-\item{validation_type}{A character string specifying the cross-validation
-strategy. One of "random" (default) or "spatial".}
+\item{validation_type}{A character string specifying the validation
+strategy. One of "random", "spatial", "probability", or "stratified".}
 
-\item{k_folds}{An integer specifying the number of folds for
-cross-validation. Defaults to 10 for "random" and 5 for "spatial".}
+\item{k_folds}{An integer for the number of folds in CV. Only used for
+\code{validation_type} "random" and "spatial". Defaults to 5.}
+
+\item{train_split_ratio}{A numeric value between 0 and 1. The proportion of
+data for the training set. Used for "probability" and "stratified" types.
+Defaults to 0.8.}
+
+\item{n_strata}{An integer specifying the number of strata to create for
+stratified sampling. Only used for \code{validation_type = "stratified"}.
+Defaults to 4 (quartiles).}
 
 \item{seed}{An integer for setting the random seed for reproducibility.}
 
-\item{...}{Additional arguments passed to the underlying \code{train_pai_model}
-function (e.g., \code{num.threads} for \code{ranger}).}
+\item{...}{Additional arguments passed to the \code{train_pai_model} function.}
 }
 \value{
-A data frame summarizing the cross-validation results, containing:
-\item{Method}{The algorithm that was assessed.}
-\item{ValidationType}{The CV strategy used.}
-\item{Mean_RMSE_2D}{The average 2D RMSE across all k-folds.}
-\item{SD_RMSE_2D}{The standard deviation of the 2D RMSE across all k-folds.}
+A data frame summarizing the validation results.
 }
 \description{
-Performs k-fold cross-validation to provide a robust estimate of
-a PAI model's predictive performance, offering both random and spatial CV
-methods.
+Performs model validation to estimate a PAI model's predictive
+performance using k-fold cross-validation or design-based probability
+sampling.
 }
 \details{
 Model validation is crucial for understanding how well a model will
@@ -48,41 +53,50 @@ generalize to new data. This function automates this process.
 
 \strong{Validation Types}:
 \itemize{
-\item \strong{\code{random} (default)}: Standard k-fold cross-validation. Data
-is randomly partitioned into folds. This can produce overly optimistic
-results for spatial data due to spatial autocorrelation.
-\item \strong{\code{spatial}}: Spatial Cross-Validation (SCV). Homologous
-points are clustered into \code{k_folds} spatially distinct groups using
-k-means clustering on their coordinates. The model is then trained on k-1
-groups and tested on the held-out group.
+\item \strong{\code{random}}: Standard k-fold cross-validation.
+\item \strong{\code{spatial}}: Spatial k-fold cross-validation.
+\item \strong{\code{probability}}: Design-based validation using a single
+train/test split based on simple random sampling.
+\item \strong{\code{stratified}}: Design-based validation using stratified
+random sampling. A single train/test split is performed. Strata are
+created based on the quantiles of the Euclidean distance of the error
+vectors (\code{dx}, \code{dy}), ensuring the validation set represents all error
+magnitudes proportionally.
 }
-The function loops through the folds, trains a temporary model on the
-training data for each fold, predicts on the test data, and calculates the 2D
-Root Mean Squared Error (RMSE). The final output is the mean and standard
-deviation of the RMSEs across all folds.
 }
 \examples{
 \dontrun{
-# --- 1. Generate and read demo data ---
+# --- 1. Assume necessary functions and data are loaded ---
+# e.g., create_demo_data(), read_gcps(), train_pai_model()
 demo_files <- create_demo_data(seed = 42)
 gcp_data <- read_gcps(gcp_path = demo_files$gcp_path, crs = 3857)
 
-# --- 2. Assess a Random Forest model with RANDOM CV ---
+# --- 2. Assess with RANDOM k-fold CV ---
 random_assessment <- assess_pai_model(
-  gcp_data,
-  method = "rf",
-  validation_type = "random",
-  k_folds = 10
+  gcp_data, method = "rf", validation_type = "random", k_folds = 5
 )
 print(random_assessment)
 
-# --- 3. Assess the SAME model with SPATIAL CV ---
+# --- 3. Assess with SPATIAL k-fold CV ---
 spatial_assessment <- assess_pai_model(
-  gcp_data,
-  method = "rf",
-  validation_type = "spatial",
-  k_folds = 5
+  gcp_data, method = "rf", validation_type = "spatial", k_folds = 5
 )
 print(spatial_assessment)
+
+# --- 4. Assess with PROBABILITY (simple random) sampling ---
+prob_assessment <- assess_pai_model(
+  gcp_data, method = "rf", validation_type = "probability", train_split_ratio = 0.75
+)
+print(prob_assessment)
+
+# --- 5. Assess with STRATIFIED probability sampling ---
+stratified_assessment <- assess_pai_model(
+  gcp_data,
+  method = "rf",
+  validation_type = "stratified",
+  train_split_ratio = 0.75,
+  n_strata = 4 # Use quartiles for stratification
+)
+print(stratified_assessment)
 }
 }
