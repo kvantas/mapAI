@@ -66,8 +66,7 @@ magnitudes proportionally.
 }
 \examples{
 \dontrun{
-# --- 1. Assume necessary functions and data are loaded ---
-# e.g., create_demo_data(), read_gcps(), train_pai_model()
+# --- 1. create a demo data set
 demo_files <- create_demo_data(seed = 42)
 gcp_data <- read_gcps(gcp_path = demo_files$gcp_path, crs = 3857)
 
