@@ -52,18 +52,6 @@ create_dummy_gcp_csv <- function(path, data = NULL) {
   utils::write.csv(data, path, row.names = FALSE)
 }
 
-# Use a temporary directory for all test outputs
-TEST_TEMP_DIR <- tempdir()
-
-# Function to create a simple square polygon for area tests
-create_test_polygon <- function(path) {
-  poly_coords <- matrix(c(0,0, 0,10, 10,10, 10,0, 0,0), ncol = 2, byrow = TRUE)
-  poly <- sf::st_polygon(list(poly_coords))
-  poly_sf <- sf::st_sf(id = 1, geometry = sf::st_sfc(poly, crs = 3857))
-  sf::st_write(poly_sf, path, delete_layer = TRUE, quiet = TRUE)
-  return(path)
-}
-
 # Helper function to create dummy gcp_data
 create_dummy_gcp_data <- function(n = 500) {
   set.seed(123) # for reproducibility of dummy data
@@ -76,6 +64,11 @@ create_dummy_gcp_data <- function(n = 500) {
     sf::st_as_sf(coords = c("source_x", "source_y"), crs = 4326, remove = FALSE)
 }
 
-# Generate the main demo data once for all tests
-DEMO_FILES <- create_demo_data(output_dir = TEST_TEMP_DIR)
-POLYGON_FILE <- create_test_polygon(file.path(TEST_TEMP_DIR, "test_polygon.shp"))
+# Function to create a simple square polygon for area tests
+create_test_polygon <- function(path) {
+  poly_coords <- matrix(c(0,0, 0,10, 10,10, 10,0, 0,0), ncol = 2, byrow = TRUE)
+  poly <- sf::st_polygon(list(poly_coords))
+  poly_sf <- sf::st_sf(id = 1, geometry = sf::st_sfc(poly, crs = 3857))
+  sf::st_write(poly_sf, path, delete_layer = TRUE, quiet = TRUE)
+  return(path)
+}

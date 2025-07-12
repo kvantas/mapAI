@@ -5,13 +5,8 @@ library(testthat)
 library(sf)
 library(dplyr)
 
-# Parent temporary directory for all tests in this file.
-# Subdirectories will be created inside this for isolation.
-base_temp_dir <- tempdir(check = TRUE)
-
 test_that("Function executes with default parameters and creates files", {
-  test_dir <- file.path(base_temp_dir, "default_test")
-  dir.create(test_dir, showWarnings = FALSE)
+  test_dir <- withr::local_tempdir()
 
   # Capture messages to check both are produced in a single run
   msgs <- capture_messages({
@@ -29,14 +24,10 @@ test_that("Function executes with default parameters and creates files", {
   # Verify that the files were actually created at the specified paths
   expect_true(file.exists(demo_files$shp_path))
   expect_true(file.exists(demo_files$gcp_path))
-
-  # Clean up the created files and directory
-  unlink(test_dir, recursive = TRUE)
 })
 
 test_that("Output files have the correct structure and content", {
-  test_dir <- file.path(base_temp_dir, "structure_test")
-  dir.create(test_dir, showWarnings = FALSE)
+  test_dir <- withr::local_tempdir()
 
   n_pts <- 5 # Use a smaller number for faster testing
   demo_files <- create_demo_data(n_points = n_pts, output_dir = test_dir, seed = 101)
@@ -53,17 +44,13 @@ test_that("Output files have the correct structure and content", {
   expect_s3_class(sf::st_geometry(map_data), "sfc_LINESTRING")
   # Should be n horizontal + n vertical lines
   expect_equal(nrow(map_data), n_pts * 2)
-
-  # Clean up
-  unlink(test_dir, recursive = TRUE)
 })
 
 
 test_that("All distortion types run without error", {
   # Test each type in a loop to keep code DRY
   for (type in c("helmert", "nonlinear", "complex")) {
-    test_dir <- file.path(base_temp_dir, paste0(type, "_test"))
-    dir.create(test_dir, showWarnings = FALSE)
+    test_dir <- withr::local_tempdir()
 
     # Use expect_silent to ensure no errors or warnings are thrown
     expect_message(
@@ -71,16 +58,12 @@ test_that("All distortion types run without error", {
     )
     expect_true(file.exists(files$gcp_path))
     expect_true(file.exists(files$shp_path))
-
-    # Clean up
-    unlink(test_dir, recursive = TRUE)
   }
 })
 
 
 test_that("Custom parameters are correctly applied", {
-  test_dir <- file.path(base_temp_dir, "custom_params_test")
-  dir.create(test_dir, showWarnings = FALSE)
+  test_dir <- withr::local_tempdir()
 
   # Test custom grid limits
   custom_limits <- c(1000, 1100, 2000, 2100)
@@ -92,18 +75,14 @@ test_that("Custom parameters are correctly applied", {
   expect_lte(max(gcp_data$target_x), custom_limits[2])
   expect_gte(min(gcp_data$target_y), custom_limits[3])
   expect_lte(max(gcp_data$target_y), custom_limits[4])
-
-  # Clean up
-  unlink(test_dir, recursive = TRUE)
 })
 
 
 test_that("Seed ensures reproducibility", {
   # Create separate directories for each run to ensure isolation
-  dir1 <- file.path(base_temp_dir, "seed_test_1")
-  dir2 <- file.path(base_temp_dir, "seed_test_2")
-  dir3 <- file.path(base_temp_dir, "seed_test_3")
-  dir.create(dir1); dir.create(dir2); dir.create(dir3)
+  dir1 <- withr::local_tempdir()
+  dir2 <- withr::local_tempdir()
+  dir3 <- withr::local_tempdir()
 
   # Generate two datasets with the same seed in different directories
   files1 <- create_demo_data(output_dir = dir1, seed = 42)
@@ -117,11 +96,6 @@ test_that("Seed ensures reproducibility", {
 
   # The content should NOT be identical to the first one
   expect_false(identical(read.csv(files1$gcp_path), read.csv(files3$gcp_path)))
-
-  # Clean up all directories
-  unlink(dir1, recursive = TRUE)
-  unlink(dir2, recursive = TRUE)
-  unlink(dir3, recursive = TRUE)
 })
 
 test_that("Function stops with invalid `type` parameter", {
@@ -131,4 +105,3 @@ test_that("Function stops with invalid `type` parameter", {
     "Invalid 'type'. Choose from 'helmert', 'nonlinear', or 'complex'."
   )
 })
-

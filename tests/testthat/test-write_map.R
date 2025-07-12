@@ -8,8 +8,9 @@ test_that("write_map creates a valid file that can be read back", {
   # If 'units' is not installed, the test is safely skipped.
   testthat::skip_if_not_installed("units")
 
+  temp_dir <- withr::local_tempdir()
   # 1. ARRANGE: Define a temporary path for a GeoPackage.
-  temp_gpkg_path <- tempfile(fileext = ".gpkg")
+  temp_gpkg_path <- file.path(temp_dir, "parcels.gpkg")
 
   # 2. ACT: Write the file.
   expect_no_error(
@@ -42,25 +43,23 @@ test_that("write_map creates a valid file that can be read back", {
     sf::st_as_text(sf::st_geometry(read_back_map)),
     sf::st_as_text(sf::st_geometry(parcels))
   )
-
-  # 4. CLEANUP:
-  file.remove(temp_gpkg_path)
 })
 
 test_that("overwrite argument works as expected", {
-  temp_gpkg_path <- tempfile(fileext = ".gpkg")
+  temp_dir <- withr::local_tempdir()
+  temp_gpkg_path <- file.path(temp_dir, "parcels.gpkg")
   write_map(parcels[1:10, ], temp_gpkg_path)
   expect_error(write_map(parcels, temp_gpkg_path))
   expect_no_error(write_map(parcels, temp_gpkg_path, overwrite = TRUE))
   read_back_map <- sf::st_read(temp_gpkg_path, quiet = TRUE)
   expect_equal(nrow(read_back_map), nrow(parcels))
-  file.remove(temp_gpkg_path)
 })
 
 test_that("write_map handles invalid inputs gracefully", {
-  temp_path <- tempfile(fileext = ".gpkg")
+  temp_dir <- withr::local_tempdir()
+  temp_path <- file.path(temp_dir, "parcels.gpkg")
   expect_error(write_map(as.data.frame(parcels), temp_path), "`map` must be a valid `sf` object.")
   expect_error(write_map(parcels, file_path = 12345), "`file_path` must be a single character string.")
-  temp_path <- tempfile(fileext = ".xxx")
-  expect_error(suppressWarnings( write_map(parcels, temp_path)) )
+  temp_path_xxx <- file.path(temp_dir, "parcels.xxx")
+  expect_error(suppressWarnings( write_map(parcels, temp_path_xxx)) )
 })
