@@ -8,6 +8,8 @@ test_that("assess_pai_model()  handels arguments corectly", {
     expect_error( assess_pai_model(list(), method = "rf"))
     expect_error( assess_pai_model(gcp_data, method = "rf", validation_type = "xxx"))
     expect_no_error(assess_pai_model(gcp_data = gcp_data, validation_type = "probability", k_folds = NULL, method = "rf"))
+    expect_no_error(assess_pai_model(gcp_data = gcp_data, validation_type = "stratified", k_folds = NULL, method = "rf"))
+
   })
 })
 
