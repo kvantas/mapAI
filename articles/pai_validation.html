@@ -96,7 +96,7 @@ cross-validation and spatial cross-validation.</p>
 <span><span class="kw"><a href="https://rdrr.io/r/base/library.html" class="external-link">library</a></span><span class="op">(</span><span class="va"><a href="https://ggplot2.tidyverse.org" class="external-link">ggplot2</a></span><span class="op">)</span></span>
 <span><span class="kw"><a href="https://rdrr.io/r/base/library.html" class="external-link">library</a></span><span class="op">(</span><span class="va"><a href="https://patchwork.data-imaginist.com" class="external-link">patchwork</a></span><span class="op">)</span></span></code></pre></div>
 <div class="section level2">
-<h2 id="step-1-load-and-explore-the-package-data">Step 1: Load and Explore the Package Data<a class="anchor" aria-label="anchor" href="#step-1-load-and-explore-the-package-data"></a>
+<h2 id="load-and-explore-the-package-data">Load and Explore the Package Data<a class="anchor" aria-label="anchor" href="#load-and-explore-the-package-data"></a>
 </h2>
 <p>The <code>mapAI</code> package comes with two datasets from the
 Kastoria study:</p>
@@ -122,19 +122,48 @@ directly with the data() function.</p>
 <span><span class="co">#&gt; [1] "Initial average error (RMSE) of the Kastoria map: 0.69 meters"</span></span></code></pre></div>
 </div>
 <div class="section level2">
-<h2 id="step-2-comparing-validation-strategies">Step 2: Comparing Validation Strategies<a class="anchor" aria-label="anchor" href="#step-2-comparing-validation-strategies"></a>
+<h2 id="comparing-validation-strategies">Comparing Validation Strategies<a class="anchor" aria-label="anchor" href="#comparing-validation-strategies"></a>
 </h2>
-<p>A key challenge in spatial data science is <em>spatial
-autocorrelation</em>, which means that points closer together are more
-likely to be similar than points farther apart. Standard <em>random
-cross-validation</em> ignores this. It might randomly put a test point
-right next to a training point, leading to an overly optimistic (and
-misleadingly low) error estimate.</p>
-<p><em>Spatial Cross-Validation (SCV)</em> solves this by creating
-validation folds that are geographically separate blocks. This provides
-a more realistic estimate of how the model will perform when predicting
-for entirely new areas.</p>
-<p>Let’s compare the results from both methods for all three models
+<p>A key challenge in spatial data science is <strong>spatial
+autocorrelation</strong>, meaning that points closer together are more
+likely to be similar. Standard <strong>random k-fold cross-validation
+(CV)</strong> ignores this, which can lead to
+<strong>optimistic</strong> and misleadingly low error estimates because
+test points might be too close to training points.</p>
+<p>To address this, two distinct validation philosophies are often
+considered:</p>
+<hr>
+<div class="section level3">
+<h3 id="cross-validation-strategies">Cross-Validation Strategies<a class="anchor" aria-label="anchor" href="#cross-validation-strategies"></a>
+</h3>
+<ul>
+<li>
+<strong>Spatial Cross-Validation (SCV)</strong> is one alternative
+to random CV. It creates geographically distinct folds, often using
+k-means clustering. While this avoids the optimism of random CV, it can
+provide a <strong>pessimistic</strong> estimate by testing the model’s
+ability to extrapolate into entirely new areas.</li>
+</ul>
+<hr>
+</div>
+<div class="section level3">
+<h3 id="design-based-validation-a-more-robust-assessment">Design-Based Validation: A More Robust Assessment<a class="anchor" aria-label="anchor" href="#design-based-validation-a-more-robust-assessment"></a>
+</h3>
+<p>More importantly, and in line with best practices for map accuracy
+assessment, a <strong>design-based validation</strong> through a single
+train/test split is often preferred. This approach simulates the
+evaluation of a final model against a truly independent validation set,
+offering a more statistically sound assessment of predictive accuracy.
+This package implements this via: * <strong>Simple random
+sampling</strong> for the split. * <strong>Stratified random
+sampling</strong>, which ensures the validation set contains a
+representative sample of points across the full spectrum of error
+magnitudes.</p>
+<p>By offering this comprehensive suite of methods (random CV, SCV, and
+design-based validation), you can move beyond simply comparing
+traditional CV strategies to perform a more robust assessment of your
+model’s predictive accuracy.</p>
+<p>Let’s compare the results from these methods for all three models
 (<code>lm</code>, <code>rf</code>, and <code>gam</code>).</p>
 <div class="sourceCode" id="cb3"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="co"># Helper function to run validation for all models</span></span>
@@ -153,193 +182,14 @@ for entirely new areas.</p>
 <span></span>
 <span><span class="co"># Run both random and spatial cross-validation</span></span>
 <span><span class="va">random_cv_results</span> <span class="op">&lt;-</span> <span class="fu">validate_all_methods</span><span class="op">(</span><span class="va">gcps</span>, <span class="st">"random"</span><span class="op">)</span></span>
-<span><span class="co">#&gt; </span></span>
-<span><span class="co">#&gt; Running random cross-validation...</span></span>
-<span><span class="co">#&gt; Starting 10 -fold random cross-validation...</span></span>
-<span><span class="co">#&gt;   Processing Fold 1 of 10 ...</span></span>
-<span><span class="co">#&gt; Training 'lm' model...</span></span>
-<span><span class="co">#&gt;   Processing Fold 2 of 10 ...</span></span>
-<span><span class="co">#&gt; Training 'lm' model...</span></span>
-<span><span class="co">#&gt;   Processing Fold 3 of 10 ...</span></span>
-<span><span class="co">#&gt; Training 'lm' model...</span></span>
-<span><span class="co">#&gt;   Processing Fold 4 of 10 ...</span></span>
-<span><span class="co">#&gt; Training 'lm' model...</span></span>
-<span><span class="co">#&gt;   Processing Fold 5 of 10 ...</span></span>
-<span><span class="co">#&gt; Training 'lm' model...</span></span>
-<span><span class="co">#&gt;   Processing Fold 6 of 10 ...</span></span>
-<span><span class="co">#&gt; Training 'lm' model...</span></span>
-<span><span class="co">#&gt;   Processing Fold 7 of 10 ...</span></span>
-<span><span class="co">#&gt; Training 'lm' model...</span></span>
-<span><span class="co">#&gt;   Processing Fold 8 of 10 ...</span></span>
-<span><span class="co">#&gt; Training 'lm' model...</span></span>
-<span><span class="co">#&gt;   Processing Fold 9 of 10 ...</span></span>
-<span><span class="co">#&gt; Training 'lm' model...</span></span>
-<span><span class="co">#&gt;   Processing Fold 10 of 10 ...</span></span>
-<span><span class="co">#&gt; Training 'lm' model...</span></span>
-<span><span class="co">#&gt; Assessment complete.</span></span>
-<span><span class="co">#&gt; Starting 10 -fold random cross-validation...</span></span>
-<span><span class="co">#&gt;   Processing Fold 1 of 10 ...</span></span>
-<span><span class="co">#&gt; Training 'rf' model...</span></span>
-<span><span class="co">#&gt;   Processing Fold 2 of 10 ...</span></span>
-<span><span class="co">#&gt; Training 'rf' model...</span></span>
-<span><span class="co">#&gt;   Processing Fold 3 of 10 ...</span></span>
-<span><span class="co">#&gt; Training 'rf' model...</span></span>
-<span><span class="co">#&gt;   Processing Fold 4 of 10 ...</span></span>
-<span><span class="co">#&gt; Training 'rf' model...</span></span>
-<span><span class="co">#&gt;   Processing Fold 5 of 10 ...</span></span>
-<span><span class="co">#&gt; Training 'rf' model...</span></span>
-<span><span class="co">#&gt;   Processing Fold 6 of 10 ...</span></span>
-<span><span class="co">#&gt; Training 'rf' model...</span></span>
-<span><span class="co">#&gt;   Processing Fold 7 of 10 ...</span></span>
-<span><span class="co">#&gt; Training 'rf' model...</span></span>
-<span><span class="co">#&gt;   Processing Fold 8 of 10 ...</span></span>
-<span><span class="co">#&gt; Training 'rf' model...</span></span>
-<span><span class="co">#&gt;   Processing Fold 9 of 10 ...</span></span>
-<span><span class="co">#&gt; Training 'rf' model...</span></span>
-<span><span class="co">#&gt;   Processing Fold 10 of 10 ...</span></span>
-<span><span class="co">#&gt; Training 'rf' model...</span></span>
-<span><span class="co">#&gt; Assessment complete.</span></span>
-<span><span class="co">#&gt; Starting 10 -fold random cross-validation...</span></span>
-<span><span class="co">#&gt;   Processing Fold 1 of 10 ...</span></span>
-<span><span class="co">#&gt; Training 'gam' model...</span></span>
-<span><span class="co">#&gt;   Processing Fold 2 of 10 ...</span></span>
-<span><span class="co">#&gt; Training 'gam' model...</span></span>
-<span><span class="co">#&gt;   Processing Fold 3 of 10 ...</span></span>
-<span><span class="co">#&gt; Training 'gam' model...</span></span>
-<span><span class="co">#&gt;   Processing Fold 4 of 10 ...</span></span>
-<span><span class="co">#&gt; Training 'gam' model...</span></span>
-<span><span class="co">#&gt;   Processing Fold 5 of 10 ...</span></span>
-<span><span class="co">#&gt; Training 'gam' model...</span></span>
-<span><span class="co">#&gt;   Processing Fold 6 of 10 ...</span></span>
-<span><span class="co">#&gt; Training 'gam' model...</span></span>
-<span><span class="co">#&gt;   Processing Fold 7 of 10 ...</span></span>
-<span><span class="co">#&gt; Training 'gam' model...</span></span>
-<span><span class="co">#&gt;   Processing Fold 8 of 10 ...</span></span>
-<span><span class="co">#&gt; Training 'gam' model...</span></span>
-<span><span class="co">#&gt;   Processing Fold 9 of 10 ...</span></span>
-<span><span class="co">#&gt; Training 'gam' model...</span></span>
-<span><span class="co">#&gt;   Processing Fold 10 of 10 ...</span></span>
-<span><span class="co">#&gt; Training 'gam' model...</span></span>
-<span><span class="co">#&gt; Assessment complete.</span></span>
-<span><span class="co">#&gt; Starting 10 -fold random cross-validation...</span></span>
-<span><span class="co">#&gt;   Processing Fold 1 of 10 ...</span></span>
-<span><span class="co">#&gt; Fitting Helmert transformation...</span></span>
-<span><span class="co">#&gt;   Processing Fold 2 of 10 ...</span></span>
-<span><span class="co">#&gt; Fitting Helmert transformation...</span></span>
-<span><span class="co">#&gt;   Processing Fold 3 of 10 ...</span></span>
-<span><span class="co">#&gt; Fitting Helmert transformation...</span></span>
-<span><span class="co">#&gt;   Processing Fold 4 of 10 ...</span></span>
-<span><span class="co">#&gt; Fitting Helmert transformation...</span></span>
-<span><span class="co">#&gt;   Processing Fold 5 of 10 ...</span></span>
-<span><span class="co">#&gt; Fitting Helmert transformation...</span></span>
-<span><span class="co">#&gt;   Processing Fold 6 of 10 ...</span></span>
-<span><span class="co">#&gt; Fitting Helmert transformation...</span></span>
-<span><span class="co">#&gt;   Processing Fold 7 of 10 ...</span></span>
-<span><span class="co">#&gt; Fitting Helmert transformation...</span></span>
-<span><span class="co">#&gt;   Processing Fold 8 of 10 ...</span></span>
-<span><span class="co">#&gt; Fitting Helmert transformation...</span></span>
-<span><span class="co">#&gt;   Processing Fold 9 of 10 ...</span></span>
-<span><span class="co">#&gt; Fitting Helmert transformation...</span></span>
-<span><span class="co">#&gt;   Processing Fold 10 of 10 ...</span></span>
-<span><span class="co">#&gt; Fitting Helmert transformation...</span></span>
-<span><span class="co">#&gt; Assessment complete.</span></span>
 <span><span class="va">spatial_cv_results</span> <span class="op">&lt;-</span> <span class="fu">validate_all_methods</span><span class="op">(</span><span class="va">gcps</span>, <span class="st">"spatial"</span><span class="op">)</span></span>
-<span><span class="co">#&gt; </span></span>
-<span><span class="co">#&gt; Running spatial cross-validation...</span></span>
-<span><span class="co">#&gt; Starting 10 -fold spatial cross-validation...</span></span>
-<span><span class="co">#&gt;   Processing Fold 1 of 10 ...</span></span>
-<span><span class="co">#&gt; Training 'lm' model...</span></span>
-<span><span class="co">#&gt;   Processing Fold 2 of 10 ...</span></span>
-<span><span class="co">#&gt; Training 'lm' model...</span></span>
-<span><span class="co">#&gt;   Processing Fold 3 of 10 ...</span></span>
-<span><span class="co">#&gt; Training 'lm' model...</span></span>
-<span><span class="co">#&gt;   Processing Fold 4 of 10 ...</span></span>
-<span><span class="co">#&gt; Training 'lm' model...</span></span>
-<span><span class="co">#&gt;   Processing Fold 5 of 10 ...</span></span>
-<span><span class="co">#&gt; Training 'lm' model...</span></span>
-<span><span class="co">#&gt;   Processing Fold 6 of 10 ...</span></span>
-<span><span class="co">#&gt; Training 'lm' model...</span></span>
-<span><span class="co">#&gt;   Processing Fold 7 of 10 ...</span></span>
-<span><span class="co">#&gt; Training 'lm' model...</span></span>
-<span><span class="co">#&gt;   Processing Fold 8 of 10 ...</span></span>
-<span><span class="co">#&gt; Training 'lm' model...</span></span>
-<span><span class="co">#&gt;   Processing Fold 9 of 10 ...</span></span>
-<span><span class="co">#&gt; Training 'lm' model...</span></span>
-<span><span class="co">#&gt;   Processing Fold 10 of 10 ...</span></span>
-<span><span class="co">#&gt; Training 'lm' model...</span></span>
-<span><span class="co">#&gt; Assessment complete.</span></span>
-<span><span class="co">#&gt; Starting 10 -fold spatial cross-validation...</span></span>
-<span><span class="co">#&gt;   Processing Fold 1 of 10 ...</span></span>
-<span><span class="co">#&gt; Training 'rf' model...</span></span>
-<span><span class="co">#&gt;   Processing Fold 2 of 10 ...</span></span>
-<span><span class="co">#&gt; Training 'rf' model...</span></span>
-<span><span class="co">#&gt;   Processing Fold 3 of 10 ...</span></span>
-<span><span class="co">#&gt; Training 'rf' model...</span></span>
-<span><span class="co">#&gt;   Processing Fold 4 of 10 ...</span></span>
-<span><span class="co">#&gt; Training 'rf' model...</span></span>
-<span><span class="co">#&gt;   Processing Fold 5 of 10 ...</span></span>
-<span><span class="co">#&gt; Training 'rf' model...</span></span>
-<span><span class="co">#&gt;   Processing Fold 6 of 10 ...</span></span>
-<span><span class="co">#&gt; Training 'rf' model...</span></span>
-<span><span class="co">#&gt;   Processing Fold 7 of 10 ...</span></span>
-<span><span class="co">#&gt; Training 'rf' model...</span></span>
-<span><span class="co">#&gt;   Processing Fold 8 of 10 ...</span></span>
-<span><span class="co">#&gt; Training 'rf' model...</span></span>
-<span><span class="co">#&gt;   Processing Fold 9 of 10 ...</span></span>
-<span><span class="co">#&gt; Training 'rf' model...</span></span>
-<span><span class="co">#&gt;   Processing Fold 10 of 10 ...</span></span>
-<span><span class="co">#&gt; Training 'rf' model...</span></span>
-<span><span class="co">#&gt; Assessment complete.</span></span>
-<span><span class="co">#&gt; Starting 10 -fold spatial cross-validation...</span></span>
-<span><span class="co">#&gt;   Processing Fold 1 of 10 ...</span></span>
-<span><span class="co">#&gt; Training 'gam' model...</span></span>
-<span><span class="co">#&gt;   Processing Fold 2 of 10 ...</span></span>
-<span><span class="co">#&gt; Training 'gam' model...</span></span>
-<span><span class="co">#&gt;   Processing Fold 3 of 10 ...</span></span>
-<span><span class="co">#&gt; Training 'gam' model...</span></span>
-<span><span class="co">#&gt;   Processing Fold 4 of 10 ...</span></span>
-<span><span class="co">#&gt; Training 'gam' model...</span></span>
-<span><span class="co">#&gt;   Processing Fold 5 of 10 ...</span></span>
-<span><span class="co">#&gt; Training 'gam' model...</span></span>
-<span><span class="co">#&gt;   Processing Fold 6 of 10 ...</span></span>
-<span><span class="co">#&gt; Training 'gam' model...</span></span>
-<span><span class="co">#&gt;   Processing Fold 7 of 10 ...</span></span>
-<span><span class="co">#&gt; Training 'gam' model...</span></span>
-<span><span class="co">#&gt;   Processing Fold 8 of 10 ...</span></span>
-<span><span class="co">#&gt; Training 'gam' model...</span></span>
-<span><span class="co">#&gt;   Processing Fold 9 of 10 ...</span></span>
-<span><span class="co">#&gt; Training 'gam' model...</span></span>
-<span><span class="co">#&gt;   Processing Fold 10 of 10 ...</span></span>
-<span><span class="co">#&gt; Training 'gam' model...</span></span>
-<span><span class="co">#&gt; Assessment complete.</span></span>
-<span><span class="co">#&gt; Starting 10 -fold spatial cross-validation...</span></span>
-<span><span class="co">#&gt;   Processing Fold 1 of 10 ...</span></span>
-<span><span class="co">#&gt; Fitting Helmert transformation...</span></span>
-<span><span class="co">#&gt;   Processing Fold 2 of 10 ...</span></span>
-<span><span class="co">#&gt; Fitting Helmert transformation...</span></span>
-<span><span class="co">#&gt;   Processing Fold 3 of 10 ...</span></span>
-<span><span class="co">#&gt; Fitting Helmert transformation...</span></span>
-<span><span class="co">#&gt;   Processing Fold 4 of 10 ...</span></span>
-<span><span class="co">#&gt; Fitting Helmert transformation...</span></span>
-<span><span class="co">#&gt;   Processing Fold 5 of 10 ...</span></span>
-<span><span class="co">#&gt; Fitting Helmert transformation...</span></span>
-<span><span class="co">#&gt;   Processing Fold 6 of 10 ...</span></span>
-<span><span class="co">#&gt; Fitting Helmert transformation...</span></span>
-<span><span class="co">#&gt;   Processing Fold 7 of 10 ...</span></span>
-<span><span class="co">#&gt; Fitting Helmert transformation...</span></span>
-<span><span class="co">#&gt;   Processing Fold 8 of 10 ...</span></span>
-<span><span class="co">#&gt; Fitting Helmert transformation...</span></span>
-<span><span class="co">#&gt;   Processing Fold 9 of 10 ...</span></span>
-<span><span class="co">#&gt; Fitting Helmert transformation...</span></span>
-<span><span class="co">#&gt;   Processing Fold 10 of 10 ...</span></span>
-<span><span class="co">#&gt; Fitting Helmert transformation...</span></span>
-<span><span class="co">#&gt; Assessment complete.</span></span>
+<span><span class="va">stratified_results</span> <span class="op">&lt;-</span> <span class="fu">validate_all_methods</span><span class="op">(</span><span class="va">gcps</span>, <span class="st">"stratified"</span><span class="op">)</span></span>
 <span></span>
 <span><span class="co"># Combine into one table for comparison</span></span>
-<span><span class="va">all_results</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/cbind.html" class="external-link">rbind</a></span><span class="op">(</span><span class="va">random_cv_results</span>, <span class="va">spatial_cv_results</span><span class="op">)</span></span>
+<span><span class="va">all_results</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/cbind.html" class="external-link">rbind</a></span><span class="op">(</span><span class="va">random_cv_results</span>, <span class="va">spatial_cv_results</span>, <span class="va">stratified_results</span><span class="op">)</span></span>
 <span></span>
 <span><span class="co"># Print the results table</span></span>
-<span><span class="fu">knitr</span><span class="fu">::</span><span class="fu"><a href="https://rdrr.io/pkg/knitr/man/kable.html" class="external-link">kable</a></span><span class="op">(</span><span class="va">all_results</span>, caption <span class="op">=</span> <span class="st">"Comparison of Validation Results"</span><span class="op">)</span></span></code></pre></div>
+<span><span class="fu">knitr</span><span class="fu">::</span><span class="fu"><a href="https://rdrr.io/pkg/knitr/man/kable.html" class="external-link">kable</a></span><span class="op">(</span><span class="va">all_results</span>, caption <span class="op">=</span> <span class="st">"Comparison of Validation Results"</span>, digits <span class="op">=</span> <span class="fl">2</span><span class="op">)</span></span></code></pre></div>
 <table class="table">
 <caption>Comparison of Validation Results</caption>
 <thead><tr class="header">
@@ -352,50 +202,74 @@ for entirely new areas.</p>
 <tr class="odd">
 <td align="left">lm</td>
 <td align="left">random</td>
-<td align="right">0.5247283</td>
-<td align="right">0.0494486</td>
+<td align="right">0.52</td>
+<td align="right">0.05</td>
 </tr>
 <tr class="even">
 <td align="left">rf</td>
 <td align="left">random</td>
-<td align="right">0.5129937</td>
-<td align="right">0.0544782</td>
+<td align="right">0.51</td>
+<td align="right">0.05</td>
 </tr>
 <tr class="odd">
 <td align="left">gam</td>
 <td align="left">random</td>
-<td align="right">0.5012551</td>
-<td align="right">0.0449526</td>
+<td align="right">0.50</td>
+<td align="right">0.04</td>
 </tr>
 <tr class="even">
 <td align="left">helmert</td>
 <td align="left">random</td>
-<td align="right">0.5420174</td>
-<td align="right">0.0478073</td>
+<td align="right">0.54</td>
+<td align="right">0.05</td>
 </tr>
 <tr class="odd">
 <td align="left">lm</td>
 <td align="left">spatial</td>
-<td align="right">0.5600557</td>
-<td align="right">0.1610211</td>
+<td align="right">0.56</td>
+<td align="right">0.16</td>
 </tr>
 <tr class="even">
 <td align="left">rf</td>
 <td align="left">spatial</td>
-<td align="right">0.6385157</td>
-<td align="right">0.1572618</td>
+<td align="right">0.64</td>
+<td align="right">0.16</td>
 </tr>
 <tr class="odd">
 <td align="left">gam</td>
 <td align="left">spatial</td>
-<td align="right">0.6390275</td>
-<td align="right">0.1043313</td>
+<td align="right">0.64</td>
+<td align="right">0.10</td>
 </tr>
 <tr class="even">
 <td align="left">helmert</td>
 <td align="left">spatial</td>
-<td align="right">0.5824065</td>
-<td align="right">0.1590879</td>
+<td align="right">0.58</td>
+<td align="right">0.16</td>
+</tr>
+<tr class="odd">
+<td align="left">lm</td>
+<td align="left">stratified</td>
+<td align="right">0.52</td>
+<td align="right">NA</td>
+</tr>
+<tr class="even">
+<td align="left">rf</td>
+<td align="left">stratified</td>
+<td align="right">0.54</td>
+<td align="right">NA</td>
+</tr>
+<tr class="odd">
+<td align="left">gam</td>
+<td align="left">stratified</td>
+<td align="right">0.53</td>
+<td align="right">NA</td>
+</tr>
+<tr class="even">
+<td align="left">helmert</td>
+<td align="left">stratified</td>
+<td align="right">0.52</td>
+<td align="right">NA</td>
 </tr>
 </tbody>
 </table>
@@ -408,64 +282,78 @@ for entirely new areas.</p>
 <span>    width <span class="op">=</span> <span class="fl">0.2</span>, position <span class="op">=</span> <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/position_dodge.html" class="external-link">position_dodge</a></span><span class="op">(</span><span class="fl">0.9</span><span class="op">)</span></span>
 <span>  <span class="op">)</span> <span class="op">+</span></span>
 <span>  <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/labs.html" class="external-link">labs</a></span><span class="op">(</span></span>
-<span>    title <span class="op">=</span> <span class="st">"Random vs. Spatial Cross-Validation Results"</span>,</span>
+<span>    title <span class="op">=</span> <span class="st">"Comparing Validation Results"</span>,</span>
 <span>    subtitle <span class="op">=</span> <span class="st">"Note how spatial CV provides a higher error estimate"</span>,</span>
 <span>    x <span class="op">=</span> <span class="st">"Correction Model"</span>,</span>
 <span>    y <span class="op">=</span> <span class="st">"Mean 2D RMSE (meters)"</span>,</span>
 <span>    fill <span class="op">=</span> <span class="st">"Validation Type"</span></span>
 <span>  <span class="op">)</span> <span class="op">+</span></span>
 <span>  <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/ggtheme.html" class="external-link">theme_minimal</a></span><span class="op">(</span><span class="op">)</span></span></code></pre></div>
-<p><img src="pai_validation_files/figure-html/r%20plot%20validation%20results-1.png" width="672"></p>
+<p><img src="reference/figures/valid-r%20plot%20validation%20results-1.png" width="100%"></p>
+</div>
 </div>
 <div class="section level2">
-<h2 id="step-3-train-the-final-model-and-analyze-it">Step 3: Train the Final Model and Analyze It<a class="anchor" aria-label="anchor" href="#step-3-train-the-final-model-and-analyze-it"></a>
+<h2 id="train-the-final-model-and-analyze-it">Train the Final Model and Analyze It<a class="anchor" aria-label="anchor" href="#train-the-final-model-and-analyze-it"></a>
 </h2>
-<p>Based on our validation, we choose <code>rf</code> as our final model
+<p>Based on our validation, we choose <code>lm</code> as our final model
 and train it on the <strong>entire</strong> set of GCPs.</p>
 <div class="sourceCode" id="cb5"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span></span>
-<span><span class="co"># Train the final GAM model on all available data</span></span>
-<span><span class="va">pai_model_gam</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/train_pai_model.html">train_pai_model</a></span><span class="op">(</span><span class="va">gcps</span>, method <span class="op">=</span> <span class="st">"gam"</span><span class="op">)</span></span>
-<span><span class="co">#&gt; Training 'gam' model...</span></span>
+<span><span class="co"># Train the final model on all available data</span></span>
+<span><span class="va">pai_model</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/train_pai_model.html">train_pai_model</a></span><span class="op">(</span><span class="va">gcps</span>, method <span class="op">=</span> <span class="st">"lm"</span><span class="op">)</span></span>
+<span><span class="co">#&gt; Training 'lm' model...</span></span>
 <span></span>
 <span><span class="co"># Let's look at the statistical summary of our trained model</span></span>
-<span><span class="va">model_summary</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/summary.html" class="external-link">summary</a></span><span class="op">(</span><span class="va">pai_model_gam</span><span class="op">$</span><span class="va">model</span><span class="op">)</span></span>
-<span><span class="fu"><a href="https://rdrr.io/r/base/print.html" class="external-link">print</a></span><span class="op">(</span><span class="va">model_summary</span><span class="op">)</span></span>
+<span><span class="fu"><a href="https://rdrr.io/r/base/print.html" class="external-link">print</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/summary.html" class="external-link">summary</a></span><span class="op">(</span><span class="va">pai_model</span><span class="op">$</span><span class="va">model</span><span class="op">$</span><span class="va">model_dx</span><span class="op">)</span><span class="op">)</span></span>
 <span><span class="co">#&gt; </span></span>
-<span><span class="co">#&gt; Family: Multivariate normal </span></span>
-<span><span class="co">#&gt; Link function: </span></span>
+<span><span class="co">#&gt; Call:</span></span>
+<span><span class="co">#&gt; stats::lm(formula = formula, data = data)</span></span>
 <span><span class="co">#&gt; </span></span>
-<span><span class="co">#&gt; Formula:</span></span>
-<span><span class="co">#&gt; dx ~ s(source_x, source_y)</span></span>
-<span><span class="co">#&gt; &lt;environment: 0x55a2d6b273b8&gt;</span></span>
-<span><span class="co">#&gt; dy ~ s(source_x, source_y)</span></span>
-<span><span class="co">#&gt; &lt;environment: 0x55a2d6b273b8&gt;</span></span>
+<span><span class="co">#&gt; Residuals:</span></span>
+<span><span class="co">#&gt;      Min       1Q   Median       3Q      Max </span></span>
+<span><span class="co">#&gt; -1.27422 -0.18591  0.00183  0.15729  1.18893 </span></span>
 <span><span class="co">#&gt; </span></span>
-<span><span class="co">#&gt; Parametric coefficients:</span></span>
-<span><span class="co">#&gt;               Estimate Std. Error z value Pr(&gt;|z|)    </span></span>
-<span><span class="co">#&gt; (Intercept)    0.05257    0.01722   3.053  0.00227 ** </span></span>
-<span><span class="co">#&gt; (Intercept).1 -0.31945    0.02119 -15.074  &lt; 2e-16 ***</span></span>
+<span><span class="co">#&gt; Coefficients:</span></span>
+<span><span class="co">#&gt;               Estimate Std. Error t value Pr(&gt;|t|)    </span></span>
+<span><span class="co">#&gt; (Intercept) -6.644e+03  7.461e+02  -8.904   &lt;2e-16 ***</span></span>
+<span><span class="co">#&gt; source_x     5.886e-05  1.373e-04   0.429    0.668    </span></span>
+<span><span class="co">#&gt; source_y     1.477e-03  1.663e-04   8.880   &lt;2e-16 ***</span></span>
 <span><span class="co">#&gt; ---</span></span>
 <span><span class="co">#&gt; Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1</span></span>
 <span><span class="co">#&gt; </span></span>
-<span><span class="co">#&gt; Approximate significance of smooth terms:</span></span>
-<span><span class="co">#&gt;                           edf Ref.df Chi.sq p-value    </span></span>
-<span><span class="co">#&gt; s(source_x,source_y)   23.845  27.45  234.5  &lt;2e-16 ***</span></span>
-<span><span class="co">#&gt; s.1(source_x,source_y)  7.624  10.63  156.8  &lt;2e-16 ***</span></span>
+<span><span class="co">#&gt; Residual standard error: 0.3619 on 297 degrees of freedom</span></span>
+<span><span class="co">#&gt; Multiple R-squared:  0.2109, Adjusted R-squared:  0.2056 </span></span>
+<span><span class="co">#&gt; F-statistic: 39.68 on 2 and 297 DF,  p-value: 5.333e-16</span></span>
+<span><span class="fu"><a href="https://rdrr.io/r/base/print.html" class="external-link">print</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/summary.html" class="external-link">summary</a></span><span class="op">(</span><span class="va">pai_model</span><span class="op">$</span><span class="va">model</span><span class="op">$</span><span class="va">model_dy</span><span class="op">)</span><span class="op">)</span></span>
+<span><span class="co">#&gt; </span></span>
+<span><span class="co">#&gt; Call:</span></span>
+<span><span class="co">#&gt; stats::lm(formula = formula, data = data)</span></span>
+<span><span class="co">#&gt; </span></span>
+<span><span class="co">#&gt; Residuals:</span></span>
+<span><span class="co">#&gt;      Min       1Q   Median       3Q      Max </span></span>
+<span><span class="co">#&gt; -1.22190 -0.22767 -0.03835  0.20294  1.60099 </span></span>
+<span><span class="co">#&gt; </span></span>
+<span><span class="co">#&gt; Coefficients:</span></span>
+<span><span class="co">#&gt;               Estimate Std. Error t value Pr(&gt;|t|)    </span></span>
+<span><span class="co">#&gt; (Intercept) -6.104e+03  7.848e+02  -7.778 1.22e-13 ***</span></span>
+<span><span class="co">#&gt; source_x    -1.228e-03  1.444e-04  -8.505 9.02e-16 ***</span></span>
+<span><span class="co">#&gt; source_y     1.434e-03  1.749e-04   8.196 7.53e-15 ***</span></span>
 <span><span class="co">#&gt; ---</span></span>
 <span><span class="co">#&gt; Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1</span></span>
 <span><span class="co">#&gt; </span></span>
-<span><span class="co">#&gt; Deviance explained = 39.9%</span></span>
-<span><span class="co">#&gt; -REML = -305.73  Scale est. = 1         n = 300</span></span></code></pre></div>
+<span><span class="co">#&gt; Residual standard error: 0.3806 on 297 degrees of freedom</span></span>
+<span><span class="co">#&gt; Multiple R-squared:  0.3129, Adjusted R-squared:  0.3083 </span></span>
+<span><span class="co">#&gt; F-statistic: 67.64 on 2 and 297 DF,  p-value: &lt; 2.2e-16</span></span></code></pre></div>
 </div>
 <div class="section level2">
-<h2 id="step-4-apply-and-visualize-the-final-correction">Step 4: Apply and Visualize the Final Correction<a class="anchor" aria-label="anchor" href="#step-4-apply-and-visualize-the-final-correction"></a>
+<h2 id="apply-and-visualize-the-final-correction">Apply and Visualize the Final Correction<a class="anchor" aria-label="anchor" href="#apply-and-visualize-the-final-correction"></a>
 </h2>
 <p>Finally, we apply our chosen and analyzed gam model to the Kastoria
-parcels data.</p>
+parcels data. We will plot the first five parcels to zoom in an
+area.</p>
 <div class="sourceCode" id="cb6"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="co"># Apply the model to the parcel polygons</span></span>
-<span><span class="va">corrected_parcels</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/apply_pai_model.html">apply_pai_model</a></span><span class="op">(</span>pai_model <span class="op">=</span> <span class="va">pai_model_gam</span>, map <span class="op">=</span> <span class="va">parcels</span><span class="op">)</span></span>
+<span><span class="va">corrected_parcels</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/apply_pai_model.html">apply_pai_model</a></span><span class="op">(</span>pai_model <span class="op">=</span> <span class="va">pai_model</span>, map <span class="op">=</span> <span class="va">parcels</span><span class="op">)</span></span>
 <span><span class="co">#&gt; Applying PAI model to map features...</span></span>
 <span><span class="co">#&gt; Calculating area of corrected polygons...</span></span>
 <span><span class="co">#&gt; Correction complete.</span></span>
@@ -477,20 +365,20 @@ parcels data.</p>
 <span><span class="co">#&gt; Simple feature collection with 6 features and 3 fields</span></span>
 <span><span class="co">#&gt; Geometry type: POLYGON</span></span>
 <span><span class="co">#&gt; Dimension:     XY</span></span>
-<span><span class="co">#&gt; Bounding box:  xmin: 268542.1 ymin: 4488641 xmax: 268607.7 ymax: 4488718</span></span>
+<span><span class="co">#&gt; Bounding box:  xmin: 268541.9 ymin: 4488641 xmax: 268607.5 ymax: 4488718</span></span>
 <span><span class="co">#&gt; Projected CRS: GGRS87 / Greek Grid</span></span>
 <span><span class="co">#&gt;      KAK                       geometry        area_old        area_new</span></span>
-<span><span class="co">#&gt; 1 151415 POLYGON ((268546.6 4488664,...  455.2082 [m^2]  453.3685 [m^2]</span></span>
-<span><span class="co">#&gt; 2 151416 POLYGON ((268542.1 4488652,...  259.0621 [m^2]  257.9246 [m^2]</span></span>
-<span><span class="co">#&gt; 3 151419 POLYGON ((268595.9 4488651,...  191.7725 [m^2]  191.1334 [m^2]</span></span>
-<span><span class="co">#&gt; 4 151418 POLYGON ((268583.4 4488669,...  209.8621 [m^2]  209.2530 [m^2]</span></span>
-<span><span class="co">#&gt; 5 151417 POLYGON ((268578.9 4488670,...  188.5859 [m^2]  187.9030 [m^2]</span></span>
-<span><span class="co">#&gt; 6 151412 POLYGON ((268602.4 4488682,... 1352.2642 [m^2] 1348.8842 [m^2]</span></span>
+<span><span class="co">#&gt; 1 151415 POLYGON ((268546.3 4488664,...  455.2082 [m^2]  455.8884 [m^2]</span></span>
+<span><span class="co">#&gt; 2 151416 POLYGON ((268541.9 4488652,...  259.0621 [m^2]  259.4492 [m^2]</span></span>
+<span><span class="co">#&gt; 3 151419 POLYGON ((268595.9 4488651,...  191.7725 [m^2]  192.0591 [m^2]</span></span>
+<span><span class="co">#&gt; 4 151418 POLYGON ((268583.3 4488669,...  209.8621 [m^2]  210.1757 [m^2]</span></span>
+<span><span class="co">#&gt; 5 151417 POLYGON ((268578.7 4488670,...  188.5859 [m^2]  188.8677 [m^2]</span></span>
+<span><span class="co">#&gt; 6 151412 POLYGON ((268602.3 4488682,... 1352.2642 [m^2] 1354.2848 [m^2]</span></span>
 <span></span>
 <span><span class="co"># Create the final comparison plot</span></span>
 <span><span class="fu"><a href="https://ggplot2.tidyverse.org/reference/ggplot.html" class="external-link">ggplot</a></span><span class="op">(</span><span class="op">)</span> <span class="op">+</span></span>
-<span>  <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/ggsf.html" class="external-link">geom_sf</a></span><span class="op">(</span>data <span class="op">=</span> <span class="va">parcels</span>, <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/aes.html" class="external-link">aes</a></span><span class="op">(</span>color <span class="op">=</span> <span class="st">"Original"</span><span class="op">)</span>, fill <span class="op">=</span> <span class="st">"grey75"</span>, linetype <span class="op">=</span> <span class="st">"dashed"</span><span class="op">)</span> <span class="op">+</span></span>
-<span>  <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/ggsf.html" class="external-link">geom_sf</a></span><span class="op">(</span>data <span class="op">=</span> <span class="va">corrected_parcels</span>, <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/aes.html" class="external-link">aes</a></span><span class="op">(</span>color <span class="op">=</span> <span class="st">"Corrected"</span><span class="op">)</span>, fill <span class="op">=</span> <span class="cn">NA</span><span class="op">)</span> <span class="op">+</span></span>
+<span>  <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/ggsf.html" class="external-link">geom_sf</a></span><span class="op">(</span>data <span class="op">=</span> <span class="va">parcels</span><span class="op">[</span><span class="fl">1</span><span class="op">:</span><span class="fl">5</span>, <span class="op">]</span>, <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/aes.html" class="external-link">aes</a></span><span class="op">(</span>color <span class="op">=</span> <span class="st">"Original"</span><span class="op">)</span>, fill <span class="op">=</span> <span class="st">"grey75"</span>, linetype <span class="op">=</span> <span class="st">"dashed"</span><span class="op">)</span> <span class="op">+</span></span>
+<span>  <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/ggsf.html" class="external-link">geom_sf</a></span><span class="op">(</span>data <span class="op">=</span> <span class="va">corrected_parcels</span><span class="op">[</span><span class="fl">1</span><span class="op">:</span><span class="fl">5</span>, <span class="op">]</span>, <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/aes.html" class="external-link">aes</a></span><span class="op">(</span>color <span class="op">=</span> <span class="st">"Corrected"</span><span class="op">)</span>, fill <span class="op">=</span> <span class="cn">NA</span><span class="op">)</span> <span class="op">+</span></span>
 <span>  <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/scale_manual.html" class="external-link">scale_color_manual</a></span><span class="op">(</span></span>
 <span>    name <span class="op">=</span> <span class="st">"Parcel Status"</span>,</span>
 <span>    values <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"Original"</span> <span class="op">=</span> <span class="st">"grey25"</span>, <span class="st">"Corrected"</span> <span class="op">=</span> <span class="st">"#e41a1c"</span><span class="op">)</span></span>
@@ -501,7 +389,7 @@ parcels data.</p>
 <span>  <span class="op">)</span> <span class="op">+</span></span>
 <span>    <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/ggsf.html" class="external-link">coord_sf</a></span><span class="op">(</span>datum <span class="op">=</span> <span class="fu">sf</span><span class="fu">::</span><span class="fu"><a href="https://r-spatial.github.io/sf/reference/st_crs.html" class="external-link">st_crs</a></span><span class="op">(</span><span class="fl">2100</span><span class="op">)</span><span class="op">)</span> <span class="op">+</span></span>
 <span>  <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/ggtheme.html" class="external-link">theme_minimal</a></span><span class="op">(</span><span class="op">)</span></span></code></pre></div>
-<p><img src="pai_validation_files/figure-html/apply%20and%20visualize-1.png" width="768"></p>
+<p><img src="reference/figures/valid-apply%20and%20visualize-1.png" width="100%"></p>
 <p>This final plot shows the tangible result of our work: the corrected
 parcels are shifted and slightly reshaped, representing a more accurate
 historical reality. This vignette has demonstrated how to move from a

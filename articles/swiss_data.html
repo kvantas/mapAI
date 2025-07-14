@@ -65,29 +65,42 @@
 
     
     
-<p>This vignette demonstrates an advanced workflow for analyzing and
-correcting a map with complex, non-linear distortions. While the
-<code>Getting Started with mapAI: A Complete Workflow</code> vignette
-used a synthetic data set, this one focuses on a more challenging
-real-world scenario.</p>
-<p>We will use the <code>swiss_cps</code> dataset, which is included
-with the <code>mapAI</code> package. The key feature of this dataset is
-that the gross, linear distortions have already been removed with a
-Helmert transformation. The remaining errors are subtle, non-linear, and
-spatially variable—a perfect test case for the more advanced models in
-<code>mapAI</code>.</p>
-<p>Our goal is to model these non-linear residuals and visualize the
-effect of the correction on a reference line grid.</p>
+<p>This vignette demonstrates a workflow for analyzing and correcting a
+historical map with complex, non-linear distortions. While the
+<code>Getting Started</code> vignette used a synthetic data set, this
+one focuses on a more challenging real-world scenario using the
+<code>swiss_cps</code> dataset.</p>
+<p>The key feature of this dataset is that the gross, linear distortions
+have already been removed with a Helmert transformation. The remaining
+errors are subtle, non-linear, and spatially variable. Our goal is to
+assess different validation techniques, train a robust model for these
+non-linear residuals, and conduct an in-depth analysis of the spatial
+distortion.</p>
+<div class="section level3">
+<h3 id="setup">Setup<a class="anchor" aria-label="anchor" href="#setup"></a>
+</h3>
+<p>First, we load all the necessary libraries for our workflow.</p>
 <div class="sourceCode" id="cb1"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="co"># Load the necessary libraries for our workflow</span></span>
+<code class="sourceCode R"><span><span class="co"># Load the necessary libraries</span></span>
 <span><span class="kw"><a href="https://rdrr.io/r/base/library.html" class="external-link">library</a></span><span class="op">(</span><span class="va"><a href="https://kvantas.github.io/mapAI/">mapAI</a></span><span class="op">)</span></span>
 <span><span class="kw"><a href="https://rdrr.io/r/base/library.html" class="external-link">library</a></span><span class="op">(</span><span class="va"><a href="https://r-spatial.github.io/sf/" class="external-link">sf</a></span><span class="op">)</span></span>
 <span><span class="co">#&gt; Linking to GEOS 3.12.1, GDAL 3.8.4, PROJ 9.4.0; sf_use_s2() is TRUE</span></span>
+<span><span class="kw"><a href="https://rdrr.io/r/base/library.html" class="external-link">library</a></span><span class="op">(</span><span class="va"><a href="https://dplyr.tidyverse.org" class="external-link">dplyr</a></span><span class="op">)</span></span>
+<span><span class="co">#&gt; </span></span>
+<span><span class="co">#&gt; Attaching package: 'dplyr'</span></span>
+<span><span class="co">#&gt; The following objects are masked from 'package:stats':</span></span>
+<span><span class="co">#&gt; </span></span>
+<span><span class="co">#&gt;     filter, lag</span></span>
+<span><span class="co">#&gt; The following objects are masked from 'package:base':</span></span>
+<span><span class="co">#&gt; </span></span>
+<span><span class="co">#&gt;     intersect, setdiff, setequal, union</span></span>
 <span><span class="kw"><a href="https://rdrr.io/r/base/library.html" class="external-link">library</a></span><span class="op">(</span><span class="va"><a href="https://ggplot2.tidyverse.org" class="external-link">ggplot2</a></span><span class="op">)</span></span>
-<span><span class="kw"><a href="https://rdrr.io/r/base/library.html" class="external-link">library</a></span><span class="op">(</span><span class="va"><a href="https://magrittr.tidyverse.org" class="external-link">magrittr</a></span><span class="op">)</span> <span class="co"># For the %&gt;% pipe operator</span></span></code></pre></div>
-<div class="section level2">
-<h2 id="step-1-load-and-explore-the-data">Step 1: Load and Explore the Data<a class="anchor" aria-label="anchor" href="#step-1-load-and-explore-the-data"></a>
-</h2>
+<span><span class="kw"><a href="https://rdrr.io/r/base/library.html" class="external-link">library</a></span><span class="op">(</span><span class="va"><a href="https://patchwork.data-imaginist.com" class="external-link">patchwork</a></span><span class="op">)</span></span>
+<span><span class="kw"><a href="https://rdrr.io/r/base/library.html" class="external-link">library</a></span><span class="op">(</span><span class="va"><a href="https://yihui.org/knitr/" class="external-link">knitr</a></span><span class="op">)</span></span></code></pre></div>
+</div>
+<div class="section level3">
+<h3 id="initial-data-analysis">Initial Data Analysis<a class="anchor" aria-label="anchor" href="#initial-data-analysis"></a>
+</h3>
 <p>We begin by loading the <code>swiss_cps</code> dataset. This
 <code>sf</code> object contains 343 control points where the
 <code>source</code> coordinates have been pre-aligned, so we can focus
@@ -97,8 +110,7 @@ on the residual <code>dx</code> and <code>dy</code> errors.</p>
 <span><span class="fu"><a href="https://rdrr.io/r/utils/data.html" class="external-link">data</a></span><span class="op">(</span><span class="va">swiss_cps</span><span class="op">)</span></span>
 <span></span>
 <span><span class="co"># Inspect the data structure</span></span>
-<span><span class="co"># Note that dx and dy are relatively small, representing the non-linear errors.</span></span>
-<span><span class="fu">dplyr</span><span class="fu">::</span><span class="fu"><a href="https://pillar.r-lib.org/reference/glimpse.html" class="external-link">glimpse</a></span><span class="op">(</span><span class="va">swiss_cps</span><span class="op">)</span></span>
+<span><span class="fu"><a href="https://pillar.r-lib.org/reference/glimpse.html" class="external-link">glimpse</a></span><span class="op">(</span><span class="va">swiss_cps</span><span class="op">)</span></span>
 <span><span class="co">#&gt; Rows: 343</span></span>
 <span><span class="co">#&gt; Columns: 8</span></span>
 <span><span class="co">#&gt; $ Index    <span style="color: #949494; font-style: italic;">&lt;int&gt;</span> 1<span style="color: #949494;">, </span>2<span style="color: #949494;">, </span>3<span style="color: #949494;">, </span>4<span style="color: #949494;">, </span>5<span style="color: #949494;">, </span>6<span style="color: #949494;">, </span>7<span style="color: #949494;">, </span>8<span style="color: #949494;">, </span>9<span style="color: #949494;">, </span>10<span style="color: #949494;">, </span>11<span style="color: #949494;">, </span>12<span style="color: #949494;">, </span>13<span style="color: #949494;">, </span>14<span style="color: #949494;">, </span>15<span style="color: #949494;">, </span>16<span style="color: #949494;">, </span>17<span style="color: #949494;">, </span>18…</span></span>
@@ -110,152 +122,266 @@ on the residual <code>dx</code> and <code>dy</code> errors.</p>
 <span><span class="co">#&gt; $ dy       <span style="color: #949494; font-style: italic;">&lt;dbl&gt;</span> 365.468249<span style="color: #949494;">, </span>-42.050863<span style="color: #949494;">, </span>268.478200<span style="color: #949494;">, </span>13.144895<span style="color: #949494;">, </span>-575.530782<span style="color: #949494;">, </span>-…</span></span>
 <span><span class="co">#&gt; $ geometry <span style="color: #949494; font-style: italic;">&lt;POINT [m]&gt;</span> POINT (612293 267353.6)<span style="color: #949494;">, </span>POINT (612225 270412.7)<span style="color: #949494;">, </span>POINT…</span></span>
 <span></span>
-<span><span class="co"># Let's visualize the residual displacement vectors</span></span>
-<span><span class="fu"><a href="../reference/plot_displacement.html">plot_displacement</a></span><span class="op">(</span><span class="va">swiss_cps</span>, title <span class="op">=</span> <span class="st">"Residual Non-Linear Distortions"</span><span class="op">)</span></span></code></pre></div>
-<p><img src="reference/figures/swiss-load-data-1.png" width="100%"> The plot
-shows that even after a global alignment, there are clear spatial
-patterns in the remaining errors, which a simple linear model could not
-fix.</p>
+<span><span class="co"># Visualize the residual displacement vectors</span></span>
+<span><span class="fu"><a href="../reference/plot_displacement.html">plot_displacement</a></span><span class="op">(</span><span class="va">swiss_cps</span>, title <span class="op">=</span> <span class="st">"Displacement Vectors"</span><span class="op">)</span> <span class="op">+</span></span>
+<span>  <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/labs.html" class="external-link">labs</a></span><span class="op">(</span>title <span class="op">=</span> <span class="st">""</span>, subtitle <span class="op">=</span> <span class="st">""</span>,</span>
+<span>       x <span class="op">=</span> <span class="st">"x (m)"</span>,</span>
+<span>       y <span class="op">=</span> <span class="st">"y (m)"</span><span class="op">)</span></span></code></pre></div>
+<p><img src="reference/figures/swiss-load-data-1.png" width="100%"></p>
+<p>The plot shows clear spatial patterns in the remaining errors, which
+a simple linear model could not fix. This confirms the need for a
+non-linear approach.</p>
 </div>
-<div class="section level2">
-<h2 id="step-2-create-a-reference-grid-to-deform">Step 2: Create a Reference Grid to Deform<a class="anchor" aria-label="anchor" href="#step-2-create-a-reference-grid-to-deform"></a>
-</h2>
-<p>To best visualize the distortion, we will create a regular grid of
-lines that covers the extent of our control points. This will serve as
-our “source map.” We will then apply our correction model to this grid
-to see how it is “un-warped.”</p>
+<div class="section level3">
+<h3 id="error-assessment-and-model-validation">Error Assessment and Model Validation<a class="anchor" aria-label="anchor" href="#error-assessment-and-model-validation"></a>
+</h3>
+<p>Before training a final model, it is crucial to assess its expected
+performance. The <code>assess_pai_model</code> function provides a
+robust framework for this. We will compare four different validation
+strategies to understand how the model might perform on new data.</p>
+<ul>
+<li>
+<strong>Standard &amp; Spatial Cross-Validation</strong>: We test a
+10-fold cross-validation, once with random data splits and once with
+“spatial” splits, which ensures that training and validation sets are
+spatially separated.</li>
+<li>
+<strong>Design-Based Validation</strong>: We also test validation
+based on sampling probability (<code>probability</code>) and stratified
+random sampling (<code>stratified</code>), which are useful when the
+data points have a known design or structure.</li>
+</ul>
 <div class="sourceCode" id="cb3"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="co"># Create a grid of polygons covering the data extent</span></span>
-<span><span class="va">grid_polygons</span> <span class="op">&lt;-</span> <span class="fu">sf</span><span class="fu">::</span><span class="fu"><a href="https://r-spatial.github.io/sf/reference/st_make_grid.html" class="external-link">st_make_grid</a></span><span class="op">(</span><span class="va">swiss_cps</span>, n <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="fl">15</span>, <span class="fl">15</span><span class="op">)</span><span class="op">)</span></span>
+<code class="sourceCode R"><span><span class="co"># Run four different validation methods using a GAM</span></span>
+<span><span class="va">cvra</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/assess_pai_model.html">assess_pai_model</a></span><span class="op">(</span><span class="va">swiss_cps</span>, method <span class="op">=</span> <span class="st">"gam"</span>, validation_type <span class="op">=</span> <span class="st">"random"</span>, k_folds <span class="op">=</span> <span class="fl">10</span>, seed <span class="op">=</span> <span class="fl">1</span><span class="op">)</span></span>
+<span><span class="va">cvsp</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/assess_pai_model.html">assess_pai_model</a></span><span class="op">(</span><span class="va">swiss_cps</span>, method <span class="op">=</span> <span class="st">"gam"</span>, validation_type <span class="op">=</span> <span class="st">"spatial"</span>, k_folds <span class="op">=</span> <span class="fl">10</span>, seed <span class="op">=</span> <span class="fl">1</span><span class="op">)</span></span>
+<span><span class="va">valr</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/assess_pai_model.html">assess_pai_model</a></span><span class="op">(</span><span class="va">swiss_cps</span>, method <span class="op">=</span> <span class="st">"gam"</span>, validation_type <span class="op">=</span> <span class="st">"probability"</span>, seed <span class="op">=</span> <span class="fl">1</span><span class="op">)</span></span>
+<span><span class="va">vals</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/assess_pai_model.html">assess_pai_model</a></span><span class="op">(</span><span class="va">swiss_cps</span>, method <span class="op">=</span> <span class="st">"gam"</span>, validation_type <span class="op">=</span> <span class="st">"stratified"</span>, seed <span class="op">=</span> <span class="fl">1</span><span class="op">)</span></span>
 <span></span>
-<span><span class="co"># Convert the polygon boundaries to a MULTILINESTRING object</span></span>
-<span><span class="co"># This gives us a clean line grid for visualization.</span></span>
-<span><span class="va">source_grid</span> <span class="op">&lt;-</span> <span class="fu">sf</span><span class="fu">::</span><span class="fu"><a href="https://r-spatial.github.io/sf/reference/st_cast.html" class="external-link">st_cast</a></span><span class="op">(</span><span class="va">grid_polygons</span>, <span class="st">"MULTILINESTRING"</span><span class="op">)</span> <span class="op"><a href="https://magrittr.tidyverse.org/reference/pipe.html" class="external-link">%&gt;%</a></span></span>
-<span>  <span class="fu">sf</span><span class="fu">::</span><span class="fu"><a href="https://r-spatial.github.io/sf/reference/sf.html" class="external-link">st_sf</a></span><span class="op">(</span><span class="op">)</span> <span class="co"># Convert to a full sf object</span></span>
+<span><span class="co"># Combine and format the results into a table</span></span>
+<span><span class="va">validation_df</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/cbind.html" class="external-link">rbind</a></span><span class="op">(</span><span class="va">cvra</span>, <span class="va">cvsp</span>, <span class="va">valr</span>, <span class="va">vals</span><span class="op">)</span> <span class="op"><a href="https://magrittr.tidyverse.org/reference/pipe.html" class="external-link">%&gt;%</a></span></span>
+<span>  <span class="fu"><a href="https://dplyr.tidyverse.org/reference/select.html" class="external-link">select</a></span><span class="op">(</span>Model_Method <span class="op">=</span> <span class="va">Method</span>, Mean_2D_RMSE_m <span class="op">=</span> <span class="va">Mean_RMSE_2D</span>, Std_Deviation_of_RMSE_m <span class="op">=</span> <span class="va">SD_RMSE_2D</span><span class="op">)</span> <span class="op"><a href="https://magrittr.tidyverse.org/reference/pipe.html" class="external-link">%&gt;%</a></span></span>
+<span>  <span class="fu"><a href="https://dplyr.tidyverse.org/reference/mutate.html" class="external-link">mutate</a></span><span class="op">(</span><span class="fu"><a href="https://dplyr.tidyverse.org/reference/across.html" class="external-link">across</a></span><span class="op">(</span><span class="fu"><a href="https://tidyselect.r-lib.org/reference/where.html" class="external-link">where</a></span><span class="op">(</span><span class="va">is.numeric</span><span class="op">)</span>, <span class="op">~</span> <span class="fu"><a href="https://rdrr.io/r/base/Round.html" class="external-link">round</a></span><span class="op">(</span><span class="va">.x</span>, <span class="fl">1</span><span class="op">)</span><span class="op">)</span><span class="op">)</span></span>
 <span></span>
-<span><span class="co"># Plot the original, regular grid</span></span>
-<span><span class="fu"><a href="https://rdrr.io/r/graphics/plot.default.html" class="external-link">plot</a></span><span class="op">(</span><span class="fu">sf</span><span class="fu">::</span><span class="fu"><a href="https://r-spatial.github.io/sf/reference/st_geometry.html" class="external-link">st_geometry</a></span><span class="op">(</span><span class="va">source_grid</span><span class="op">)</span>, main <span class="op">=</span> <span class="st">"Original, Regular Reference Grid"</span><span class="op">)</span></span></code></pre></div>
-<p><img src="reference/figures/swiss-create-grid-1.png" width="100%"></p>
+<span><span class="va">validation_df</span><span class="op">$</span><span class="va">type</span> <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"Standard 10-fold cross-validation"</span>,</span>
+<span>                       <span class="st">"Spatial 10-fold cross-validation"</span>,</span>
+<span>                       <span class="st">"Design-based validation"</span>,</span>
+<span>                       <span class="st">"Design-based validation using stratified random sampling"</span><span class="op">)</span></span>
+<span></span>
+<span><span class="co"># Print the comparison table</span></span>
+<span><span class="fu"><a href="https://rdrr.io/pkg/knitr/man/kable.html" class="external-link">kable</a></span><span class="op">(</span><span class="va">validation_df</span>, caption <span class="op">=</span> <span class="st">"Table: Validation performance across different assessment methods."</span><span class="op">)</span></span></code></pre></div>
+<table class="table">
+<caption>Table: Validation performance across different assessment
+methods.</caption>
+<colgroup>
+<col width="11%">
+<col width="13%">
+<col width="22%">
+<col width="52%">
+</colgroup>
+<thead><tr class="header">
+<th align="left">Model_Method</th>
+<th align="right">Mean_2D_RMSE_m</th>
+<th align="right">Std_Deviation_of_RMSE_m</th>
+<th align="left">type</th>
+</tr></thead>
+<tbody>
+<tr class="odd">
+<td align="left">gam</td>
+<td align="right">778.6</td>
+<td align="right">176.8</td>
+<td align="left">Standard 10-fold cross-validation</td>
+</tr>
+<tr class="even">
+<td align="left">gam</td>
+<td align="right">1254.8</td>
+<td align="right">796.7</td>
+<td align="left">Spatial 10-fold cross-validation</td>
+</tr>
+<tr class="odd">
+<td align="left">gam</td>
+<td align="right">876.7</td>
+<td align="right">NA</td>
+<td align="left">Design-based validation</td>
+</tr>
+<tr class="even">
+<td align="left">gam</td>
+<td align="right">702.3</td>
+<td align="right">NA</td>
+<td align="left">Design-based validation using stratified random
+sampling</td>
+</tr>
+</tbody>
+</table>
 </div>
-<div class="section level2">
-<h2 id="step-3-train-a-non-linear-model">Step 3: Train a Non-Linear Model<a class="anchor" aria-label="anchor" href="#step-3-train-a-non-linear-model"></a>
-</h2>
-<p>Because the linear components of the distortion have already been
-removed from the <code>swiss_cps</code> data, using a
-<code>helmert</code> or <code>lm</code> model would be ineffective. This
-is the perfect scenario to use a <strong>Generalized Additive Model
-(<code>gam</code>)</strong>, which is designed to capture exactly these
-kinds of smooth, non-linear spatial patterns.</p>
+<div class="section level3">
+<h3 id="final-correction-and-visualization">Final Correction and Visualization<a class="anchor" aria-label="anchor" href="#final-correction-and-visualization"></a>
+</h3>
+<p>Now, confident in our modeling choice, we train a final
+<strong>Generalized Additive Model (<code>gam</code>)</strong> on the
+entire dataset. To visualize the effect of the correction, we will apply
+this model to a regular reference grid.</p>
 <div class="sourceCode" id="cb4"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="co"># Train the GAM model to learn the residual distortion patterns</span></span>
-<span><span class="va">gam_model</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/train_pai_model.html">train_pai_model</a></span><span class="op">(</span><span class="va">swiss_cps</span>, method <span class="op">=</span> <span class="st">"gam"</span><span class="op">)</span></span>
-<span><span class="co">#&gt; Training 'gam' model...</span></span></code></pre></div>
-</div>
-<div class="section level2">
-<h2 id="step-4-apply-the-correction-to-the-grid">Step 4: Apply the Correction to the Grid<a class="anchor" aria-label="anchor" href="#step-4-apply-the-correction-to-the-grid"></a>
-</h2>
-<p>Now, we use our trained <code>gam_model</code> to correct the regular
-line grid we created. The <code>apply_pai_model</code> function will
-transform every vertex in the grid according to the learned
-distortion.</p>
-<div class="sourceCode" id="cb5"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="co"># Apply the model to our source grid</span></span>
-<span><span class="va">corrected_grid</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/apply_pai_model.html">apply_pai_model</a></span><span class="op">(</span><span class="va">gam_model</span>, <span class="va">source_grid</span><span class="op">)</span></span>
+<code class="sourceCode R"><span><span class="co"># Train the final GAM model on all data points</span></span>
+<span><span class="va">final_gam_model</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/train_pai_model.html">train_pai_model</a></span><span class="op">(</span><span class="va">swiss_cps</span>, method <span class="op">=</span> <span class="st">"gam"</span><span class="op">)</span></span>
+<span><span class="co">#&gt; Training 'gam' model...</span></span>
+<span></span>
+<span><span class="co"># Create a regular line grid to serve as our reference map</span></span>
+<span><span class="va">source_grid</span> <span class="op">&lt;-</span> <span class="fu">sf</span><span class="fu">::</span><span class="fu"><a href="https://r-spatial.github.io/sf/reference/st_make_grid.html" class="external-link">st_make_grid</a></span><span class="op">(</span><span class="va">swiss_cps</span>, n <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="fl">15</span>, <span class="fl">15</span><span class="op">)</span><span class="op">)</span> <span class="op"><a href="https://magrittr.tidyverse.org/reference/pipe.html" class="external-link">%&gt;%</a></span> </span>
+<span>  <span class="fu"><a href="https://r-spatial.github.io/sf/reference/st_cast.html" class="external-link">st_cast</a></span><span class="op">(</span><span class="st">"MULTILINESTRING"</span><span class="op">)</span> <span class="op"><a href="https://magrittr.tidyverse.org/reference/pipe.html" class="external-link">%&gt;%</a></span> </span>
+<span>  <span class="fu"><a href="https://r-spatial.github.io/sf/reference/sf.html" class="external-link">st_sf</a></span><span class="op">(</span><span class="op">)</span></span>
+<span></span>
+<span><span class="co"># Apply the trained model to correct the grid</span></span>
+<span><span class="va">gam_corrected_grid</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/apply_pai_model.html">apply_pai_model</a></span><span class="op">(</span><span class="va">final_gam_model</span>, <span class="va">source_grid</span><span class="op">)</span></span>
 <span><span class="co">#&gt; Applying PAI model to map features...</span></span>
-<span><span class="co">#&gt; Correction complete.</span></span></code></pre></div>
-</div>
-<div class="section level2">
-<h2 id="step-5-visualize-the-corrected-grid">Step 5: Visualize the Corrected Grid<a class="anchor" aria-label="anchor" href="#step-5-visualize-the-corrected-grid"></a>
-</h2>
-<p>This is the most intuitive part of the analysis. We overlay the
-corrected grid on the original grid. The correction will transform the
-regular, straight-lined grid to a warped one, in order to correct
-it.</p>
-<div class="sourceCode" id="cb6"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="co"># For easy plotting, add a 'status' column to each grid</span></span>
-<span><span class="va">source_grid</span><span class="op">$</span><span class="va">status</span> <span class="op">&lt;-</span> <span class="st">"Original (Regular)"</span></span>
-<span><span class="va">corrected_grid</span><span class="op">$</span><span class="va">status</span> <span class="op">&lt;-</span> <span class="st">"Corrected (Warped by model)"</span></span>
+<span><span class="co">#&gt; Correction complete.</span></span>
 <span></span>
-<span><span class="co"># Combine them into a single sf object for ggplot2</span></span>
-<span><span class="va">comparison_data</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/cbind.html" class="external-link">rbind</a></span><span class="op">(</span></span>
-<span>  <span class="va">source_grid</span><span class="op">[</span>, <span class="st">"status"</span><span class="op">]</span>,</span>
-<span>  <span class="va">corrected_grid</span><span class="op">[</span>, <span class="st">"status"</span><span class="op">]</span></span>
-<span><span class="op">)</span></span>
+<span><span class="co"># Prepare data for plotting</span></span>
+<span><span class="va">source_grid</span><span class="op">$</span><span class="va">status</span> <span class="op">&lt;-</span> <span class="st">"Original (Distorted)"</span></span>
+<span><span class="va">gam_corrected_grid</span><span class="op">$</span><span class="va">status</span> <span class="op">&lt;-</span> <span class="st">"GAM"</span></span>
+<span><span class="va">comparison_data</span>  <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/cbind.html" class="external-link">rbind</a></span><span class="op">(</span><span class="va">source_grid</span><span class="op">[</span>, <span class="st">"status"</span><span class="op">]</span>, <span class="va">gam_corrected_grid</span><span class="op">[</span>, <span class="st">"status"</span><span class="op">]</span><span class="op">)</span></span>
 <span></span>
+<span><span class="co"># Create the comparison plot</span></span>
 <span><span class="fu"><a href="https://ggplot2.tidyverse.org/reference/ggplot.html" class="external-link">ggplot</a></span><span class="op">(</span><span class="va">comparison_data</span><span class="op">)</span> <span class="op">+</span></span>
-<span>  <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/ggsf.html" class="external-link">geom_sf</a></span><span class="op">(</span><span class="fu"><a href="https://ggplot2.tidyverse.org/reference/aes.html" class="external-link">aes</a></span><span class="op">(</span>color <span class="op">=</span> <span class="va">status</span>, linetype <span class="op">=</span> <span class="va">status</span><span class="op">)</span>, linewidth <span class="op">=</span> <span class="fl">0.6</span><span class="op">)</span> <span class="op">+</span></span>
-<span>  <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/scale_manual.html" class="external-link">scale_color_manual</a></span><span class="op">(</span></span>
-<span>    name <span class="op">=</span> <span class="st">"Grid Status"</span>,</span>
-<span>    values <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"Original (Regular)"</span> <span class="op">=</span> <span class="st">"grey50"</span>, </span>
-<span>               <span class="st">"Corrected (Warped by model)"</span> <span class="op">=</span> <span class="st">"#e41a1c"</span><span class="op">)</span></span>
-<span>  <span class="op">)</span> <span class="op">+</span></span>
-<span>  <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/scale_manual.html" class="external-link">scale_linetype_manual</a></span><span class="op">(</span></span>
-<span>    name <span class="op">=</span> <span class="st">"Grid Status"</span>,</span>
-<span>    values <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"Original (Regular)"</span> <span class="op">=</span> <span class="st">"dashed"</span>, </span>
-<span>               <span class="st">"Corrected (Warped by model)"</span> <span class="op">=</span> <span class="st">"solid"</span><span class="op">)</span></span>
-<span>  <span class="op">)</span> <span class="op">+</span></span>
-<span>  <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/labs.html" class="external-link">labs</a></span><span class="op">(</span></span>
-<span>    title <span class="op">=</span> <span class="st">"Visualizing the Non-Linear Correction"</span>,</span>
-<span>    subtitle <span class="op">=</span> <span class="st">"The GAM model transforms the regular shape to warped grid"</span></span>
-<span>  <span class="op">)</span> <span class="op">+</span></span>
-<span>  <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/ggtheme.html" class="external-link">theme_minimal</a></span><span class="op">(</span><span class="op">)</span></span></code></pre></div>
-<p><img src="reference/figures/swiss-plot-correction-1.png" width="100%"></p>
+<span>  <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/ggsf.html" class="external-link">geom_sf</a></span><span class="op">(</span><span class="fu"><a href="https://ggplot2.tidyverse.org/reference/aes.html" class="external-link">aes</a></span><span class="op">(</span>color <span class="op">=</span> <span class="va">status</span>, linetype <span class="op">=</span> <span class="va">status</span><span class="op">)</span>, fill <span class="op">=</span> <span class="cn">NA</span>, linewidth <span class="op">=</span> <span class="fl">0.7</span><span class="op">)</span> <span class="op">+</span></span>
+<span>  <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/scale_manual.html" class="external-link">scale_color_manual</a></span><span class="op">(</span>name <span class="op">=</span> <span class="st">"Map Status"</span>, values <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"Original (Distorted)"</span> <span class="op">=</span> <span class="st">"grey50"</span>, <span class="st">"GAM"</span> <span class="op">=</span> <span class="st">"#e41a1c"</span><span class="op">)</span><span class="op">)</span> <span class="op">+</span></span>
+<span>  <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/geom_point.html" class="external-link">geom_point</a></span><span class="op">(</span>data <span class="op">=</span> <span class="va">swiss_cps</span>, <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/aes.html" class="external-link">aes</a></span><span class="op">(</span><span class="va">source_x</span>, <span class="va">source_y</span><span class="op">)</span>, size <span class="op">=</span> <span class="fl">0.2</span><span class="op">)</span> <span class="op">+</span></span>
+<span>  <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/scale_manual.html" class="external-link">scale_linetype_manual</a></span><span class="op">(</span>name <span class="op">=</span> <span class="st">"Map Status"</span>, values <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"Original (Distorted)"</span> <span class="op">=</span> <span class="st">"dashed"</span>, <span class="st">"GAM"</span> <span class="op">=</span> <span class="st">"solid"</span><span class="op">)</span><span class="op">)</span> <span class="op">+</span></span>
+<span>  <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/labs.html" class="external-link">labs</a></span><span class="op">(</span>x <span class="op">=</span> <span class="st">"x (m)"</span>, y <span class="op">=</span> <span class="st">"y (m)"</span><span class="op">)</span> <span class="op">+</span></span>
+<span>  <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/ggsf.html" class="external-link">coord_sf</a></span><span class="op">(</span>datum <span class="op">=</span> <span class="fu">sf</span><span class="fu">::</span><span class="fu"><a href="https://r-spatial.github.io/sf/reference/st_crs.html" class="external-link">st_crs</a></span><span class="op">(</span><span class="fl">21781</span><span class="op">)</span><span class="op">)</span> <span class="op">+</span></span>
+<span>  <span class="fu">ggplot2</span><span class="fu">::</span><span class="fu"><a href="https://ggplot2.tidyverse.org/reference/ggtheme.html" class="external-link">theme_minimal</a></span><span class="op">(</span><span class="op">)</span></span></code></pre></div>
+<p><img src="reference/figures/swiss-train-and-apply-model-1.png" width="100%"></p>
+<p>The plot shows how the regular grid (dashed grey) is warped by the
+model into the corrected grid (solid red). This transformation is
+precisely what’s needed to align the distorted map features with their
+true locations.</p>
 </div>
-<div class="section level2">
-<h2 id="step-6-in-depth-distortion-analysis">Step 6: In-Depth Distortion Analysis<a class="anchor" aria-label="anchor" href="#step-6-in-depth-distortion-analysis"></a>
-</h2>
-<p>Finally, let’s use the advanced analysis functions to quantify the
-distortion that the model learned. We will analyze the distortion on a
-dense grid of points and visualize the results.</p>
-<div class="sourceCode" id="cb7"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="co"># 1. Create a dense grid of POINTS for analysis</span></span>
-<span><span class="va">analysis_points</span> <span class="op">&lt;-</span> <span class="fu">sf</span><span class="fu">::</span><span class="fu"><a href="https://r-spatial.github.io/sf/reference/st_make_grid.html" class="external-link">st_make_grid</a></span><span class="op">(</span><span class="va">swiss_cps</span>, n <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="fl">25</span>, <span class="fl">25</span><span class="op">)</span><span class="op">)</span> <span class="op"><a href="https://magrittr.tidyverse.org/reference/pipe.html" class="external-link">%&gt;%</a></span></span>
-<span>  <span class="fu">sf</span><span class="fu">::</span><span class="fu"><a href="https://r-spatial.github.io/sf/reference/geos_unary.html" class="external-link">st_centroid</a></span><span class="op">(</span><span class="op">)</span> <span class="op"><a href="https://magrittr.tidyverse.org/reference/pipe.html" class="external-link">%&gt;%</a></span></span>
-<span>  <span class="fu">sf</span><span class="fu">::</span><span class="fu"><a href="https://r-spatial.github.io/sf/reference/sf.html" class="external-link">st_sf</a></span><span class="op">(</span><span class="op">)</span></span>
-<span></span>
-<span><span class="co"># 2. Analyze the distortion using our trained GAM model</span></span>
-<span><span class="va">distortion_results</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/analyze_distortion.html">analyze_distortion</a></span><span class="op">(</span><span class="va">gam_model</span>, <span class="va">analysis_points</span><span class="op">)</span></span>
+<div class="section level3">
+<h3 id="residual-analysis">Residual Analysis<a class="anchor" aria-label="anchor" href="#residual-analysis"></a>
+</h3>
+<p>After applying the correction, we should examine the remaining
+errors, or residuals. This helps us confirm that our model has captured
+the systematic distortion patterns and that the remaining errors are
+small and random.</p>
+<div class="sourceCode" id="cb5"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="co"># Plot the residuals after applying the final GAM model</span></span>
+<span><span class="fu"><a href="../reference/plot_residuals.html">plot_residuals</a></span><span class="op">(</span><span class="va">final_gam_model</span>, <span class="va">swiss_cps</span><span class="op">)</span> <span class="op">+</span></span>
+<span>  <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/labs.html" class="external-link">labs</a></span><span class="op">(</span></span>
+<span>    title <span class="op">=</span> <span class="st">""</span>,</span>
+<span>    subtitle <span class="op">=</span> <span class="st">""</span>,</span>
+<span>    x <span class="op">=</span> <span class="st">"x (m)"</span>,</span>
+<span>    y <span class="op">=</span> <span class="st">"y (m)"</span></span>
+<span>  <span class="op">)</span></span>
+<span><span class="co">#&gt; Calculating model residuals...</span></span></code></pre></div>
+<p><img src="reference/figures/swiss-residual-analysis-1.png" width="100%"></p>
+<p>The residual vectors are much smaller and show no obvious spatial
+pattern, indicating a successful model fit.</p>
+</div>
+<div class="section level3">
+<h3 id="advanced-distortion-analysis">Advanced Distortion Analysis<a class="anchor" aria-label="anchor" href="#advanced-distortion-analysis"></a>
+</h3>
+<p>To quantify the nature of the distortion, we use the
+<code>analyze_distortion</code> function on a dense grid of points. This
+allows us to map out different distortion metrics across the entire
+area. We will visualize three key metrics:</p>
+<ul>
+<li>
+<strong>Area Scale</strong>: Shows how much areas are stretched or
+compressed. A value of 1 means no distortion.</li>
+<li>
+<strong>Maximum Angular Distortion</strong>: Measures the maximum
+change in angle at any point.</li>
+<li>
+<strong>Airy-Kavrayskiy Measure</strong>: A combined measure of both
+areal and angular distortion.</li>
+</ul>
+<div class="sourceCode" id="cb6"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="co"># Create a dense grid of points for a high-resolution analysis</span></span>
+<span><span class="va">analysis_points</span> <span class="op">&lt;-</span> <span class="fu">sf</span><span class="fu">::</span><span class="fu"><a href="https://r-spatial.github.io/sf/reference/st_make_grid.html" class="external-link">st_make_grid</a></span><span class="op">(</span><span class="va">swiss_cps</span>, n <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="fl">100</span>, <span class="fl">100</span><span class="op">)</span><span class="op">)</span> <span class="op"><a href="https://magrittr.tidyverse.org/reference/pipe.html" class="external-link">%&gt;%</a></span> <span class="fu"><a href="https://r-spatial.github.io/sf/reference/geos_unary.html" class="external-link">st_centroid</a></span><span class="op">(</span><span class="op">)</span> <span class="op"><a href="https://magrittr.tidyverse.org/reference/pipe.html" class="external-link">%&gt;%</a></span> <span class="fu"><a href="https://r-spatial.github.io/sf/reference/sf.html" class="external-link">st_sf</a></span><span class="op">(</span><span class="op">)</span></span>
+<span><span class="va">distortion_results</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/analyze_distortion.html">analyze_distortion</a></span><span class="op">(</span><span class="va">final_gam_model</span>, <span class="va">analysis_points</span><span class="op">)</span></span>
 <span><span class="co">#&gt; Calculating distortion metrics for gam model...</span></span>
 <span><span class="co">#&gt; Finalizing metrics from derivatives...</span></span>
 <span><span class="co">#&gt; Distortion analysis complete.</span></span>
 <span></span>
-<span><span class="co"># 3. Visualize the results for two key metrics</span></span>
-<span><span class="va">plot_shear</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/plot_distortion_surface.html">plot_distortion_surface</a></span><span class="op">(</span></span>
-<span>  <span class="va">distortion_results</span>,</span>
-<span>  metric <span class="op">=</span> <span class="st">"max_shear"</span>,</span>
-<span>  diverging <span class="op">=</span> <span class="cn">FALSE</span>,</span>
-<span>  palette <span class="op">=</span> <span class="st">"magma"</span></span>
-<span><span class="op">)</span> <span class="op">+</span></span>
-<span>  <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/labs.html" class="external-link">labs</a></span><span class="op">(</span>title <span class="op">=</span> <span class="st">"Maximum Angular Distortion (°)"</span><span class="op">)</span></span>
+<span><span class="co"># Plot 1: Area scale distortion</span></span>
+<span><span class="fu"><a href="../reference/plot_distortion_surface.html">plot_distortion_surface</a></span><span class="op">(</span><span class="va">distortion_results</span>, <span class="st">"area_scale"</span>, diverging <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span> <span class="op">+</span></span>
+<span>  <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/labs.html" class="external-link">labs</a></span><span class="op">(</span>title <span class="op">=</span> <span class="st">"Area Scale Distortion"</span>, subtitle <span class="op">=</span> <span class="st">""</span>, x <span class="op">=</span> <span class="st">"x (m)"</span>, y <span class="op">=</span> <span class="st">"y (m)"</span>, fill <span class="op">=</span> <span class="st">'σ'</span><span class="op">)</span></span>
 <span><span class="co">#&gt; Regular grid detected. Creating a surface plot with geom_raster().</span></span>
-<span></span>
-<span><span class="va">plot_area</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/plot_distortion_surface.html">plot_distortion_surface</a></span><span class="op">(</span></span>
-<span>  <span class="va">distortion_results</span>,</span>
-<span>  metric <span class="op">=</span> <span class="st">"log2_area_scale"</span>,</span>
-<span>  diverging <span class="op">=</span> <span class="cn">TRUE</span></span>
-<span><span class="op">)</span> <span class="op">+</span></span>
-<span>  <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/labs.html" class="external-link">labs</a></span><span class="op">(</span>title <span class="op">=</span> <span class="st">"Log-Areal Distortion (log2)"</span><span class="op">)</span></span>
-<span><span class="co">#&gt; Regular grid detected. Creating a surface plot with geom_raster().</span></span>
-<span></span>
-<span><span class="co"># Combine plots using the patchwork library</span></span>
-<span><span class="kw">if</span> <span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/ns-load.html" class="external-link">requireNamespace</a></span><span class="op">(</span><span class="st">"patchwork"</span>, quietly <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span><span class="op">)</span> <span class="op">{</span></span>
-<span>  <span class="va">plot_shear</span> <span class="op">/</span> <span class="va">plot_area</span></span>
-<span><span class="op">}</span> <span class="kw">else</span> <span class="op">{</span></span>
-<span>  <span class="va">plot_shear</span></span>
-<span><span class="op">}</span></span>
 <span><span class="co">#&gt; Warning: Raster pixels are placed at uneven horizontal intervals and will be shifted</span></span>
 <span><span class="co">#&gt; <span style="color: #00BBBB;">ℹ</span> Consider using `geom_tile()` instead.</span></span>
 <span><span class="co">#&gt; Raster pixels are placed at uneven horizontal intervals and will be shifted</span></span>
-<span><span class="co">#&gt; <span style="color: #00BBBB;">ℹ</span> Consider using `geom_tile()` instead.</span></span>
-<span><span class="co">#&gt; Raster pixels are placed at uneven horizontal intervals and will be shifted</span></span>
+<span><span class="co">#&gt; <span style="color: #00BBBB;">ℹ</span> Consider using `geom_tile()` instead.</span></span></code></pre></div>
+<p><img src="reference/figures/swiss-advanced-analysis-1.png" width="100%"></p>
+<div class="sourceCode" id="cb7"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span></span>
+<span><span class="co"># Plot 2: Maximum angular distortion</span></span>
+<span><span class="fu"><a href="../reference/plot_distortion_surface.html">plot_distortion_surface</a></span><span class="op">(</span><span class="va">distortion_results</span>, <span class="st">"max_angular_distortion"</span>, palette <span class="op">=</span> <span class="st">"magma"</span><span class="op">)</span> <span class="op">+</span></span>
+<span>  <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/labs.html" class="external-link">labs</a></span><span class="op">(</span>title <span class="op">=</span> <span class="st">"Maximum Angular Distortion"</span>, subtitle <span class="op">=</span> <span class="st">""</span>, x <span class="op">=</span> <span class="st">"x (m)"</span>, y <span class="op">=</span> <span class="st">"y (m)"</span>, fill <span class="op">=</span> <span class="st">"2Ω (rad)"</span><span class="op">)</span></span>
+<span><span class="co">#&gt; Regular grid detected. Creating a surface plot with geom_raster().</span></span>
+<span><span class="co">#&gt; Warning: Raster pixels are placed at uneven horizontal intervals and will be shifted</span></span>
 <span><span class="co">#&gt; <span style="color: #00BBBB;">ℹ</span> Consider using `geom_tile()` instead.</span></span>
 <span><span class="co">#&gt; Raster pixels are placed at uneven horizontal intervals and will be shifted</span></span>
 <span><span class="co">#&gt; <span style="color: #00BBBB;">ℹ</span> Consider using `geom_tile()` instead.</span></span></code></pre></div>
-<p><img src="reference/figures/swiss-analysis-1.png" width="100%"></p>
-<p>This final analysis provides a quantitative map of the distortion,
-revealing complex patterns of shearing and scaling across the map extent
-that the <code>gam</code> model successfully identified and
-corrected.</p>
+<p><img src="reference/figures/swiss-advanced-analysis-2.png" width="100%"></p>
+<div class="sourceCode" id="cb8"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span></span>
+<span><span class="co"># Plot 3: Airy-Kavrayskiy distortion measure</span></span>
+<span><span class="fu"><a href="../reference/plot_distortion_surface.html">plot_distortion_surface</a></span><span class="op">(</span><span class="va">distortion_results</span>, <span class="st">"airy_kavrayskiy"</span><span class="op">)</span> <span class="op">+</span></span>
+<span>  <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/labs.html" class="external-link">labs</a></span><span class="op">(</span>title <span class="op">=</span> <span class="st">"Airy-Kavrayskiy Combined Distortion"</span>, subtitle <span class="op">=</span> <span class="st">""</span>, x <span class="op">=</span> <span class="st">"x (m)"</span>, y <span class="op">=</span> <span class="st">"y (m)"</span>, fill <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/expression.html" class="external-link">expression</a></span><span class="op">(</span><span class="va">E</span><span class="op">[</span><span class="st">"AK"</span><span class="op">]</span><span class="op">)</span><span class="op">)</span></span>
+<span><span class="co">#&gt; Regular grid detected. Creating a surface plot with geom_raster().</span></span>
+<span><span class="co">#&gt; Warning: Raster pixels are placed at uneven horizontal intervals and will be shifted</span></span>
+<span><span class="co">#&gt; <span style="color: #00BBBB;">ℹ</span> Consider using `geom_tile()` instead.</span></span>
+<span><span class="co">#&gt; Raster pixels are placed at uneven horizontal intervals and will be shifted</span></span>
+<span><span class="co">#&gt; <span style="color: #00BBBB;">ℹ</span> Consider using `geom_tile()` instead.</span></span></code></pre></div>
+<p><img src="reference/figures/swiss-advanced-analysis-3.png" width="100%"></p>
+<p>We can also summarize these distortion metrics numerically.</p>
+<div class="sourceCode" id="cb9"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="co"># Calculate and print summary statistics for the distortion metrics</span></span>
+<span><span class="va">summary_stats</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://r-spatial.github.io/sf/reference/st_geometry.html" class="external-link">st_drop_geometry</a></span><span class="op">(</span><span class="va">distortion_results</span><span class="op">)</span> <span class="op"><a href="https://magrittr.tidyverse.org/reference/pipe.html" class="external-link">%&gt;%</a></span></span>
+<span>  <span class="fu"><a href="https://dplyr.tidyverse.org/reference/reframe.html" class="external-link">reframe</a></span><span class="op">(</span></span>
+<span>    Metric <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"Areal Scale"</span>, <span class="st">"Max Angular Distortion (rad)"</span>, <span class="st">"Airy-Kavrayskiy Measure"</span><span class="op">)</span>,</span>
+<span>    Minimum <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/Round.html" class="external-link">round</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/Extremes.html" class="external-link">min</a></span><span class="op">(</span><span class="va">area_scale</span><span class="op">)</span>, <span class="fu"><a href="https://rdrr.io/r/base/Extremes.html" class="external-link">min</a></span><span class="op">(</span><span class="va">max_angular_distortion</span><span class="op">)</span>, <span class="fu"><a href="https://rdrr.io/r/base/Extremes.html" class="external-link">min</a></span><span class="op">(</span><span class="va">airy_kavrayskiy</span><span class="op">)</span><span class="op">)</span>, <span class="fl">2</span><span class="op">)</span>,</span>
+<span>    Mean <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/Round.html" class="external-link">round</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/mean.html" class="external-link">mean</a></span><span class="op">(</span><span class="va">area_scale</span><span class="op">)</span>, <span class="fu"><a href="https://rdrr.io/r/base/mean.html" class="external-link">mean</a></span><span class="op">(</span><span class="va">max_angular_distortion</span><span class="op">)</span>, <span class="fu"><a href="https://rdrr.io/r/base/mean.html" class="external-link">mean</a></span><span class="op">(</span><span class="va">airy_kavrayskiy</span><span class="op">)</span><span class="op">)</span>, <span class="fl">2</span><span class="op">)</span>,</span>
+<span>    Maximum <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/Round.html" class="external-link">round</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/Extremes.html" class="external-link">max</a></span><span class="op">(</span><span class="va">area_scale</span><span class="op">)</span>, <span class="fu"><a href="https://rdrr.io/r/base/Extremes.html" class="external-link">max</a></span><span class="op">(</span><span class="va">max_angular_distortion</span><span class="op">)</span>, <span class="fu"><a href="https://rdrr.io/r/base/Extremes.html" class="external-link">max</a></span><span class="op">(</span><span class="va">airy_kavrayskiy</span><span class="op">)</span><span class="op">)</span>, <span class="fl">2</span><span class="op">)</span></span>
+<span>  <span class="op">)</span></span>
+<span><span class="fu"><a href="https://rdrr.io/r/base/print.html" class="external-link">print</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/pkg/knitr/man/kable.html" class="external-link">kable</a></span><span class="op">(</span><span class="va">summary_stats</span>, caption <span class="op">=</span> <span class="st">"Table: Summary of distortion metrics from GAM model analysis."</span><span class="op">)</span><span class="op">)</span></span>
+<span><span class="co">#&gt; </span></span>
+<span><span class="co">#&gt; </span></span>
+<span><span class="co">#&gt; Table: Table: Summary of distortion metrics from GAM model analysis.</span></span>
+<span><span class="co">#&gt; </span></span>
+<span><span class="co">#&gt; |Metric                       | Minimum| Mean| Maximum|</span></span>
+<span><span class="co">#&gt; |:----------------------------|-------:|----:|-------:|</span></span>
+<span><span class="co">#&gt; |Areal Scale                  |    0.45| 0.87|    1.41|</span></span>
+<span><span class="co">#&gt; |Max Angular Distortion (rad) |    0.00| 0.21|    0.86|</span></span>
+<span><span class="co">#&gt; |Airy-Kavrayskiy Measure      |    0.00| 0.04|    0.28|</span></span></code></pre></div>
+</div>
+<div class="section level3">
+<h3 id="visualizing-distortion-with-indicatrices">Visualizing Distortion with Indicatrices<a class="anchor" aria-label="anchor" href="#visualizing-distortion-with-indicatrices"></a>
+</h3>
+<p>A classic way to visualize map distortion is with <strong>Tissot’s
+Indicatrix</strong>, which shows how an infinitesimal circle on the
+original surface is deformed into an ellipse. We can plot these at our
+control point locations to see the local distortion characteristics.</p>
+<div class="sourceCode" id="cb10"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="co"># Analyze distortion specifically at the control point locations</span></span>
+<span><span class="va">distortion_at_gcps</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/analyze_distortion.html">analyze_distortion</a></span><span class="op">(</span><span class="va">final_gam_model</span>, points_to_analyze <span class="op">=</span> <span class="va">swiss_cps</span><span class="op">)</span></span>
+<span><span class="co">#&gt; Calculating distortion metrics for gam model...</span></span>
+<span><span class="co">#&gt; Finalizing metrics from derivatives...</span></span>
+<span><span class="co">#&gt; Distortion analysis complete.</span></span>
+<span></span>
+<span><span class="co"># Plot the indicatrices (ellipses) at each point</span></span>
+<span><span class="fu"><a href="../reference/plot_indicatrices.html">plot_indicatrices</a></span><span class="op">(</span><span class="va">distortion_at_gcps</span>,  scale_factor <span class="op">=</span> <span class="fl">700</span><span class="op">)</span> <span class="op">+</span></span>
+<span>  <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/labs.html" class="external-link">labs</a></span><span class="op">(</span></span>
+<span>    title <span class="op">=</span> <span class="st">"Distortion Indicatrices at Control Points"</span>,</span>
+<span>    subtitle <span class="op">=</span> <span class="st">""</span>,</span>
+<span>    x <span class="op">=</span> <span class="st">"x (m)"</span>,</span>
+<span>    y <span class="op">=</span> <span class="st">"y (m)"</span></span>
+<span>  <span class="op">)</span></span>
+<span><span class="co">#&gt; Generating indicatrix polygons at source locations...</span></span></code></pre></div>
+<p><img src="reference/figures/swiss-indicatrices-plot-1.png" width="100%"></p>
+<p>The size and shape of the ellipses clearly show the spatial variation
+in both the magnitude and direction of the distortion that our model has
+successfully captured.</p>
 </div>
   </main><aside class="col-md-3"><nav id="toc" aria-label="Table of contents"><h2>On this page</h2>
     </nav></aside>
