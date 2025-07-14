@@ -4,7 +4,7 @@ test_that("predict.pai_model() validates input correctly", {
   withr::with_tempdir({
     demo_files <- create_demo_data(output_dir = ".")
     gcp_data <- read_gcps(gcp_path = demo_files$gcp_path, crs = 3857)
-    model_rf <- train_pai_model(gcp_data, method = "rf")
+    model_rf <- train_pai_model(gcp_data, pai_method = "rf")
 
     expect_error(predictions <- predict(model_rf, newdata = NULL))
 
@@ -19,7 +19,7 @@ test_that("predict.pai_model() returns a correctly structured data frame", {
     gcp_data <- read_gcps(gcp_path = demo_files$gcp_path, crs = 3857)
     new_gcp_data <- gcp_data[1:10, ]
     new_gcp_data$source_x <- new_gcp_data$source_x + 10 # Alter coordinates
-    model_rf <- train_pai_model(gcp_data, method = "rf")
+    model_rf <- train_pai_model(gcp_data, pai_method = "rf")
 
     predictions <- predict(model_rf, newdata = sf::st_drop_geometry(new_gcp_data))
 
@@ -37,10 +37,10 @@ test_that("predict.pai_model() correctly uses newdata for all model types", {
     new_gcp_data$source_x <- new_gcp_data$source_x + 10 # Alter coordinates
 
     # --- Train one model of each type ---
-    model_rf <- train_pai_model(gcp_data, method = "rf")
-    model_lm <- train_pai_model(gcp_data, method = "lm")
-    model_gam <- train_pai_model(gcp_data, method = "gam")
-    model_tps <- train_pai_model(gcp_data, method = "tps")
+    model_rf <- train_pai_model(gcp_data, pai_method = "rf")
+    model_lm <- train_pai_model(gcp_data, pai_method = "lm")
+    model_gam <- train_pai_model(gcp_data, pai_method = "gam")
+    model_tps <- train_pai_model(gcp_data, pai_method = "tps")
 
     # This is the most critical test. It ensures that the function is not just
     # returning the fitted values from the training data.
@@ -76,7 +76,7 @@ test_that("predict.pai_model() handles NA values gracefully", {
     gcp_data <- read_gcps(gcp_path = demo_files$gcp_path, crs = 3857)
     new_gcp_data <- gcp_data[1:10, ]
     new_gcp_data$source_x <- new_gcp_data$source_x + 10 # Alter coordinates
-    model_rf <- train_pai_model(gcp_data, method = "rf")
+    model_rf <- train_pai_model(gcp_data, pai_method = "rf")
 
     # It should return NAs for rows with NA predictors
     bad_data <- new_gcp_data

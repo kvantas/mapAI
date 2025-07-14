@@ -5,8 +5,8 @@
 data(gcps)
 
 # Train one of each major model type to ensure plotting works for all
-model_gam <- train_pai_model(gcps, method = "gam")
-model_rf <- train_pai_model(gcps, method = "rf")
+model_gam <- train_pai_model(gcps, pai_method = "gam")
+model_rf <- train_pai_model(gcps, pai_method = "rf")
 
 
 test_that("plot_correction_surface runs successfully with valid inputs", {
@@ -77,4 +77,3 @@ test_that("plot layers and aesthetics are correctly specified", {
   # In the first layer (geom_raster), the 'fill' aesthetic should be mapped to 'dx'
   expect_equal(rlang::quo_name(p_dx$mapping$fill), "dx")
 })
-

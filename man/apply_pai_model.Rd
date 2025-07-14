@@ -31,7 +31,7 @@ types (\code{POINT}, \code{LINESTRING}, \code{POLYGON}, etc.).
 
 # --- 1. Load Data and Train Model ---
 data(gcps) # gcps is an sf object with POINT geometry
-gam_model <- train_pai_model(gcps, method = "gam")
+gam_model <- train_pai_model(gcps, pai_method = "gam")
 
 # --- 2. Apply the Model to Correct the Points ---
 corrected_points <- apply_pai_model(gam_model, gcps)

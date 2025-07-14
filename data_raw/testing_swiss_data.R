@@ -1,6 +1,6 @@
 library(magrittr)
 data(swiss_cps)
-gam_model <- train_pai_model(swiss_cps, method = "tps")
+gam_model <- train_pai_model(swiss_cps, pai_method = "tps")
 
 # --- 2. Create a regular grid of POINTS for analysis ---
 analysis_points <- sf::st_make_grid(swiss_cps, n = c(20, 20)) %>%

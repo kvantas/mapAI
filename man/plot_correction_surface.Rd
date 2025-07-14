@@ -57,7 +57,7 @@ data(gcps)
 # --- 2. Train a model to visualize ---
 # A GAM (Generalized Additive Model) is a great choice for this
 # because it naturally produces smooth surfaces that are easy to interpret.
-pai_model_gam <- train_pai_model(gcps, method = "gam")
+pai_model_gam <- train_pai_model(gcps, pai_method = "gam")
 
 # --- 3. Generate and display the plot ---
 # This creates the two-panel plot showing the dx and dy correction fields.

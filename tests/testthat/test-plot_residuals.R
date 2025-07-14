@@ -4,7 +4,7 @@
 # This avoids retraining the model in every `test_that` block.
 data(gcps)
 # A Helmert model is used as it's fast and guaranteed to leave residuals on complex data.
-test_helmert_model <- train_pai_model(gcps, method = "helmert")
+test_helmert_model <- train_pai_model(gcps, pai_method = "helmert")
 
 # --- Test Scenarios ---
 

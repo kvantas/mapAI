@@ -5,16 +5,16 @@ print(head(mapAI::gcps))
 plot(st_geometry(mapAI::parcels), main = "Distorted 'Historical' Map")
 
 # Assess Random Forest with both random and spatial CV
-assessment_rf_random <- assess_pai_model(gcps, method = "rf", validation_type = "random", k_folds = 5)
-assessment_rf_spatial <- assess_pai_model(gcps, method = "rf", validation_type = "spatial", k_folds = 5)
+assessment_rf_random <- assess_pai_model(gcps, pai_method = "rf", validation_type = "random", k_folds = 5)
+assessment_rf_spatial <- assess_pai_model(gcps, pai_method = "rf", validation_type = "spatial", k_folds = 5)
 
 # Assess gam with both random and spatial CV
-assessment_gam_random <- assess_pai_model(gcps, method = "gam", validation_type = "random", k_folds = 5)
-assessment_gam_spatial <- assess_pai_model(gcps, method = "gam", validation_type = "spatial", k_folds = 5)
+assessment_gam_random <- assess_pai_model(gcps, pai_method = "gam", validation_type = "random", k_folds = 5)
+assessment_gam_spatial <- assess_pai_model(gcps, pai_method = "gam", validation_type = "spatial", k_folds = 5)
 
 # Assess Linear Model with both random and spatial CV
-assessment_lm_random <- assess_pai_model(gcps, method = "lm", validation_type = "random", k_folds = 5)
-assessment_lm_spatial <- assess_pai_model(gcps, method = "lm", validation_type = "spatial", k_folds = 5)
+assessment_lm_random <- assess_pai_model(gcps, pai_method = "lm", validation_type = "random", k_folds = 5)
+assessment_lm_spatial <- assess_pai_model(gcps, pai_method = "lm", validation_type = "spatial", k_folds = 5)
 
 all_assessments <- rbind(
   assessment_rf_random,
@@ -27,7 +27,7 @@ all_assessments <- rbind(
 
 print(all_assessments)
 
-final_model <- train_pai_model(gcp_data = gcps, method = "gam", seed = 123)
+final_model <- train_pai_model(gcp_data = gcps, pai_method = "gam", seed = 123)
 corrected_map <- apply_pai_model(pai_model = final_model, map = parcels)
 
 plot_correction_surface(pai_model = final_model, gcp_data = gcps) +

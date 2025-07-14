@@ -4,7 +4,7 @@
 # This is efficient as the model training is the slowest part.
 data(gcps)
 # We use a GAM model as it provides the best spatially varying distortion for testing.
-test_gam_model <- train_pai_model(gcps, method = "gam")
+test_gam_model <- train_pai_model(gcps, pai_method = "gam")
 # We analyze distortion at the original GCP locations.
 distortion_at_gcps <- analyze_distortion(test_gam_model, gcps)
 
@@ -89,4 +89,3 @@ test_that("plot_indicatrices arguments for color and scale work correctly", {
 
   expect_false(identical(bbox_original, bbox_scaled))
 })
-

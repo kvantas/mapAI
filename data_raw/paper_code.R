@@ -29,10 +29,10 @@ message("\nStep 3: Performing Spatial Cross-Validation...")
 
 # Perform 5-fold spatial cross-validation for all models
 # Note: This can take a moment, especially for rf and gam.
-cv_results_helmert <- assess_pai_model(swiss_cps, method = "helmert", validation_type = "spatial", k_folds = 5)
-cv_results_lm <- assess_pai_model(swiss_cps, method = "lm", validation_type = "random", k_folds = 10)
-cv_results_rf <- assess_pai_model(swiss_cps, method = "rf", validation_type = "random", k_folds = 10)
-cv_results_gam <- assess_pai_model(swiss_cps, method = "gam", validation_type = "random", k_folds = 10)
+cv_results_helmert <- assess_pai_model(swiss_cps, pai_method = "helmert", validation_type = "spatial", k_folds = 5)
+cv_results_lm <- assess_pai_model(swiss_cps, pai_method = "lm", validation_type = "random", k_folds = 10)
+cv_results_rf <- assess_pai_model(swiss_cps, pai_method = "rf", validation_type = "random", k_folds = 10)
+cv_results_gam <- assess_pai_model(swiss_cps, pai_method = "gam", validation_type = "random", k_folds = 10)
 
 # Combine results into a single data frame
 validation_df <- rbind(
@@ -60,7 +60,7 @@ message("Generated Table 2: Cross-Validation Results")
 message("\nStep 4: Training final model and calculating final RMSE...")
 
 # Train the chosen model (GAM) on all data
-final_gam_model <- train_pai_model(swiss_cps, method = "gam")
+final_gam_model <- train_pai_model(swiss_cps, pai_method = "gam")
 
 # Calculate the final RMSE on the full dataset (in-sample error, for reporting)
 final_corrected_rmse <- calculate_corrected_rmse(final_gam_model, swiss_cps)

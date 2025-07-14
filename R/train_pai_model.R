@@ -14,7 +14,7 @@
 #'   points, please use the more robust "lm" or "helmert" methods.
 #'
 #' @param gcp_data An `sf` object of homologous points from `read_gcps()`.
-#' @param method A character string specifying the algorithm. One of:
+#' @param pai_method A character string specifying the algorithm. One of:
 #'    "lm","tps", "gam", "rf", or "helmert".
 #' @param seed An integer for setting the random seed for reproducibility.
 #' @param ... Additional arguments passed to the underlying model fitting
@@ -28,7 +28,7 @@
 #' @import dplyr
 #' @importFrom stats lm as.formula
 #' @export
-train_pai_model <- function(gcp_data, method, seed = 123, ...) {
+train_pai_model <- function(gcp_data, pai_method, seed = 123, ...) {
 
   set.seed(seed)
 
@@ -38,11 +38,11 @@ train_pai_model <- function(gcp_data, method, seed = 123, ...) {
          call. = FALSE)
   }
 
-  # Check if the method is valid
+  # Check if the pai_method is valid
   allowed_methods <- c("lm", "gam", "rf", "tps", "helmert")
-  if (!method %in% allowed_methods) {
+  if (!pai_method %in% allowed_methods) {
     stop(
-      "Invalid 'method'. Please choose one of: ",
+      "Invalid 'pai_method'. Please choose one of: ",
       paste(shQuote(allowed_methods), collapse = ", "),
       ".",
       call. = FALSE
@@ -54,18 +54,18 @@ train_pai_model <- function(gcp_data, method, seed = 123, ...) {
   # --- 2. Data Requirement Guardrail ---
   # Check if a complex model is requested with insufficient data
   n_points <- nrow(gcp_data)
-  if (method %in% c("gam", "rf") && n_points < 60) {
+  if (pai_method %in% c("gam", "rf") && n_points < 60) {
     error_message <- sprintf(
       "Method '%s' requires at least 60 data points for stable results,
       but you provided %d. Please use simpler models like 'lm' or 'helmert'
       for small datasets.",
-      method, n_points
+      pai_method, n_points
     )
     stop(error_message, call. = FALSE)
   }
 
   # --- Handle Helmert Transformation (calls the internal function) ---
-  if (method == "helmert") {
+  if (pai_method == "helmert") {
     message("Fitting Helmert transformation...")
     model_fit <- helmert(
       source_x = df$source_x,
@@ -74,7 +74,7 @@ train_pai_model <- function(gcp_data, method, seed = 123, ...) {
       target_y = df$target_y
     )
     # The output from helmert() is already structured correctly
-  } else if (method == "tps") {
+  } else if (pai_method == "tps") {
     message("Fitting Thin Plate Spline model...")
     source_coords <- as.matrix(df[, c("source_x", "source_y")])
     # Train separate models for dx and dy, similar to lm and rf
@@ -85,17 +85,17 @@ train_pai_model <- function(gcp_data, method, seed = 123, ...) {
   } else {
     # --- Handle Machine Learning Models ---
     df_ml <- dplyr::select(df, "source_x", "source_y", "dx", "dy")
-    message("Training '", method, "' model...")
+    message("Training '", pai_method, "' model...")
 
-    if (method == "gam") {
+    if (pai_method == "gam") {
       formula_list <- list(dx ~ s(source_x, source_y), dy ~ s(source_x, source_y))
       model_fit <- mgcv::gam(formula_list, data = df_ml, family = mgcv::mvn(d = 2), ...)
     } else {
       train_model <- function(data, outcome_var) {
         formula <- as.formula(paste(outcome_var, "~ source_x + source_y"))
-        if (method == "lm") {
+        if (pai_method == "lm") {
           return(stats::lm(formula, data = data, ...))
-        } else if (method == "rf") {
+        } else if (pai_method == "rf") {
           return(ranger::ranger(formula, data = data, ...))
         }
       }
@@ -107,7 +107,7 @@ train_pai_model <- function(gcp_data, method, seed = 123, ...) {
   }
 
   # --- Return final model object with a consistent class ---
-  output <- list(model = model_fit, method = method)
+  output <- list(model = model_fit, method = pai_method)
   class(output) <- "pai_model"
   return(output)
 }

@@ -4,12 +4,12 @@
 \alias{train_pai_model}
 \title{Train a PAI Model}
 \usage{
-train_pai_model(gcp_data, method, seed = 123, ...)
+train_pai_model(gcp_data, pai_method, seed = 123, ...)
 }
 \arguments{
 \item{gcp_data}{An \code{sf} object of homologous points from \code{read_gcps()}.}
 
-\item{method}{A character string specifying the algorithm. One of:
+\item{pai_method}{A character string specifying the algorithm. One of:
 "lm","tps", "gam", "rf", or "helmert".}
 
 \item{seed}{An integer for setting the random seed for reproducibility.}

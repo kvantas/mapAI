@@ -2,7 +2,7 @@
 
 # --- Setup: Train a model once for all tests in this file ---
 data(gcps)
-test_gam_model <- train_pai_model(gcps, method = "gam")
+test_gam_model <- train_pai_model(gcps, pai_method = "gam")
 
 # --- Test Scenarios ---
 

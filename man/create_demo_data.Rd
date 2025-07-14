@@ -97,7 +97,7 @@ gcp_data <- read_gcps(gcp_path = demo_files$gcp_path, crs = 3857)
 map_to_correct <- read_map(shp_path = demo_files$shp_path, crs = 3857)
 
 # --- 3. Train a model ---
-rf_model <- train_pai_model(gcp_data, method = "rf")
+rf_model <- train_pai_model(gcp_data, pai_method = "rf")
 
 # --- 4. Apply the trained model to the map ---
 corrected_map <- apply_pai_model(pai_model = rf_model, map = map_to_correct)

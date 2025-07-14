@@ -50,8 +50,8 @@ preventing errors from underlying prediction functions.
 data(gcps) # Load the package's built-in homologous points
 
 # Train two different types of models
-pai_model_gam <- train_pai_model(gcps, method = "gam")
-pai_model_rf <- train_pai_model(gcps, method = "rf")
+pai_model_gam <- train_pai_model(gcps, pai_method = "gam")
+pai_model_rf <- train_pai_model(gcps, pai_method = "rf")
 
 # --- 2. Create New Data for Prediction ---
 # We'll create a small data frame of new points.

@@ -45,7 +45,7 @@
 #'
 #' # Train a GAM model. It will learn the non-linear patterns that remain
 #' # after the initial Helmert alignment.
-#' gam_model <- train_pai_model(swiss_cps, method = "gam")
+#' gam_model <- train_pai_model(swiss_cps, pai_method = "gam")
 #'
 #' # Analyze the distortion on a regular grid of points
 #' analysis_grid <- sf::st_make_grid(swiss_cps, n = c(20, 20)) %>%

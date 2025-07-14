@@ -57,7 +57,7 @@
 #'
 #' # --- 1. Load data and train a GAM model ---
 #' data(gcps)
-#' gam_model <- train_pai_model(gcps, method = "gam")
+#' gam_model <- train_pai_model(gcps, pai_method = "gam")
 #'
 #' # --- 2. Create a regular grid of POINTS for analysis ---
 #' analysis_points <- sf::st_make_grid(gcps, n = c(25, 25)) %>%

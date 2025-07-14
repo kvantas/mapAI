@@ -19,7 +19,7 @@
 #'   }
 #'
 #' @param gcp_data An `sf` object of homologous points, from `read_gcps()`.
-#' @param method A character string specifying the algorithm to assess. One of:
+#' @param pai_method A character string specifying the algorithm to assess. One of:
 #'   "lm", "gam", "rf", "helmert", "tps".
 #' @param validation_type A character string specifying the validation
 #'   strategy. One of "random", "spatial", "probability", or "stratified".
@@ -47,33 +47,33 @@
 #'
 #' # --- 2. Assess with RANDOM k-fold CV ---
 #' random_assessment <- assess_pai_model(
-#'   gcp_data, method = "rf", validation_type = "random", k_folds = 5
+#'   gcp_data, pai_method = "rf", validation_type = "random", k_folds = 5
 #' )
 #' print(random_assessment)
 #'
 #' # --- 3. Assess with SPATIAL k-fold CV ---
 #' spatial_assessment <- assess_pai_model(
-#'   gcp_data, method = "rf", validation_type = "spatial", k_folds = 5
+#'   gcp_data, pai_method = "rf", validation_type = "spatial", k_folds = 5
 #' )
 #' print(spatial_assessment)
 #'
 #' # --- 4. Assess with PROBABILITY (simple random) sampling ---
 #' prob_assessment <- assess_pai_model(
-#'   gcp_data, method = "rf", validation_type = "probability", train_split_ratio = 0.75
+#'   gcp_data, pai_method = "rf", validation_type = "probability", train_split_ratio = 0.75
 #' )
 #' print(prob_assessment)
 #'
 #' # --- 5. Assess with STRATIFIED probability sampling ---
 #' stratified_assessment <- assess_pai_model(
 #'   gcp_data,
-#'   method = "rf",
+#'   pai_method = "rf",
 #'   validation_type = "stratified",
 #'   train_split_ratio = 0.75,
 #'   n_strata = 4 # Use quartiles for stratification
 #' )
 #' print(stratified_assessment)
 #' }
-assess_pai_model <- function(gcp_data, method, validation_type = "random",
+assess_pai_model <- function(gcp_data, pai_method, validation_type = "random",
                              k_folds = 5, train_split_ratio = 0.8, n_strata = 4,
                              seed = 123, ...) {
 
@@ -82,8 +82,8 @@ assess_pai_model <- function(gcp_data, method, validation_type = "random",
     stop("`gcp_data` must be a valid `sf` object.", call. = FALSE)
   }
   supported_methods <- c("lm", "gam", "rf", "helmert", "tps")
-  if (!method %in% supported_methods) {
-    stop(paste0("Invalid `method`. Please choose one of: '", paste(supported_methods, collapse = "', '"), "'."), call. = FALSE)
+  if (!pai_method %in% supported_methods) {
+    stop(paste0("Invalid `pai_method`. Please choose one of: '", paste(supported_methods, collapse = "', '"), "'."), call. = FALSE)
   }
   supported_validation <- c("random", "spatial", "probability", "stratified") # Added "stratified"
   if (!validation_type %in% supported_validation) {
@@ -121,7 +121,7 @@ assess_pai_model <- function(gcp_data, method, validation_type = "random",
       test_indices <- which(fold_ids == i)
       train_data <- gcp_data[-test_indices, ]
       test_data <- gcp_data[test_indices, ]
-      temp_model <- train_pai_model(gcp_data = train_data, method = method, seed = seed + i, ...)
+      temp_model <- train_pai_model(gcp_data = train_data, pai_method = pai_method, seed = seed + i, ...)
       predictions <- predict(temp_model, newdata = sf::st_drop_geometry(test_data))
       true_dx <- test_data[rownames(predictions), ]$dx
       true_dy <- test_data[rownames(predictions), ]$dy
@@ -181,7 +181,7 @@ assess_pai_model <- function(gcp_data, method, validation_type = "random",
 
     message(paste("Training model on", nrow(train_data), "points, validating on", nrow(test_data), "points."))
 
-    final_model <- train_pai_model(gcp_data = train_data, method = method, seed = seed, ...)
+    final_model <- train_pai_model(gcp_data = train_data, pai_method = pai_method, seed = seed, ...)
     predictions <- predict(final_model, newdata = sf::st_drop_geometry(test_data))
 
     true_dx <- test_data[rownames(predictions), ]$dx
@@ -193,7 +193,7 @@ assess_pai_model <- function(gcp_data, method, validation_type = "random",
 
   # --- Summarize and Return Results ---
   summary_df <- data.frame(
-    Method = method,
+    Method = pai_method,
     ValidationType = validation_type,
     Mean_RMSE_2D = mean_rmse,
     SD_RMSE_2D = sd_rmse

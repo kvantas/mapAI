@@ -37,7 +37,7 @@
 #' @examples
 #' # --- 1. Train a model and analyze distortion ---
 #' data(gcps)
-#' gam_model <- train_pai_model(gcps, method = "gam")
+#' gam_model <- train_pai_model(gcps, pai_method = "gam")
 #' distortion_at_gcps <- analyze_distortion(gam_model, gcps)
 #'
 #' # --- 2. Plot the indicatrices ---

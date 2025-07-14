@@ -22,7 +22,7 @@ This vignette is for users who are comfortable with the basic workflow of `mapAI
 1. Which PAI model (`lm`, `rf`, or `gam`) is best for my data?
 2. How do I reliably estimate the accuracy of my chosen model?
 
-To answer these, we will use a real-world dataset from the 1925 Kastoria Cadastral Map, which is included with the package. We will focus on comparing the performance of the three main correction methods and demonstrate the crucial difference between standard random cross-validation and spatial cross-validation.
+To answer these, we will use a real-world dataset from the 1925 Kastoria Cadastral Map, which is included with the package. We will focus on comparing the performance of the three main correction pai_methods and demonstrate the crucial difference between standard random cross-validation and spatial cross-validation.
 
 ```{r setup}
 # Load the necessary libraries
@@ -73,29 +73,29 @@ More importantly, and in line with best practices for map accuracy assessment, a
 * **Simple random sampling** for the split.
 * **Stratified random sampling**, which ensures the validation set contains a representative sample of points across the full spectrum of error magnitudes.
 
-By offering this comprehensive suite of methods (random CV, SCV, and design-based validation), you can move beyond simply comparing traditional CV strategies to perform a more robust assessment of your model's predictive accuracy.
+By offering this comprehensive suite of pai_methods (random CV, SCV, and design-based validation), you can move beyond simply comparing traditional CV strategies to perform a more robust assessment of your model's predictive accuracy.
 
-Let's compare the results from these methods for all three models (`lm`, `rf`, and `gam`).
+Let's compare the results from these pai_methods for all three models (`lm`, `rf`, and `gam`).
 
-```{r validate models, message=FALSE}
+```{r validatemodels, message=FALSE}
 # Helper function to run validation for all models
-validate_all_methods <- function(gcp_data, validation_type) {
+validate_all_pai_methods <- function(gcp_data, validation_type) {
   message(paste("\nRunning", validation_type, "cross-validation..."))
   
   # Validate each model type
-  lm_results <- assess_pai_model(gcp_data, method = "lm",k_folds = 10, seed = 1, validation_type = validation_type)
-  rf_results <- assess_pai_model(gcp_data, method = "rf",k_folds = 10, seed = 1, validation_type = validation_type)
-  gam_results <- assess_pai_model(gcp_data, method = "gam",k_folds = 10, seed = 1, validation_type = validation_type)
-  hlm_results <- assess_pai_model(gcp_data, method = "helmert",k_folds = 10, seed = 1, validation_type = validation_type)
+  lm_results <- assess_pai_model(gcp_data, pai_method = "lm",k_folds = 10, seed = 1, validation_type = validation_type)
+  rf_results <- assess_pai_model(gcp_data, pai_method = "rf",k_folds = 10, seed = 1, validation_type = validation_type)
+  gam_results <- assess_pai_model(gcp_data, pai_method = "gam",k_folds = 10, seed = 1, validation_type = validation_type)
+  hlm_results <- assess_pai_model(gcp_data, pai_method = "helmert",k_folds = 10, seed = 1, validation_type = validation_type)
   
   # Combine and return the results
   rbind(lm_results, rf_results, gam_results, hlm_results)
 }
 
 # Run both random and spatial cross-validation
-random_cv_results <- validate_all_methods(gcps, "random")
-spatial_cv_results <- validate_all_methods(gcps, "spatial")
-stratified_results <- validate_all_methods(gcps, "stratified")
+random_cv_results <- validate_all_pai_methods(gcps, "random")
+spatial_cv_results <- validate_all_pai_methods(gcps, "spatial")
+stratified_results <- validate_all_pai_methods(gcps, "stratified")
 
 # Combine into one table for comparison
 all_results <- rbind(random_cv_results, spatial_cv_results, stratified_results)
@@ -106,7 +106,7 @@ knitr::kable(all_results, caption = "Comparison of Validation Results", digits =
 
 Now, let's visualize these results to make the comparison clear.
 
-```{r r plot validation results}
+```{r r plotresults}
 ggplot(all_results, aes(x = Method, y = Mean_RMSE_2D, fill = ValidationType)) +
   geom_col(position = "dodge") +
   geom_errorbar(
@@ -127,10 +127,10 @@ ggplot(all_results, aes(x = Method, y = Mean_RMSE_2D, fill = ValidationType)) +
 
 Based on our validation, we choose `lm` as our final model and train it on the **entire** set of GCPs.
 
-```{r train final model}
+```{r trainfinalmodel}
 
 # Train the final model on all available data
-pai_model <- train_pai_model(gcps, method = "lm")
+pai_model <- train_pai_model(gcps, pai_method = "lm")
 
 # Let's look at the statistical summary of our trained model
 print(summary(pai_model$model$model_dx))
@@ -142,7 +142,7 @@ print(summary(pai_model$model$model_dy))
 
 Finally, we apply our chosen and analyzed gam model to the Kastoria parcels data. We will plot the first five parcels to zoom in an area.
 
-```{r apply and visualize}
+```{r visualize}
 # Apply the model to the parcel polygons
 corrected_parcels <- apply_pai_model(pai_model = pai_model, map = parcels)
 
@@ -167,5 +167,3 @@ ggplot() +
 ```
 
 This final plot shows the tangible result of our work: the corrected parcels are shifted and slightly reshaped, representing a more accurate historical reality. This vignette has demonstrated how to move from a basic workflow to a robust comparative analysis, giving you confidence in both your choice of model and its final accuracy.
-
-

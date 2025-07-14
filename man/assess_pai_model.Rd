@@ -6,7 +6,7 @@
 \usage{
 assess_pai_model(
   gcp_data,
-  method,
+  pai_method,
   validation_type = "random",
   k_folds = 5,
   train_split_ratio = 0.8,
@@ -18,7 +18,7 @@ assess_pai_model(
 \arguments{
 \item{gcp_data}{An \code{sf} object of homologous points, from \code{read_gcps()}.}
 
-\item{method}{A character string specifying the algorithm to assess. One of:
+\item{pai_method}{A character string specifying the algorithm to assess. One of:
 "lm", "gam", "rf", "helmert", "tps".}
 
 \item{validation_type}{A character string specifying the validation
@@ -72,26 +72,26 @@ gcp_data <- read_gcps(gcp_path = demo_files$gcp_path, crs = 3857)
 
 # --- 2. Assess with RANDOM k-fold CV ---
 random_assessment <- assess_pai_model(
-  gcp_data, method = "rf", validation_type = "random", k_folds = 5
+  gcp_data, pai_method = "rf", validation_type = "random", k_folds = 5
 )
 print(random_assessment)
 
 # --- 3. Assess with SPATIAL k-fold CV ---
 spatial_assessment <- assess_pai_model(
-  gcp_data, method = "rf", validation_type = "spatial", k_folds = 5
+  gcp_data, pai_method = "rf", validation_type = "spatial", k_folds = 5
 )
 print(spatial_assessment)
 
 # --- 4. Assess with PROBABILITY (simple random) sampling ---
 prob_assessment <- assess_pai_model(
-  gcp_data, method = "rf", validation_type = "probability", train_split_ratio = 0.75
+  gcp_data, pai_method = "rf", validation_type = "probability", train_split_ratio = 0.75
 )
 print(prob_assessment)
 
 # --- 5. Assess with STRATIFIED probability sampling ---
 stratified_assessment <- assess_pai_model(
   gcp_data,
-  method = "rf",
+  pai_method = "rf",
   validation_type = "stratified",
   train_split_ratio = 0.75,
   n_strata = 4 # Use quartiles for stratification

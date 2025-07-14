@@ -67,10 +67,10 @@ Before training a final model, it is crucial to assess its expected performance.
 
 ```{r assess-model, message=FALSE}
 # Run four different validation methods using a GAM
-cvra <- assess_pai_model(swiss_cps, method = "gam", validation_type = "random", k_folds = 10, seed = 1)
-cvsp <- assess_pai_model(swiss_cps, method = "gam", validation_type = "spatial", k_folds = 10, seed = 1)
-valr <- assess_pai_model(swiss_cps, method = "gam", validation_type = "probability", seed = 1)
-vals <- assess_pai_model(swiss_cps, method = "gam", validation_type = "stratified", seed = 1)
+cvra <- assess_pai_model(swiss_cps, pai_method = "gam", validation_type = "random", k_folds = 10, seed = 1)
+cvsp <- assess_pai_model(swiss_cps, pai_method = "gam", validation_type = "spatial", k_folds = 10, seed = 1)
+valr <- assess_pai_model(swiss_cps, pai_method = "gam", validation_type = "probability", seed = 1)
+vals <- assess_pai_model(swiss_cps, pai_method = "gam", validation_type = "stratified", seed = 1)
 
 # Combine and format the results into a table
 validation_df <- rbind(cvra, cvsp, valr, vals) %>%
@@ -93,7 +93,7 @@ Now, confident in our modeling choice, we train a final **Generalized Additive M
 
 ```{r trainmodel}
 # Train the final GAM model on all data points
-final_gam_model <- train_pai_model(swiss_cps, method = "gam")
+final_gam_model <- train_pai_model(swiss_cps, pai_method = "gam")
 
 # Create a regular line grid to serve as our reference map
 source_grid <- sf::st_make_grid(swiss_cps, n = c(15, 15)) %>% 
@@ -204,3 +204,6 @@ plot_indicatrices(distortion_at_gcps,  scale_factor = 700) +
 
 The size and shape of the ellipses clearly show the spatial variation in both the magnitude and direction of the distortion that our model has successfully captured.
 
+
+
+This vignette has demonstrated a comprehensive workflow for a complex, real-world PAI task. By combining robust validation, non-linear modeling, and advanced distortion analysis, `mapAI` provides a powerful toolkit for any historical map correction project.

@@ -60,10 +60,10 @@ identity_rmse <- sqrt(mean(gcp_data$dx^2 + gcp_data$dy^2))
 print(paste("Initial (Identity) 2D RMSE:", round(identity_rmse, 4)))
 
 # use cross validation to assess a GAM's model accuracy
-cv_res <- assess_pai_model(gcp_data,"gam")
+cv_res <- assess_pai_model(gcp_data,pai_method = "gam")
 print(cv_res)
 # Train the GAM model using our GCP data
-pai_model_gam <- train_pai_model(gcp_data, method = "gam")
+pai_model_gam <- train_pai_model(gcp_data, pai_method = "gam")
 ```
 
 ### Apply Correction and Visualize the Result

@@ -87,7 +87,7 @@ gcp_data <- read_gcps(gcp_path = demo_files$gcp_path, crs = 2100)
 map_to_correct <- read_map(shp_path = demo_files$shp_path, crs = 2100)
 
 # Train the GAM model using the GCPs
-gam_model <- train_pai_model(gcp_data, method = "gam")
+gam_model <- train_pai_model(gcp_data, pai_method = "gam")
 #> Training 'gam' model...
 ```
 

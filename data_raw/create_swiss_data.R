@@ -7,7 +7,7 @@ swiss_p <- read_gcps("./data_raw/mclaeysb.csv", crs = 21781)
 plot_displacement(swiss_p)
 
 # fit a helmert model
-helmert_model <- train_pai_model(swiss_p, method = "helmert")
+helmert_model <- train_pai_model(swiss_p, pai_method = "helmert")
 
 # align orignal data using the helmert model
 swiss_align <- apply_pai_model(helmert_model, swiss_p)
@@ -34,7 +34,7 @@ usethis::use_data(swiss_cps, overwrite = TRUE)
 
 ##########
 
-pai_model <- train_pai_model(swiss_cps, method = "lm")
+pai_model <- train_pai_model(swiss_cps, pai_method = "lm")
 
 
 # Analyze the distortion on a regular grid of points

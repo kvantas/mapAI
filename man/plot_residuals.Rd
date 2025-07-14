@@ -54,13 +54,13 @@ chosen model was not complex enough to capture the full distortion pattern.
 # --- 1. Load data and train a simple model ---
 data(swiss_cps)
 # A helmert model is used as it will leave significant residuals.
-helmert_model <- train_pai_model(swiss_cps, method = "helmert")
+helmert_model <- train_pai_model(swiss_cps, pai_method = "helmert")
 
 # --- 2. Plot the residuals with default colors ---
 plot_residuals(helmert_model, swiss_cps)
 
 # --- 3. Compare with a more advanced model ---
-  gam_model <- train_pai_model(swiss_cps, method = "gam")
+  gam_model <- train_pai_model(swiss_cps, pai_method = "gam")
 
 # The residuals for the GAM model should be much smaller and more random.
 plot_residuals(gam_model, swiss_cps,

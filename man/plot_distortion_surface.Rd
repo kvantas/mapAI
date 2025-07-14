@@ -77,7 +77,7 @@ coordinates and can be safely ignored; the plot is still accurate.
 # --- 1. Train a GAM model for the best visual results ---
 library(magrittr)
 data(swiss_cps)
-gam_model <- train_pai_model(swiss_cps, method = "gam")
+gam_model <- train_pai_model(swiss_cps, pai_method = "gam")
 
 # --- 2. Create a regular grid of POINTS for analysis ---
 analysis_points <- sf::st_make_grid(swiss_cps, n = c(25, 25)) \%>\%

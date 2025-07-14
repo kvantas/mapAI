@@ -5,7 +5,7 @@ test_that("apply_pai_model() returns valid sf with correct number of rows", {
     demo_files <- create_demo_data(output_dir = ".")
     gcp_data <- read_gcps(gcp_path = demo_files$gcp_path, crs = 3857)
     map_to_correct <- read_map(shp_path = demo_files$shp_path)
-    model_rf <- train_pai_model(gcp_data, method = "rf")
+    model_rf <- train_pai_model(gcp_data, pai_method = "rf")
 
     corrected_map <- apply_pai_model(pai_model = model_rf, map = map_to_correct)
 
@@ -21,7 +21,7 @@ test_that("apply_pai_model() adds 'area_new' for polygons", {
     gcp_data <- read_gcps(gcp_path = demo_files$gcp_path, crs = 3857)
     polygon_file <- create_test_polygon("test_polygon.shp")
     poly_map_to_correct <- read_map(polygon_file)
-    model_rf <- train_pai_model(gcp_data, method = "rf")
+    model_rf <- train_pai_model(gcp_data, pai_method = "rf")
 
     corrected_poly <- apply_pai_model(pai_model = model_rf, map = poly_map_to_correct)
 
@@ -40,7 +40,7 @@ test_that("apply_pai_model() works with different model types", {
     demo_files <- create_demo_data(output_dir = ".")
     gcp_data <- read_gcps(gcp_path = demo_files$gcp_path, crs = 3857)
     map_to_correct <- read_map(shp_path = demo_files$shp_path)
-    model_gam <- train_pai_model(gcp_data, method = "gam")
+    model_gam <- train_pai_model(gcp_data, pai_method = "gam")
     corrected_map_gam <- apply_pai_model(pai_model = model_gam, map = map_to_correct)
     expect_s3_class(corrected_map_gam, "sf")
     expect_equal(nrow(corrected_map_gam), nrow(map_to_correct))
@@ -52,7 +52,7 @@ test_that("apply_pai_model() throws errors for invalid inputs", {
     demo_files <- create_demo_data(output_dir = ".")
     gcp_data <- read_gcps(gcp_path = demo_files$gcp_path, crs = 3857)
     map_to_correct <- read_map(shp_path = demo_files$shp_path)
-    model_rf <- train_pai_model(gcp_data, method = "rf")
+    model_rf <- train_pai_model(gcp_data, pai_method = "rf")
 
     expect_error(
       apply_pai_model(pai_model = list(), map = map_to_correct),
@@ -67,7 +67,7 @@ test_that("apply_pai_model() throws errors for invalid inputs", {
 
 
 data(gcps)
-test_gam_model <- train_pai_model(gcps, method = "gam")
+test_gam_model <- train_pai_model(gcps, pai_method = "gam")
 
 
 # --- Test 1: POINT Geometry (from previous debugging) ---
