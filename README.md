@@ -5,7 +5,7 @@
 
 <!-- badges: start -->
 
-[![packageversion](https://img.shields.io/badge/Package%20version-0.1.2-orange.svg?style=flat-square)](https://github.com/kvantas/mapAI)
+[![packageversion](https://img.shields.io/badge/Package%20version-0.2.0-orange.svg?style=flat-square)](https://github.com/kvantas/mapAI)
 [![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.15767080.svg)](https://doi.org/10.5281/zenodo.15767080)
 [![codecov](https://codecov.io/gh/kvantas/mapAI/branch/master/graph/badge.svg?token=8dbGQrCCnz)](https://codecov.io/gh/kvantas/mapAI)
 [![Lifecycle:
@@ -71,8 +71,8 @@ library(ggplot2)
 # Generate a shapefile and a GCPs CSV with complex noisy distortions
 # The function returns a list containing the paths to these new files.
 demo_files <- create_demo_data(type = "complex", seed = 42)
-#>    -> Homologous points saved to: /var/folders/yh/kq6cp_457lg059f3l02r57s80000gn/T//Rtmp4Clda7/demo_gcps.csv
-#>    -> Distorted map saved to: /var/folders/yh/kq6cp_457lg059f3l02r57s80000gn/T//Rtmp4Clda7/demo_map.shp
+#>    -> Homologous points saved to: /var/folders/yh/kq6cp_457lg059f3l02r57s80000gn/T//RtmpKusuBf/demo_gcps.csv
+#>    -> Distorted map saved to: /var/folders/yh/kq6cp_457lg059f3l02r57s80000gn/T//RtmpKusuBf/demo_map.shp
 ```
 
 ### 2. Read Data and Train a Model
