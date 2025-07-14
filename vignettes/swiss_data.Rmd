@@ -12,145 +12,195 @@ knitr::opts_chunk$set(
   collapse = TRUE,
   comment = "#>",
   fig.path = "man/figures/swiss-",
-  out.width = "100%"
-)
+  out.width="100%",
+  fig.dim = c(8, 6)
+  )
 ```
 
-This vignette demonstrates an advanced workflow for analyzing and correcting a map with complex, non-linear distortions. While the `Getting Started with mapAI: A Complete Workflow` vignette used a synthetic data set, this one focuses on a more challenging real-world scenario.
+This vignette demonstrates a  workflow for analyzing and correcting a historical map with complex, non-linear distortions. While the `Getting Started` vignette used a synthetic data set, this one focuses on a more challenging real-world scenario using the `swiss_cps` dataset.
 
-We will use the `swiss_cps` dataset, which is included with the `mapAI` package. The key feature of this dataset is that the gross, linear distortions have already been removed with a Helmert transformation. The remaining errors are subtle, non-linear, and spatially variable—a perfect test case for the more advanced models in `mapAI`.
+The key feature of this dataset is that the gross, linear distortions have already been removed with a Helmert transformation. The remaining errors are subtle, non-linear, and spatially variable. Our goal is to assess different validation techniques, train a robust model for these non-linear residuals, and conduct an in-depth analysis of the spatial distortion.
 
-Our goal is to model these non-linear residuals and visualize the effect of the correction on a reference line grid.
+### Setup
+
+First, we load all the necessary libraries for our workflow.
 
 ```{r setup}
-# Load the necessary libraries for our workflow
+# Load the necessary libraries
 library(mapAI)
 library(sf)
+library(dplyr)
 library(ggplot2)
-library(magrittr) # For the %>% pipe operator
+library(patchwork)
+library(knitr)
 ```
 
-## Step 1: Load and Explore the Data
+### Initial Data Analysis
 
 We begin by loading the `swiss_cps` dataset. This `sf` object contains 343 control points where the `source` coordinates have been pre-aligned, so we can focus on the residual `dx` and `dy` errors.
 
-```{r load-data, fig.dim = c(6, 6)}
+```{r load-data}
 # Load the built-in Swiss control points dataset
 data(swiss_cps)
 
 # Inspect the data structure
-# Note that dx and dy are relatively small, representing the non-linear errors.
-dplyr::glimpse(swiss_cps)
+glimpse(swiss_cps)
 
-# Let's visualize the residual displacement vectors
-plot_displacement(swiss_cps, title = "Residual Non-Linear Distortions")
-```
-The plot shows that even after a global alignment, there are clear spatial patterns in the remaining errors, which a simple linear model could not fix.
-
-## Step 2: Create a Reference Grid to Deform
-
-To best visualize the distortion, we will create a regular grid of lines that covers the extent of our control points. This will serve as our "source map." We will then apply our correction model to this grid to see how it is "un-warped."
-
-```{r create-grid, fig.dim = c(6, 6)}
-# Create a grid of polygons covering the data extent
-grid_polygons <- sf::st_make_grid(swiss_cps, n = c(15, 15))
-
-# Convert the polygon boundaries to a MULTILINESTRING object
-# This gives us a clean line grid for visualization.
-source_grid <- sf::st_cast(grid_polygons, "MULTILINESTRING") %>%
-  sf::st_sf() # Convert to a full sf object
-
-# Plot the original, regular grid
-plot(sf::st_geometry(source_grid), main = "Original, Regular Reference Grid")
+# Visualize the residual displacement vectors
+plot_displacement(swiss_cps, title = "Displacement Vectors") +
+  labs(title = "", subtitle = "",
+       x = "x (m)",
+       y = "y (m)")
 ```
 
-## Step 3: Train a Non-Linear Model
+The plot shows clear spatial patterns in the remaining errors, which a simple linear model could not fix. This confirms the need for a non-linear approach.
 
-Because the linear components of the distortion have already been removed from the `swiss_cps` data, using a `helmert` or `lm` model would be ineffective. This is the perfect scenario to use a **Generalized Additive Model (`gam`)**, which is designed to capture exactly these kinds of smooth, non-linear spatial patterns.
 
-```{r train-model}
-# Train the GAM model to learn the residual distortion patterns
-gam_model <- train_pai_model(swiss_cps, method = "gam")
+
+### Error Assessment and Model Validation
+
+Before training a final model, it is crucial to assess its expected performance. The `assess_pai_model` function provides a robust framework for this. We will compare four different validation strategies to understand how the model might perform on new data.
+
+  * **Standard & Spatial Cross-Validation**: We test a 10-fold cross-validation, once with random data splits and once with "spatial" splits, which ensures that training and validation sets are spatially separated.
+  * **Design-Based Validation**: We also test validation based on sampling probability (`probability`) and stratified random sampling (`stratified`), which are useful when the data points have a known design or structure.
+
+
+```{r assess-model, message=FALSE}
+# Run four different validation methods using a GAM
+cvra <- assess_pai_model(swiss_cps, method = "gam", validation_type = "random", k_folds = 10, seed = 1)
+cvsp <- assess_pai_model(swiss_cps, method = "gam", validation_type = "spatial", k_folds = 10, seed = 1)
+valr <- assess_pai_model(swiss_cps, method = "gam", validation_type = "probability", seed = 1)
+vals <- assess_pai_model(swiss_cps, method = "gam", validation_type = "stratified", seed = 1)
+
+# Combine and format the results into a table
+validation_df <- rbind(cvra, cvsp, valr, vals) %>%
+  select(Model_Method = Method, Mean_2D_RMSE_m = Mean_RMSE_2D, Std_Deviation_of_RMSE_m = SD_RMSE_2D) %>%
+  mutate(across(where(is.numeric), ~ round(.x, 1)))
+
+validation_df$type = c("Standard 10-fold cross-validation",
+                       "Spatial 10-fold cross-validation",
+                       "Design-based validation",
+                       "Design-based validation using stratified random sampling")
+
+# Print the comparison table
+kable(validation_df, caption = "Table: Validation performance across different assessment methods.")
 ```
 
-## Step 4: Apply the Correction to the Grid
 
-Now, we use our trained `gam_model` to correct the regular line grid we created. The `apply_pai_model` function will transform every vertex in the grid according to the learned distortion.
+### Final Correction and Visualization
 
-```{r apply-model}
-# Apply the model to our source grid
-corrected_grid <- apply_pai_model(gam_model, source_grid)
-```
+Now, confident in our modeling choice, we train a final **Generalized Additive Model (`gam`)** on the entire dataset. To visualize the effect of the correction, we will apply this model to a regular reference grid.
 
-## Step 5: Visualize the Corrected Grid
+```{r train-and-apply-model}
+# Train the final GAM model on all data points
+final_gam_model <- train_pai_model(swiss_cps, method = "gam")
 
-This is the most intuitive part of the analysis. We overlay the corrected grid on the original grid. The correction will transform the regular, straight-lined grid to a warped one, in order to correct it. 
+# Create a regular line grid to serve as our reference map
+source_grid <- sf::st_make_grid(swiss_cps, n = c(15, 15)) %>% 
+  st_cast("MULTILINESTRING") %>% 
+  st_sf()
 
-```{r plot-correction, fig.dim = c(6, 6)}
-# For easy plotting, add a 'status' column to each grid
-source_grid$status <- "Original (Regular)"
-corrected_grid$status <- "Corrected (Warped by model)"
+# Apply the trained model to correct the grid
+gam_corrected_grid <- apply_pai_model(final_gam_model, source_grid)
 
-# Combine them into a single sf object for ggplot2
-comparison_data <- rbind(
-  source_grid[, "status"],
-  corrected_grid[, "status"]
-)
+# Prepare data for plotting
+source_grid$status <- "Original (Distorted)"
+gam_corrected_grid$status <- "GAM"
+comparison_data  <- rbind(source_grid[, "status"], gam_corrected_grid[, "status"])
 
+# Create the comparison plot
 ggplot(comparison_data) +
-  geom_sf(aes(color = status, linetype = status), linewidth = 0.6) +
-  scale_color_manual(
-    name = "Grid Status",
-    values = c("Original (Regular)" = "grey50", 
-               "Corrected (Warped by model)" = "#e41a1c")
-  ) +
-  scale_linetype_manual(
-    name = "Grid Status",
-    values = c("Original (Regular)" = "dashed", 
-               "Corrected (Warped by model)" = "solid")
-  ) +
+  geom_sf(aes(color = status, linetype = status), fill = NA, linewidth = 0.7) +
+  scale_color_manual(name = "Map Status", values = c("Original (Distorted)" = "grey50", "GAM" = "#e41a1c")) +
+  geom_point(data = swiss_cps, aes(source_x, source_y), size = 0.2) +
+  scale_linetype_manual(name = "Map Status", values = c("Original (Distorted)" = "dashed", "GAM" = "solid")) +
+  labs(x = "x (m)", y = "y (m)") +
+  coord_sf(datum = sf::st_crs(21781)) +
+  ggplot2::theme_minimal()
+```
+
+The plot shows how the regular grid (dashed grey) is warped by the model into the corrected grid (solid red). This transformation is precisely what's needed to align the distorted map features with their true locations.
+
+
+
+### Residual Analysis
+
+After applying the correction, we should examine the remaining errors, or residuals. This helps us confirm that our model has captured the systematic distortion patterns and that the remaining errors are small and random.
+
+```{r residual-analysis}
+# Plot the residuals after applying the final GAM model
+plot_residuals(final_gam_model, swiss_cps) +
   labs(
-    title = "Visualizing the Non-Linear Correction",
-    subtitle = "The GAM model transforms the regular shape to warped grid"
-  ) +
-  theme_minimal()
+    title = "",
+    subtitle = "",
+    x = "x (m)",
+    y = "y (m)"
+  )
 ```
 
-## Step 6: In-Depth Distortion Analysis
+The residual vectors are much smaller and show no obvious spatial pattern, indicating a successful model fit.
 
-Finally, let's use the advanced analysis functions to quantify the distortion that the model learned. We will analyze the distortion on a dense grid of points and visualize the results.
 
-```{r analysis, fig.dim = c(6, 12)}
-# 1. Create a dense grid of POINTS for analysis
-analysis_points <- sf::st_make_grid(swiss_cps, n = c(25, 25)) %>%
-  sf::st_centroid() %>%
-  sf::st_sf()
 
-# 2. Analyze the distortion using our trained GAM model
-distortion_results <- analyze_distortion(gam_model, analysis_points)
+### Advanced Distortion Analysis
 
-# 3. Visualize the results for two key metrics
-plot_shear <- plot_distortion_surface(
-  distortion_results,
-  metric = "max_shear",
-  diverging = FALSE,
-  palette = "magma"
-) +
-  labs(title = "Maximum Angular Distortion (°)")
+To quantify the nature of the distortion, we use the `analyze_distortion` function on a dense grid of points. This allows us to map out different distortion metrics across the entire area. We will visualize three key metrics:
 
-plot_area <- plot_distortion_surface(
-  distortion_results,
-  metric = "log2_area_scale",
-  diverging = TRUE
-) +
-  labs(title = "Log-Areal Distortion (log2)")
+  * **Area Scale**: Shows how much areas are stretched or compressed. A value of 1 means no distortion.
+  * **Maximum Angular Distortion**: Measures the maximum change in angle at any point.
+  * **Airy-Kavrayskiy Measure**: A combined measure of both areal and angular distortion.
 
-# Combine plots using the patchwork library
-if (requireNamespace("patchwork", quietly = TRUE)) {
-  plot_shear / plot_area
-} else {
-  plot_shear
-}
+
+```{r advanced-analysis}
+# Create a dense grid of points for a high-resolution analysis
+analysis_points <- sf::st_make_grid(swiss_cps, n = c(100, 100)) %>% st_centroid() %>% st_sf()
+distortion_results <- analyze_distortion(final_gam_model, analysis_points)
+
+# Plot 1: Area scale distortion
+plot_distortion_surface(distortion_results, "area_scale", diverging = TRUE) +
+  labs(title = "Area Scale Distortion", subtitle = "", x = "x (m)", y = "y (m)", fill = 'σ')
+
+# Plot 2: Maximum angular distortion
+plot_distortion_surface(distortion_results, "max_angular_distortion", palette = "magma") +
+  labs(title = "Maximum Angular Distortion", subtitle = "", x = "x (m)", y = "y (m)", fill = "2Ω (rad)")
+
+# Plot 3: Airy-Kavrayskiy distortion measure
+plot_distortion_surface(distortion_results, "airy_kavrayskiy") +
+  labs(title = "Airy-Kavrayskiy Combined Distortion", subtitle = "", x = "x (m)", y = "y (m)", fill = expression(E["AK"]))
 ```
 
-This final analysis provides a quantitative map of the distortion, revealing complex patterns of shearing and scaling across the map extent that the `gam` model successfully identified and corrected.
+We can also summarize these distortion metrics numerically.
+
+```{r summary-stats}
+# Calculate and print summary statistics for the distortion metrics
+summary_stats <- st_drop_geometry(distortion_results) %>%
+  reframe(
+    Metric = c("Areal Scale", "Max Angular Distortion (rad)", "Airy-Kavrayskiy Measure"),
+    Minimum = round(c(min(area_scale), min(max_angular_distortion), min(airy_kavrayskiy)), 2),
+    Mean = round(c(mean(area_scale), mean(max_angular_distortion), mean(airy_kavrayskiy)), 2),
+    Maximum = round(c(max(area_scale), max(max_angular_distortion), max(airy_kavrayskiy)), 2)
+  )
+print(kable(summary_stats, caption = "Table: Summary of distortion metrics from GAM model analysis."))
+```
+
+
+### Visualizing Distortion with Indicatrices
+
+A classic way to visualize map distortion is with **Tissot's Indicatrix**, which shows how an infinitesimal circle on the original surface is deformed into an ellipse. We can plot these at our control point locations to see the local distortion characteristics.
+
+```{r indicatrices-plot}
+# Analyze distortion specifically at the control point locations
+distortion_at_gcps <- analyze_distortion(final_gam_model, points_to_analyze = swiss_cps)
+
+# Plot the indicatrices (ellipses) at each point
+plot_indicatrices(distortion_at_gcps,  scale_factor = 700) +
+  labs(
+    title = "Distortion Indicatrices at Control Points",
+    subtitle = "",
+    x = "x (m)",
+    y = "y (m)"
+  )
+```
+
+The size and shape of the ellipses clearly show the spatial variation in both the magnitude and direction of the distortion that our model has successfully captured.
+

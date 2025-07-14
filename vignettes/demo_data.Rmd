@@ -11,9 +11,10 @@ vignette: >
 knitr::opts_chunk$set(
   collapse = TRUE,
   comment = "#>",
-  fig.path = "man/figures/vignette1-",
-  out.width = "100%"
-)
+  fig.path = "man/figures/start-",
+  out.width="100%",
+  fig.dim = c(8, 6)
+  )
 ```
 
 This vignette provides a complete, step-by-step workflow for using the `mapAI` package. For users new to the package, this is the best place to start.
@@ -32,9 +33,9 @@ library(dplyr)
 library(magrittr) # For the %>% pipe operator
 ```
 
-## Part 1: Positional Correction Workflow
+## Positional Correction Workflow
 
-### Step 1: Generate and Load Synthetic Data
+### Generate and Load Synthetic Data
 
 First, we use `create_demo_data()` to create our test case. We'll choose the `"complex"` distortion type as it represents a challenging combination of errors. We then load these files into R using the package's reading functions.
 
@@ -49,11 +50,11 @@ gcp_data <- read_gcps(gcp_path = demo_files$gcp_path, crs = 3857)
 map_to_correct <- read_map(shp_path = demo_files$shp_path, crs = 3857)
 ```
 
-### Step 2: Assess Initial Error and Train a Model
+### Assess Initial Error and Train a Model
 
 We calculate the initial 2D Root Mean Squared Error (RMSE) to get a baseline for the positional error and then we use cross validation to estimate the out-of-sample error of a **Generalized Additive Model (`gam`)**. GAMs are well-suited for capturing the smooth, non-linear distortions in our synthetic data.
 
-```{r train}
+```{r train, message=FALSE}
 # Calculate the initial error before correction
 identity_rmse <- sqrt(mean(gcp_data$dx^2 + gcp_data$dy^2))
 print(paste("Initial (Identity) 2D RMSE:", round(identity_rmse, 4)))
@@ -65,11 +66,11 @@ print(cv_res)
 pai_model_gam <- train_pai_model(gcp_data, method = "gam")
 ```
 
-### Step 3: Apply Correction and Visualize the Result
+### Apply Correction and Visualize the Result
 
 We apply our trained model to the map grid and then visualize the result by overlaying the corrected grid on the original.
 
-```{r apply-and-visualize, fig.dim = c(6, 6), out.width="100%"}
+```{r apply-and-visualize}
 # Apply the trained model to the full map
 corrected_map <- apply_pai_model(pai_model = pai_model_gam, map = map_to_correct)
 
@@ -93,7 +94,7 @@ The plot clearly shows how the warped grid has been adjusted back to a regular s
 
 ---
 
-## Part 2: Advanced Distortion Analysis
+## Advanced Distortion Analysis
 
 Beyond simple correction, `mapAI` provides powerful tools to quantify and visualize the distortion itself. This is useful for understanding the history of a map's creation or identifying areas of high uncertainty.
 
@@ -122,7 +123,7 @@ Now we can use `plot_distortion_surface()` to visualize these metrics.
 
 These are two of the most fundamental distortion metrics. `log2_area_scale` shows where the map has been stretched or shrunk, while `max_angular_distortion_rad` shows where angles have been deformed (shear).
 
-```{r plot-surfaces, fig.dim = c(6, 6), out.width="100%"}
+```{r plot-surfaces}
 # Plot for log2(sigma) - areal distortion
 plot_area <- plot_distortion_surface(
   distortion_results,
@@ -148,7 +149,7 @@ plot_shear <- plot_distortion_surface(
 
 This is a combined measure of distortion that balances both areal and angular errors. We can calculate it from the `a` and `b` values produced by `analyze_distortion`.
 
-```{r plot-airy, fig.dim = c(6, 6), out.width="100%"}
+```{r plot-airy}
 # Plot the Airy-Kavrayskiy metric
 plot_distortion_surface(
   distortion_results,
@@ -162,7 +163,7 @@ plot_distortion_surface(
 
 Finally, `plot_indicatrices` provides the richest visualization, showing the distortion ellipses themselves. The shape, size, and orientation of each ellipse represent the local distortion pattern.
 
-```{r plot-indicatrices, fig.dim = c(6, 6), out.width="100%"}
+```{r plot-indicatrices}
 # Plot the indicatrices at the locations of the analysis points
 # We use a large scale_factor to make the ellipses clearly visible.
 plot_indicatrices(
