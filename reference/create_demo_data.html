@@ -164,7 +164,7 @@ lines) and a CSV file of homologous points ready for use with
 <span class="r-in"><span><span class="va">map_to_correct</span> <span class="op">&lt;-</span> <span class="fu"><a href="read_map.html">read_map</a></span><span class="op">(</span>shp_path <span class="op">=</span> <span class="va">demo_files</span><span class="op">$</span><span class="va">shp_path</span>, crs <span class="op">=</span> <span class="fl">3857</span><span class="op">)</span></span></span>
 <span class="r-in"><span></span></span>
 <span class="r-in"><span><span class="co"># --- 3. Train a model ---</span></span></span>
-<span class="r-in"><span><span class="va">rf_model</span> <span class="op">&lt;-</span> <span class="fu"><a href="train_pai_model.html">train_pai_model</a></span><span class="op">(</span><span class="va">gcp_data</span>, method <span class="op">=</span> <span class="st">"rf"</span><span class="op">)</span></span></span>
+<span class="r-in"><span><span class="va">rf_model</span> <span class="op">&lt;-</span> <span class="fu"><a href="train_pai_model.html">train_pai_model</a></span><span class="op">(</span><span class="va">gcp_data</span>, pai_method <span class="op">=</span> <span class="st">"rf"</span><span class="op">)</span></span></span>
 <span class="r-in"><span></span></span>
 <span class="r-in"><span><span class="co"># --- 4. Apply the trained model to the map ---</span></span></span>
 <span class="r-in"><span><span class="va">corrected_map</span> <span class="op">&lt;-</span> <span class="fu"><a href="apply_pai_model.html">apply_pai_model</a></span><span class="op">(</span>pai_model <span class="op">=</span> <span class="va">rf_model</span>, map <span class="op">=</span> <span class="va">map_to_correct</span><span class="op">)</span></span></span>

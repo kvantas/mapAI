@@ -153,10 +153,10 @@ data points have a known design or structure.</li>
 </ul>
 <div class="sourceCode" id="cb3"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="co"># Run four different validation methods using a GAM</span></span>
-<span><span class="va">cvra</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/assess_pai_model.html">assess_pai_model</a></span><span class="op">(</span><span class="va">swiss_cps</span>, method <span class="op">=</span> <span class="st">"gam"</span>, validation_type <span class="op">=</span> <span class="st">"random"</span>, k_folds <span class="op">=</span> <span class="fl">10</span>, seed <span class="op">=</span> <span class="fl">1</span><span class="op">)</span></span>
-<span><span class="va">cvsp</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/assess_pai_model.html">assess_pai_model</a></span><span class="op">(</span><span class="va">swiss_cps</span>, method <span class="op">=</span> <span class="st">"gam"</span>, validation_type <span class="op">=</span> <span class="st">"spatial"</span>, k_folds <span class="op">=</span> <span class="fl">10</span>, seed <span class="op">=</span> <span class="fl">1</span><span class="op">)</span></span>
-<span><span class="va">valr</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/assess_pai_model.html">assess_pai_model</a></span><span class="op">(</span><span class="va">swiss_cps</span>, method <span class="op">=</span> <span class="st">"gam"</span>, validation_type <span class="op">=</span> <span class="st">"probability"</span>, seed <span class="op">=</span> <span class="fl">1</span><span class="op">)</span></span>
-<span><span class="va">vals</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/assess_pai_model.html">assess_pai_model</a></span><span class="op">(</span><span class="va">swiss_cps</span>, method <span class="op">=</span> <span class="st">"gam"</span>, validation_type <span class="op">=</span> <span class="st">"stratified"</span>, seed <span class="op">=</span> <span class="fl">1</span><span class="op">)</span></span>
+<span><span class="va">cvra</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/assess_pai_model.html">assess_pai_model</a></span><span class="op">(</span><span class="va">swiss_cps</span>, pai_method <span class="op">=</span> <span class="st">"gam"</span>, validation_type <span class="op">=</span> <span class="st">"random"</span>, k_folds <span class="op">=</span> <span class="fl">10</span>, seed <span class="op">=</span> <span class="fl">1</span><span class="op">)</span></span>
+<span><span class="va">cvsp</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/assess_pai_model.html">assess_pai_model</a></span><span class="op">(</span><span class="va">swiss_cps</span>, pai_method <span class="op">=</span> <span class="st">"gam"</span>, validation_type <span class="op">=</span> <span class="st">"spatial"</span>, k_folds <span class="op">=</span> <span class="fl">10</span>, seed <span class="op">=</span> <span class="fl">1</span><span class="op">)</span></span>
+<span><span class="va">valr</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/assess_pai_model.html">assess_pai_model</a></span><span class="op">(</span><span class="va">swiss_cps</span>, pai_method <span class="op">=</span> <span class="st">"gam"</span>, validation_type <span class="op">=</span> <span class="st">"probability"</span>, seed <span class="op">=</span> <span class="fl">1</span><span class="op">)</span></span>
+<span><span class="va">vals</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/assess_pai_model.html">assess_pai_model</a></span><span class="op">(</span><span class="va">swiss_cps</span>, pai_method <span class="op">=</span> <span class="st">"gam"</span>, validation_type <span class="op">=</span> <span class="st">"stratified"</span>, seed <span class="op">=</span> <span class="fl">1</span><span class="op">)</span></span>
 <span></span>
 <span><span class="co"># Combine and format the results into a table</span></span>
 <span><span class="va">validation_df</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/cbind.html" class="external-link">rbind</a></span><span class="op">(</span><span class="va">cvra</span>, <span class="va">cvsp</span>, <span class="va">valr</span>, <span class="va">vals</span><span class="op">)</span> <span class="op"><a href="https://magrittr.tidyverse.org/reference/pipe.html" class="external-link">%&gt;%</a></span></span>
@@ -223,7 +223,7 @@ entire dataset. To visualize the effect of the correction, we will apply
 this model to a regular reference grid.</p>
 <div class="sourceCode" id="cb4"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="co"># Train the final GAM model on all data points</span></span>
-<span><span class="va">final_gam_model</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/train_pai_model.html">train_pai_model</a></span><span class="op">(</span><span class="va">swiss_cps</span>, method <span class="op">=</span> <span class="st">"gam"</span><span class="op">)</span></span>
+<span><span class="va">final_gam_model</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/train_pai_model.html">train_pai_model</a></span><span class="op">(</span><span class="va">swiss_cps</span>, pai_method <span class="op">=</span> <span class="st">"gam"</span><span class="op">)</span></span>
 <span><span class="co">#&gt; Training 'gam' model...</span></span>
 <span></span>
 <span><span class="co"># Create a regular line grid to serve as our reference map</span></span>
@@ -382,6 +382,10 @@ control point locations to see the local distortion characteristics.</p>
 <p>The size and shape of the ellipses clearly show the spatial variation
 in both the magnitude and direction of the distortion that our model has
 successfully captured.</p>
+<p>This vignette has demonstrated a comprehensive workflow for a
+complex, real-world PAI task. By combining robust validation, non-linear
+modeling, and advanced distortion analysis, <code>mapAI</code> provides
+a powerful toolkit for any historical map correction project.</p>
 </div>
   </main><aside class="col-md-3"><nav id="toc" aria-label="Table of contents"><h2>On this page</h2>
     </nav></aside>

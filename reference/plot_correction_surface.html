@@ -106,7 +106,7 @@ especially at the edges of the data where the model is extrapolating.</p></li>
 <span class="r-in"><span><span class="co"># --- 2. Train a model to visualize ---</span></span></span>
 <span class="r-in"><span><span class="co"># A GAM (Generalized Additive Model) is a great choice for this</span></span></span>
 <span class="r-in"><span><span class="co"># because it naturally produces smooth surfaces that are easy to interpret.</span></span></span>
-<span class="r-in"><span><span class="va">pai_model_gam</span> <span class="op">&lt;-</span> <span class="fu"><a href="train_pai_model.html">train_pai_model</a></span><span class="op">(</span><span class="va">gcps</span>, method <span class="op">=</span> <span class="st">"gam"</span><span class="op">)</span></span></span>
+<span class="r-in"><span><span class="va">pai_model_gam</span> <span class="op">&lt;-</span> <span class="fu"><a href="train_pai_model.html">train_pai_model</a></span><span class="op">(</span><span class="va">gcps</span>, pai_method <span class="op">=</span> <span class="st">"gam"</span><span class="op">)</span></span></span>
 <span class="r-in"><span></span></span>
 <span class="r-in"><span><span class="co"># --- 3. Generate and display the plot ---</span></span></span>
 <span class="r-in"><span><span class="co"># This creates the two-panel plot showing the dx and dy correction fields.</span></span></span>
