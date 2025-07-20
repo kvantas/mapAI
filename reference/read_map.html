@@ -9,7 +9,7 @@ corrected."></head><body>
 
     <a class="navbar-brand me-2" href="../index.html">mapAI</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.2.0</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.3.0</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -46,7 +46,7 @@ corrected.</p>
 
     <div class="section level2">
     <h2 id="ref-usage">Usage<a class="anchor" aria-label="anchor" href="#ref-usage"></a></h2>
-    <div class="sourceCode"><pre class="sourceCode r"><code><span><span class="fu">read_map</span><span class="op">(</span><span class="va">shp_path</span>, crs <span class="op">=</span> <span class="cn">NA</span><span class="op">)</span></span></code></pre></div>
+    <div class="sourceCode"><pre class="sourceCode r"><code><span><span class="fu">read_map</span><span class="op">(</span><span class="va">shp_path</span>, <span class="va">...</span><span class="op">)</span></span></code></pre></div>
     </div>
 
     <div class="section level2">
@@ -58,9 +58,8 @@ corrected.</p>
 (e.g., a shapefile).</p></dd>
 
 
-<dt id="arg-crs">crs<a class="anchor" aria-label="anchor" href="#arg-crs"></a></dt>
-<dd><p>An optional coordinate reference system (CRS) to assign if the
-input file lacks one. Can be an EPSG code (e.g., <code>32632</code>) or a WKT string.</p></dd>
+<dt id="arg--">...<a class="anchor" aria-label="anchor" href="#arg--"></a></dt>
+<dd><p>Arguments passed to <code><a href="https://r-spatial.github.io/sf/reference/st_read.html" class="external-link">sf::st_read</a></code></p></dd>
 
 </dl></div>
     <div class="section level2">
@@ -82,7 +81,7 @@ add it.</p>
 <span class="r-in"><span><span class="va">demo_files</span> <span class="op">&lt;-</span> <span class="fu"><a href="create_demo_data.html">create_demo_data</a></span><span class="op">(</span><span class="op">)</span></span></span>
 <span class="r-in"><span></span></span>
 <span class="r-in"><span><span class="co"># Read the map that needs correction</span></span></span>
-<span class="r-in"><span><span class="va">map_to_correct</span> <span class="op">&lt;-</span> <span class="fu">read_map</span><span class="op">(</span>shp_path <span class="op">=</span> <span class="va">demo_files</span><span class="op">$</span><span class="va">shp_path</span><span class="op">)</span></span></span>
+<span class="r-in"><span><span class="va">map_to_correct</span> <span class="op">&lt;-</span> <span class="fu">read_map</span><span class="op">(</span>shp_path <span class="op">=</span> <span class="va">demo_files</span><span class="op">$</span><span class="va">shp_path</span>, quiet <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span></span></span>
 <span class="r-in"><span></span></span>
 <span class="r-in"><span><span class="co"># The output is now ready to be used in the `correct_map()` function</span></span></span>
 <span class="r-in"><span><span class="co"># after a model has been trained.</span></span></span>

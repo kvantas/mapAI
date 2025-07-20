@@ -20,7 +20,7 @@
 
     <a class="navbar-brand me-2" href="../index.html">mapAI</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.2.0</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.3.0</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -110,14 +110,20 @@ into R using the package’s reading functions.</p>
 <div class="sourceCode" id="cb2"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="co"># Create the shapefile and GCPs CSV in a temporary directory</span></span>
 <span><span class="va">demo_files</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/create_demo_data.html">create_demo_data</a></span><span class="op">(</span>type <span class="op">=</span> <span class="st">"complex"</span>, seed <span class="op">=</span> <span class="fl">123</span><span class="op">)</span></span>
-<span><span class="co">#&gt;    -&gt; Homologous points saved to: /tmp/Rtmp5L631j/demo_gcps.csv</span></span>
-<span><span class="co">#&gt;    -&gt; Distorted map saved to: /tmp/Rtmp5L631j/demo_map.shp</span></span>
+<span><span class="co">#&gt;    -&gt; Homologous points saved to: /tmp/Rtmp4WVOvA/demo_gcps.csv</span></span>
+<span><span class="co">#&gt;    -&gt; Distorted map saved to: /tmp/Rtmp4WVOvA/demo_map.shp</span></span>
 <span></span>
 <span><span class="co"># Load the GCPs (homologous points) from the demo file</span></span>
-<span><span class="va">gcp_data</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/read_gcps.html">read_gcps</a></span><span class="op">(</span>gcp_path <span class="op">=</span> <span class="va">demo_files</span><span class="op">$</span><span class="va">gcp_path</span>, crs <span class="op">=</span> <span class="fl">3857</span><span class="op">)</span></span>
+<span><span class="va">gcp_data</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/read_gcps.html">read_gcps</a></span><span class="op">(</span>gcp_path <span class="op">=</span> <span class="va">demo_files</span><span class="op">$</span><span class="va">gcp_path</span><span class="op">)</span></span>
 <span></span>
 <span><span class="co"># Load the vector map that needs correction from the demo file</span></span>
-<span><span class="va">map_to_correct</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/read_map.html">read_map</a></span><span class="op">(</span>shp_path <span class="op">=</span> <span class="va">demo_files</span><span class="op">$</span><span class="va">shp_path</span>, crs <span class="op">=</span> <span class="fl">3857</span><span class="op">)</span></span></code></pre></div>
+<span><span class="va">map_to_correct</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/read_map.html">read_map</a></span><span class="op">(</span>shp_path <span class="op">=</span> <span class="va">demo_files</span><span class="op">$</span><span class="va">shp_path</span><span class="op">)</span></span>
+<span><span class="co">#&gt; Reading layer `demo_map' from data source `/tmp/Rtmp4WVOvA/demo_map.shp' using driver `ESRI Shapefile'</span></span>
+<span><span class="co">#&gt; Simple feature collection with 30 features and 1 field</span></span>
+<span><span class="co">#&gt; Geometry type: LINESTRING</span></span>
+<span><span class="co">#&gt; Dimension:     XY</span></span>
+<span><span class="co">#&gt; Bounding box:  xmin: -0.06808406 ymin: -4.288813 xmax: 102.7102 ymax: 114.2245</span></span>
+<span><span class="co">#&gt; Projected CRS: WGS 84 / Pseudo-Mercator</span></span></code></pre></div>
 </div>
 <div class="section level3">
 <h3 id="assess-initial-error-and-train-a-model">Assess Initial Error and Train a Model<a class="anchor" aria-label="anchor" href="#assess-initial-error-and-train-a-model"></a>
@@ -200,7 +206,7 @@ distortion metrics at each point.</p>
 <span><span class="fu"><a href="https://pillar.r-lib.org/reference/glimpse.html" class="external-link">glimpse</a></span><span class="op">(</span><span class="va">distortion_results</span><span class="op">)</span></span>
 <span><span class="co">#&gt; Rows: 625</span></span>
 <span><span class="co">#&gt; Columns: 9</span></span>
-<span><span class="co">#&gt; $ geometry               <span style="color: #949494; font-style: italic;">&lt;POINT [m]&gt;</span> POINT (1.987481 -1.918547)<span style="color: #949494;">, </span>POINT (6.0986…</span></span>
+<span><span class="co">#&gt; $ geometry               <span style="color: #949494; font-style: italic;">&lt;POINT&gt;</span> POINT (1.987481 -1.918547)<span style="color: #949494;">, </span>POINT (6.09861 -1…</span></span>
 <span><span class="co">#&gt; $ a                      <span style="color: #949494; font-style: italic;">&lt;dbl&gt;</span> 1.0201617<span style="color: #949494;">, </span>1.0132633<span style="color: #949494;">, </span>1.0082489<span style="color: #949494;">, </span>1.0056066<span style="color: #949494;">, </span>1.0…</span></span>
 <span><span class="co">#&gt; $ b                      <span style="color: #949494; font-style: italic;">&lt;dbl&gt;</span> 0.9378401<span style="color: #949494;">, </span>0.9356228<span style="color: #949494;">, </span>0.9331371<span style="color: #949494;">, </span>0.9299045<span style="color: #949494;">, </span>0.9…</span></span>
 <span><span class="co">#&gt; $ area_scale             <span style="color: #949494; font-style: italic;">&lt;dbl&gt;</span> 0.9567486<span style="color: #949494;">, </span>0.9480322<span style="color: #949494;">, </span>0.9408344<span style="color: #949494;">, </span>0.9351181<span style="color: #949494;">, </span>0.9…</span></span>
