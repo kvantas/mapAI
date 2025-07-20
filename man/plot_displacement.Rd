@@ -9,7 +9,8 @@ plot_displacement(
   title = "Distortion Displacement Vectors",
   subtitle = "Arrows point from distorted to true locations",
   arrow_color = "darkred",
-  point_color = "red"
+  point_color = "red",
+  exaggeration_factor = 1
 )
 }
 \arguments{
@@ -26,6 +27,11 @@ displacement arrows.}
 
 \item{point_color}{A character string specifying the color of the points
 marking the source locations.}
+
+\item{exaggeration_factor}{A numeric value to scale the length of the
+displacement vectors. A value of 2, for instance, will double their
+plotted length, making subtle displacements more visible. Defaults to 1
+(no exaggeration).}
 }
 \value{
 A \code{ggplot} object, which can be further customized using standard
@@ -59,5 +65,8 @@ plot_displacement(
   arrow_color = "blue",
   point_color = "orange"
 )
+
+# --- 4. Exaggerate the displacement vectors for clearer visualization ---
+plot_displacement(gcp_data, exaggeration_factor = 5)
 
 }

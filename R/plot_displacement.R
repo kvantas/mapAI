@@ -17,6 +17,10 @@
 #'   displacement arrows.
 #' @param point_color A character string specifying the color of the points
 #'   marking the source locations.
+#' @param exaggeration_factor A numeric value to scale the length of the
+#'   displacement vectors. A value of 2, for instance, will double their
+#'   plotted length, making subtle displacements more visible. Defaults to 1
+#'   (no exaggeration).
 #'
 #' @return A `ggplot` object, which can be further customized using standard
 #'   `ggplot2` syntax.
@@ -42,12 +46,16 @@
 #'   point_color = "orange"
 #' )
 #'
+#' # --- 4. Exaggerate the displacement vectors for clearer visualization ---
+#' plot_displacement(gcp_data, exaggeration_factor = 5)
+#'
 plot_displacement <- function(
     gcp_data,
     title = "Distortion Displacement Vectors",
     subtitle = "Arrows point from distorted to true locations",
     arrow_color = "darkred",
-    point_color = "red") {
+    point_color = "red",
+    exaggeration_factor = 1) {
 
   # --- 1. Input Validation ---
   if (!inherits(gcp_data, "sf")) {
@@ -67,8 +75,8 @@ plot_displacement <- function(
       ggplot2::aes(
         x = .data$source_x,
         y = .data$source_y,
-        xend = .data$target_x,
-        yend = .data$target_y
+        xend = .data$source_x + exaggeration_factor * (.data$target_x - .data$source_x),
+        yend = .data$source_y + exaggeration_factor * (.data$target_y - .data$source_y)
       ),
       arrow = grid::arrow(length = grid::unit(0.1, "cm")),
       color = arrow_color,
