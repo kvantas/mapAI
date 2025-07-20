@@ -66,7 +66,7 @@ which to generate predictions.</p></dd>
 
 <dt id="arg--">...<a class="anchor" aria-label="anchor" href="#arg--"></a></dt>
 <dd><p>Additional arguments passed on to the underlying predict methods
-(e.g., <code>predict.lm</code>, <code>predict.gam</code>).</p></dd>
+(e.g., <code>predict.lm</code>, <code>predict.gam</code>, <code>predict.svm</code>).</p></dd>
 
 </dl></div>
     <div class="section level2">
@@ -81,7 +81,7 @@ created by <code><a href="train_pai_model.html">train_pai_model()</a></code>. As
 directly (e.g., <code>predict.pai_model(...)</code>), but rather through the generic
 <code><a href="https://rdrr.io/r/stats/predict.html" class="external-link">predict()</a></code> function (e.g., <code>predict(my_model, ...)</code>).</p>
 <p>Key features of this method include:</p><ul><li><p><strong>Automatic Model Handling:</strong> It transparently handles the
-different output structures of <code>helmert</code>,<code>tps</code>, <code>gam</code>, <code>lm</code>, and <code>rf</code>
+different output structures of <code>helmert</code>,<code>tps</code>, <code>gam</code>, <code>lm</code>, <code>rf</code>, <code>svmRadial</code> and <code>svmLinear</code>
 models, always returning a consistent <code>data.frame</code>.</p></li>
 <li><p><strong>Robust NA Handling:</strong> It correctly handles <code>NA</code> values in the
 <code>newdata</code> predictors. Rows with <code>NA</code> inputs will produce <code>NA</code> outputs,

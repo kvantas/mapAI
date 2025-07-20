@@ -51,7 +51,8 @@
 <span>  title <span class="op">=</span> <span class="st">"Distortion Displacement Vectors"</span>,</span>
 <span>  subtitle <span class="op">=</span> <span class="st">"Arrows point from distorted to true locations"</span>,</span>
 <span>  arrow_color <span class="op">=</span> <span class="st">"darkred"</span>,</span>
-<span>  point_color <span class="op">=</span> <span class="st">"red"</span></span>
+<span>  point_color <span class="op">=</span> <span class="st">"red"</span>,</span>
+<span>  exaggeration_factor <span class="op">=</span> <span class="fl">1</span></span>
 <span><span class="op">)</span></span></code></pre></div>
     </div>
 
@@ -82,6 +83,13 @@ displacement arrows.</p></dd>
 <dd><p>A character string specifying the color of the points
 marking the source locations.</p></dd>
 
+
+<dt id="arg-exaggeration-factor">exaggeration_factor<a class="anchor" aria-label="anchor" href="#arg-exaggeration-factor"></a></dt>
+<dd><p>A numeric value to scale the length of the
+displacement vectors. A value of 2, for instance, will double their
+plotted length, making subtle displacements more visible. Defaults to 1
+(no exaggeration).</p></dd>
+
 </dl></div>
     <div class="section level2">
     <h2 id="value">Value<a class="anchor" aria-label="anchor" href="#value"></a></h2>
@@ -102,8 +110,8 @@ non-linear warping).</p>
     <h2 id="ref-examples">Examples<a class="anchor" aria-label="anchor" href="#ref-examples"></a></h2>
     <div class="sourceCode"><pre class="sourceCode r"><code><span class="r-in"><span><span class="co"># --- 1. First, create a demo dataset to work with ---</span></span></span>
 <span class="r-in"><span><span class="va">demo_files</span> <span class="op">&lt;-</span> <span class="fu"><a href="create_demo_data.html">create_demo_data</a></span><span class="op">(</span>type <span class="op">=</span> <span class="st">"complex"</span><span class="op">)</span></span></span>
-<span class="r-msg co"><span class="r-pr">#&gt;</span>    -&gt; Homologous points saved to: /tmp/RtmpkA1mqS/demo_gcps.csv</span>
-<span class="r-msg co"><span class="r-pr">#&gt;</span>    -&gt; Distorted map saved to: /tmp/RtmpkA1mqS/demo_map.shp</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span>    -&gt; Homologous points saved to: /tmp/RtmpDOEFgy/demo_gcps.csv</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span>    -&gt; Distorted map saved to: /tmp/RtmpDOEFgy/demo_map.shp</span>
 <span class="r-in"><span><span class="va">gcp_data</span> <span class="op">&lt;-</span> <span class="fu"><a href="read_gcps.html">read_gcps</a></span><span class="op">(</span>gcp_path <span class="op">=</span> <span class="va">demo_files</span><span class="op">$</span><span class="va">gcp_path</span><span class="op">)</span></span></span>
 <span class="r-in"><span></span></span>
 <span class="r-in"><span><span class="co"># --- 2. Create the default displacement plot ---</span></span></span>
@@ -119,6 +127,10 @@ non-linear warping).</p>
 <span class="r-in"><span>  point_color <span class="op">=</span> <span class="st">"orange"</span></span></span>
 <span class="r-in"><span><span class="op">)</span></span></span>
 <span class="r-plt img"><img src="plot_displacement-2.png" alt="" width="700" height="433"></span>
+<span class="r-in"><span></span></span>
+<span class="r-in"><span><span class="co"># --- 4. Exaggerate the displacement vectors for clearer visualization ---</span></span></span>
+<span class="r-in"><span><span class="fu">plot_displacement</span><span class="op">(</span><span class="va">gcp_data</span>, exaggeration_factor <span class="op">=</span> <span class="fl">5</span><span class="op">)</span></span></span>
+<span class="r-plt img"><img src="plot_displacement-3.png" alt="" width="700" height="433"></span>
 <span class="r-in"><span></span></span>
 </code></pre></div>
     </div>

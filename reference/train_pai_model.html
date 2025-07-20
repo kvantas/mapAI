@@ -59,7 +59,7 @@ spatial transformation.</p>
 
 <dt id="arg-pai-method">pai_method<a class="anchor" aria-label="anchor" href="#arg-pai-method"></a></dt>
 <dd><p>A character string specifying the algorithm. One of:
-"lm","tps", "gam", "rf", or "helmert".</p></dd>
+"lm","tps", "gam", "rf", "svmRadial", "svmLinear", or "helmert".</p></dd>
 
 
 <dt id="arg-seed">seed<a class="anchor" aria-label="anchor" href="#arg-seed"></a></dt>
@@ -68,7 +68,7 @@ spatial transformation.</p>
 
 <dt id="arg--">...<a class="anchor" aria-label="anchor" href="#arg--"></a></dt>
 <dd><p>Additional arguments passed to the underlying model fitting
-functions (<code><a href="https://rdrr.io/pkg/mgcv/man/gam.html" class="external-link">mgcv::gam</a></code>, <code><a href="https://rdrr.io/r/stats/lm.html" class="external-link">stats::lm</a></code>, <code><a href="http://imbs-hl.github.io/ranger/reference/ranger.html" class="external-link">ranger::ranger</a></code>, <code><a href="https://rdrr.io/pkg/fields/man/Tps.html" class="external-link">fields::Tps</a></code>).</p></dd>
+functions (<code><a href="https://rdrr.io/pkg/mgcv/man/gam.html" class="external-link">mgcv::gam</a></code>, <code><a href="https://rdrr.io/r/stats/lm.html" class="external-link">stats::lm</a></code>, <code><a href="http://imbs-hl.github.io/ranger/reference/ranger.html" class="external-link">ranger::ranger</a></code>, <code><a href="https://rdrr.io/pkg/fields/man/Tps.html" class="external-link">fields::Tps</a></code>, <code><a href="https://rdrr.io/pkg/e1071/man/svm.html" class="external-link">e1071::svm</a></code>).</p></dd>
 
 </dl></div>
     <div class="section level2">
@@ -78,7 +78,7 @@ functions (<code><a href="https://rdrr.io/pkg/mgcv/man/gam.html" class="external
     <div class="section level2">
     <h2 id="details">Details<a class="anchor" aria-label="anchor" href="#details"></a></h2>
     <p>This function serves as a factory for creating transformation
-models. It supports machine learning methods ("lm", "gam", "rf") that learn
+models. It supports machine learning methods ("lm", "gam", "rf", "svmRadial", "svmLinear") that learn
 the relationship between source coordinates and displacement vectors, as
 well as the analytical "helmert" method which solves for a global
 similarity transformation.</p>
