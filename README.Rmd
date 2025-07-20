@@ -31,7 +31,7 @@ The package is designed for researchers and practitioners in Geoinformatics and 
 The `mapAI` framework allows you to:
 
 1.  **Import  Data**: Easily load distorted vector maps and their corresponding homologous points (GCPs).
-2.  **Train a Model**: Select from a suite of PAI models (`helmert`, `lm`, `tps`, `rf`, `gam`) to learn the distortion pattern.
+2.  **Train a Model**: Select from a suite of PAI models (`helmert`, `lm`, `tps`, `rf`, `svmLinear`, `svmRadial`, `gam`) to learn the distortion pattern.
 3. **Acess the Model's Performance**: Perform k-fold cross-validation to provide a robust estimate of a PAI model's predictive performance, using both random and spatial CV methods.
 4.  **Correct Geometry**: Apply the trained model to warp the historical map into its corrected geometric state.
 5.  **Analyze and Explain**: Use advanced distortion analysis functions, based on Tissot's indicatrix theory, to quantify *how* the model handles the the map's distortions. This allows for deeper cartographic and historical insights, turning the model from a black box into an explanatory tool.

@@ -27,7 +27,8 @@ The `mapAI` framework allows you to:
 1.  **Import Data**: Easily load distorted vector maps and their
     corresponding homologous points (GCPs).
 2.  **Train a Model**: Select from a suite of PAI models (`helmert`,
-    `lm`, `tps`, `rf`, `gam`) to learn the distortion pattern.
+    `lm`, `tps`, `rf`, `svmLinear`, `svmRadial`, `gam`) to learn the
+    distortion pattern.
 3.  **Acess the Model’s Performance**: Perform k-fold cross-validation
     to provide a robust estimate of a PAI model’s predictive
     performance, using both random and spatial CV methods.
@@ -71,8 +72,8 @@ library(ggplot2)
 # Generate a shapefile and a GCPs CSV with complex noisy distortions
 # The function returns a list containing the paths to these new files.
 demo_files <- create_demo_data(type = "complex", seed = 42)
-#>    -> Homologous points saved to: /var/folders/yh/kq6cp_457lg059f3l02r57s80000gn/T//RtmptKosjn/demo_gcps.csv
-#>    -> Distorted map saved to: /var/folders/yh/kq6cp_457lg059f3l02r57s80000gn/T//RtmptKosjn/demo_map.shp
+#>    -> Homologous points saved to: /var/folders/yh/kq6cp_457lg059f3l02r57s80000gn/T//RtmpMPaDzP/demo_gcps.csv
+#>    -> Distorted map saved to: /var/folders/yh/kq6cp_457lg059f3l02r57s80000gn/T//RtmpMPaDzP/demo_map.shp
 ```
 
 ### 2. Read Data and Train a Model
@@ -86,7 +87,7 @@ distortions present in the demo data.
 gcp_data <- read_gcps(gcp_path = demo_files$gcp_path)
 map_to_correct <- read_map(shp_path = demo_files$shp_path)
 #> Reading layer `demo_map' from data source 
-#>   `/private/var/folders/yh/kq6cp_457lg059f3l02r57s80000gn/T/RtmptKosjn/demo_map.shp' 
+#>   `/private/var/folders/yh/kq6cp_457lg059f3l02r57s80000gn/T/RtmpMPaDzP/demo_map.shp' 
 #>   using driver `ESRI Shapefile'
 #> Simple feature collection with 30 features and 1 field
 #> Geometry type: LINESTRING
