@@ -87,9 +87,10 @@ validate_all_pai_methods <- function(gcp_data, validation_type) {
   rf_results <- assess_pai_model(gcp_data, pai_method = "rf",k_folds = 10, seed = 1, validation_type = validation_type)
   gam_results <- assess_pai_model(gcp_data, pai_method = "gam",k_folds = 10, seed = 1, validation_type = validation_type)
   hlm_results <- assess_pai_model(gcp_data, pai_method = "helmert",k_folds = 10, seed = 1, validation_type = validation_type)
-  
+  svm_results <- assess_pai_model(gcp_data, pai_method = "svmLinear",k_folds = 10, seed = 1, validation_type = validation_type)  
+  tps_results <- assess_pai_model(gcp_data, pai_method = "tps",k_folds = 10, seed = 1, validation_type = validation_type)   
   # Combine and return the results
-  rbind(lm_results, rf_results, gam_results, hlm_results)
+  rbind(lm_results, rf_results, gam_results, hlm_results, svm_results, tps_results)
 }
 
 # Run both random and spatial cross-validation

@@ -10,12 +10,12 @@ train_pai_model(gcp_data, pai_method, seed = 123, ...)
 \item{gcp_data}{An \code{sf} object of homologous points from \code{read_gcps()}.}
 
 \item{pai_method}{A character string specifying the algorithm. One of:
-"lm","tps", "gam", "rf", or "helmert".}
+"lm","tps", "gam", "rf", "svmRadial", "svmLinear", or "helmert".}
 
 \item{seed}{An integer for setting the random seed for reproducibility.}
 
 \item{...}{Additional arguments passed to the underlying model fitting
-functions (\code{mgcv::gam}, \code{stats::lm}, \code{ranger::ranger}, \code{fields::Tps}).}
+functions (\code{mgcv::gam}, \code{stats::lm}, \code{ranger::ranger}, \code{fields::Tps}, \code{e1071::svm}).}
 }
 \value{
 A trained model object of class \code{pai_model}.
@@ -26,7 +26,7 @@ spatial transformation.
 }
 \details{
 This function serves as a factory for creating transformation
-models. It supports machine learning methods ("lm", "gam", "rf") that learn
+models. It supports machine learning methods ("lm", "gam", "rf", "svmRadial", "svmLinear") that learn
 the relationship between source coordinates and displacement vectors, as
 well as the analytical "helmert" method which solves for a global
 similarity transformation.

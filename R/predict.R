@@ -10,7 +10,7 @@
 #'   Key features of this method include:
 #' \itemize{
 #'   \item \strong{Automatic Model Handling:} It transparently handles the
-#'    different output structures of `helmert`,`tps`, `gam`, `lm`, and `rf`
+#'    different output structures of `helmert`,`tps`, `gam`, `lm`, `rf`, `svmRadial` and `svmLinear`
 #'    models, always returning a consistent `data.frame`.
 #'   \item \strong{Robust NA Handling:} It correctly handles `NA` values in the
 #'     `newdata` predictors. Rows with `NA` inputs will produce `NA` outputs,
@@ -23,7 +23,7 @@
 #' @param newdata A `data.frame` with `source_x` and `source_y` columns for
 #'    which to generate predictions.
 #' @param ... Additional arguments passed on to the underlying predict methods
-#'   (e.g., `predict.lm`, `predict.gam`).
+#'   (e.g., `predict.lm`, `predict.gam`, `predict.svm`).
 #'
 #' @return A `data.frame` with predicted `dx` and `dy` columns, having the same
 #'   number of rows as `newdata`.
@@ -121,7 +121,7 @@ predict.pai_model <- function(object, newdata, ...) {
       pred_dx[complete_rows_idx] <- preds_clean[, 1]
       pred_dy[complete_rows_idx] <- preds_clean[, 2]
 
-    } else if (object$method == "lm") {
+    } else if (object$method %in% c("lm", "svmRadial", "svmLinear")) {
       pred_dx[complete_rows_idx] <- stats::predict(object$model$model_dx, newdata = clean_data, ...)
       pred_dy[complete_rows_idx] <- stats::predict(object$model$model_dy, newdata = clean_data, ...)
 

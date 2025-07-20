@@ -33,7 +33,8 @@ Imports:
     units,
     ggplot2,
     patchwork,
-    viridis
+    viridis,
+    e1071
 Depends: 
     R (>= 3.5)
 LazyData: true

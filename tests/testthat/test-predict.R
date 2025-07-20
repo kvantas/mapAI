@@ -41,11 +41,15 @@ test_that("predict.pai_model() correctly uses newdata for all model types", {
     model_lm <- train_pai_model(gcp_data, pai_method = "lm")
     model_gam <- train_pai_model(gcp_data, pai_method = "gam")
     model_tps <- train_pai_model(gcp_data, pai_method = "tps")
+    model_svm_radial <- train_pai_model(gcp_data, pai_method = "svmRadial")
+    model_svm_linear <- train_pai_model(gcp_data, pai_method = "svmLinear")
+
 
     # This is the most critical test. It ensures that the function is not just
     # returning the fitted values from the training data.
 
-    methods_to_test <- list(rf = model_rf, lm = model_lm, gam = model_gam, tps = model_tps)
+    methods_to_test <- list(rf = model_rf, lm = model_lm, gam = model_gam, tps = model_tps,
+                            svmRadial = model_svm_radial, svmLinear = model_svm_linear)
 
     for (method_name in names(methods_to_test)) {
       model <- methods_to_test[[method_name]]

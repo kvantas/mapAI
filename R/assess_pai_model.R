@@ -20,7 +20,7 @@
 #'
 #' @param gcp_data An `sf` object of homologous points, from `read_gcps()`.
 #' @param pai_method A character string specifying the algorithm to assess. One of:
-#'   "lm", "gam", "rf", "helmert", "tps".
+#'   "lm", "gam", "rf", "helmert", "svmRadial", "svmLinear", "tps".
 #' @param validation_type A character string specifying the validation
 #'   strategy. One of "random", "spatial", "probability", or "stratified".
 #' @param k_folds An integer for the number of folds in CV. Only used for
@@ -81,7 +81,7 @@ assess_pai_model <- function(gcp_data, pai_method, validation_type = "random",
   if (!inherits(gcp_data, "sf")) {
     stop("`gcp_data` must be a valid `sf` object.", call. = FALSE)
   }
-  supported_methods <- c("lm", "gam", "rf", "helmert", "tps")
+  supported_methods <- c("lm", "gam", "rf", "tps", "helmert", "svmRadial", "svmLinear")
   if (!pai_method %in% supported_methods) {
     stop(paste0("Invalid `pai_method`. Please choose one of: '", paste(supported_methods, collapse = "', '"), "'."), call. = FALSE)
   }

@@ -2,7 +2,7 @@ test_that("train_pai_model() creates valid models", {
   withr::with_tempdir({
     demo_files <- create_demo_data(output_dir = ".")
     gcp_data <- read_gcps(gcp_path = demo_files$gcp_path)
-    for (pai_method in c("rf", "lm", "gam", "helmert", "tps")) {
+    for (pai_method in c("rf", "lm", "gam", "helmert", "tps", "svmRadial", "svmLinear")) {
       model <- train_pai_model(gcp_data, pai_method = pai_method)
       expect_s3_class(model, "pai_model")
       expect_named(model, c("model", "method"))
@@ -27,6 +27,14 @@ test_that("train_pai_model() internal model classes are correct", {
 
     model_tps <- train_pai_model(gcp_data, pai_method = "tps")
     expect_equal(class(model_tps$model$model_dx), c("Krig", "Tps"))
+    
+    model_svm_radial <- train_pai_model(gcp_data, pai_method = "svmRadial")
+    expect_s3_class(model_svm_radial$model$model_dx, "svm")
+    expect_equal(model_svm_radial$model$model_dx$kernel, 2) # 2 for radial
+    
+    model_svm_linear <- train_pai_model(gcp_data, pai_method = "svmLinear")
+    expect_s3_class(model_svm_linear$model$model_dx, "svm")
+    expect_equal(model_svm_linear$model$model_dx$kernel, 0) # 0 for linear
   })
 })
 
@@ -96,6 +104,35 @@ test_that("train_pai_model works with pai_method = 'tps'", {
     expect_equal(model_gam$method, "tps")
   })
 })
+
+# Test 3.2: svmRadial pai_method
+test_that("train_pai_model works with pai_method = 'svmRadial'", {
+  withr::with_tempdir({
+    demo_files <- create_demo_data(output_dir = ".")
+    gcp_data <- read_gcps(gcp_path = demo_files$gcp_path)
+    model_svm <- train_pai_model(gcp_data, pai_method = "svmRadial")
+
+    expect_s3_class(model_svm, "pai_model")
+    expect_equal(model_svm$method, "svmRadial")
+    expect_s3_class(model_svm$model$model_dx, "svm")
+    expect_s3_class(model_svm$model$model_dy, "svm")
+  })
+})
+
+# Test 3.3: svmLinear pai_method
+test_that("train_pai_model works with pai_method = 'svmLinear'", {
+  withr::with_tempdir({
+    demo_files <- create_demo_data(output_dir = ".")
+    gcp_data <- read_gcps(gcp_path = demo_files$gcp_path)
+    model_svm <- train_pai_model(gcp_data, pai_method = "svmLinear")
+
+    expect_s3_class(model_svm, "pai_model")
+    expect_equal(model_svm$method, "svmLinear")
+    expect_s3_class(model_svm$model$model_dx, "svm")
+    expect_s3_class(model_svm$model$model_dy, "svm")
+  })
+})
+
 
 # Test 4: seed parameter for reproducibility
 test_that("train_pai_model produces reproducible results with seed (rf pai_method)", {
