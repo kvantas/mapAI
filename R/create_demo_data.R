@@ -67,9 +67,9 @@
 #'  )
 #'
 #' # --- 2. Use the generated files in the new workflow ---
-#' # Read the GCPs and map separately, providing the CRS
-#' gcp_data <- read_gcps(gcp_path = demo_files$gcp_path, crs = 3857)
-#' map_to_correct <- read_map(shp_path = demo_files$shp_path, crs = 3857)
+#' # Read the GCPs and map separately
+#' gcp_data <- read_gcps(gcp_path = demo_files$gcp_path)
+#' map_to_correct <- read_map(shp_path = demo_files$shp_path)
 #'
 #' # --- 3. Train a model ---
 #' rf_model <- train_pai_model(gcp_data, pai_method = "rf")

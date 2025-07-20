@@ -4,7 +4,7 @@ test_that("plot_displacement returns a valid ggplot object with correct data", {
   withr::with_tempdir({
     demo_files <- create_demo_data(output_dir = ".")
     # Setup: Load valid test data
-    gcp_data <- read_gcps(gcp_path = demo_files$gcp_path, crs = 3857)
+    gcp_data <- read_gcps(gcp_path = demo_files$gcp_path)
 
     # Run the function
     p <- plot_displacement(gcp_data)

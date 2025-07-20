@@ -4,14 +4,13 @@
 \alias{read_map}
 \title{Read a Vector Map for Correction}
 \usage{
-read_map(shp_path, crs = NA)
+read_map(shp_path, ...)
 }
 \arguments{
 \item{shp_path}{A character string specifying the path to the input map file
 (e.g., a shapefile).}
 
-\item{crs}{An optional coordinate reference system (CRS) to assign if the
-input file lacks one. Can be an EPSG code (e.g., \code{32632}) or a WKT string.}
+\item{...}{Arguments passed to \code{sf::st_read}}
 }
 \value{
 An \code{sf} object of the map to be corrected.
@@ -32,7 +31,7 @@ add it.
 demo_files <- create_demo_data()
 
 # Read the map that needs correction
-map_to_correct <- read_map(shp_path = demo_files$shp_path)
+map_to_correct <- read_map(shp_path = demo_files$shp_path, quiet = TRUE)
 
 # The output is now ready to be used in the `correct_map()` function
 # after a model has been trained.

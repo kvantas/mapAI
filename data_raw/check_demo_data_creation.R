@@ -10,8 +10,8 @@ demo_files <- create_demo_data(
 print(demo_files)
 
 
-gcp_data <- read_gcps(gcp_path = demo_files$gcp_path, crs = 3857)
-map_to_correct <- read_map(shp_path = demo_files$shp_path, crs = 3857)
+gcp_data <- read_gcps(gcp_path = demo_files$gcp_path)
+map_to_correct <- read_map(shp_path = demo_files$shp_path)
 
 print(head(gcp_data))
 plot(st_geometry(map_to_correct), main = "Distorted 'Historical' Map")

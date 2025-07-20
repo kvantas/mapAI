@@ -1,7 +1,8 @@
 library(mapAI)
 library(sf)
 
-swiss_p <- read_gcps("./data_raw/mclaeysb.csv", crs = 21781)
+#crs = 21781
+swiss_p <- read_gcps("./data_raw/mclaeysb.csv")
 
 # initial displacement
 plot_displacement(swiss_p)

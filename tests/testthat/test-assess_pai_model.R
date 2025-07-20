@@ -3,7 +3,7 @@
 test_that("assess_pai_model()  handels arguments corectly", {
   withr::with_tempdir({
     demo_files <- create_demo_data(output_dir = ".")
-    gcp_data <- read_gcps(gcp_path = demo_files$gcp_path, crs = 3857)
+    gcp_data <- read_gcps(gcp_path = demo_files$gcp_path)
 
     expect_error( assess_pai_model(list(), pai_method = "rf"))
     expect_error( assess_pai_model(gcp_data, pai_method = "rf", validation_type = "xxx"))
@@ -17,7 +17,7 @@ test_that("assess_pai_model()  handels arguments corectly", {
 test_that("assess_pai_model() returns a correctly structured data frame", {
   withr::with_tempdir({
     demo_files <- create_demo_data(output_dir = ".")
-    gcp_data <- read_gcps(gcp_path = demo_files$gcp_path, crs = 3857)
+    gcp_data <- read_gcps(gcp_path = demo_files$gcp_path)
 
     methods_to_test <- c("rf", "lm", "gam", "helmert", "tps")
     validation_types <- c("random", "spatial")
@@ -46,7 +46,7 @@ test_that("assess_pai_model() returns a correctly structured data frame", {
 test_that("assessment is reproducible when a seed is set", {
   withr::with_tempdir({
     demo_files <- create_demo_data(output_dir = ".")
-    gcp_data <- read_gcps(gcp_path = demo_files$gcp_path, crs = 3857)
+    gcp_data <- read_gcps(gcp_path = demo_files$gcp_path)
 
     assessment1 <- assess_pai_model(gcp_data, pai_method = "rf", seed = 123)
     assessment2 <- assess_pai_model(gcp_data, pai_method = "rf", seed = 123)
@@ -57,7 +57,7 @@ test_that("assessment is reproducible when a seed is set", {
 test_that("assess_pai_model() handles invalid inputs gracefully", {
   withr::with_tempdir({
     demo_files <- create_demo_data(output_dir = ".")
-    gcp_data <- read_gcps(gcp_path = demo_files$gcp_path, crs = 3857)
+    gcp_data <- read_gcps(gcp_path = demo_files$gcp_path)
 
     expect_error(assess_pai_model(gcp_data, pai_method = "svm"))
 
@@ -74,7 +74,7 @@ test_that("assess_pai_model() handles invalid inputs gracefully", {
 test_that("sanitize data works",{
   withr::with_tempdir({
     demo_files <- create_demo_data(output_dir = ".")
-    gcp_data <- read_gcps(gcp_path = demo_files$gcp_path, crs = 3857)
+    gcp_data <- read_gcps(gcp_path = demo_files$gcp_path)
 
     gcd_data_na <- gcp_data
     gcd_data_na$source_x[1] <- NA

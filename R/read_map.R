@@ -8,8 +8,7 @@
 #'
 #' @param shp_path A character string specifying the path to the input map file
 #'   (e.g., a shapefile).
-#' @param crs An optional coordinate reference system (CRS) to assign if the
-#'   input file lacks one. Can be an EPSG code (e.g., `32632`) or a WKT string.
+#' @param ... Arguments passed to `sf::st_read`
 #'
 #' @return An `sf` object of the map to be corrected.
 #'
@@ -22,33 +21,20 @@
 #' demo_files <- create_demo_data()
 #'
 #' # Read the map that needs correction
-#' map_to_correct <- read_map(shp_path = demo_files$shp_path)
+#' map_to_correct <- read_map(shp_path = demo_files$shp_path, quiet = TRUE)
 #'
 #' # The output is now ready to be used in the `correct_map()` function
 #' # after a model has been trained.
 #' plot(sf::st_geometry(map_to_correct))
 #' }
-read_map <- function(shp_path, crs = NA) {
+read_map <- function(shp_path, ...) {
   # --- Input Validation ---
   if (!file.exists(shp_path)) {
     stop("Map file not found at the specified path: ", shp_path)
   }
 
   # --- Read Data ---
-  map_to_correct <- sf::st_read(shp_path, quiet = TRUE)
-
-  # --- CRS Handling ---
-  # Assign CRS if it's missing from the file but provided by the user
-  # Check if the CRS is truly undefined (e.g., no EPSG code)
-  if (is.na(sf::st_crs(map_to_correct)$epsg) && !is.na(crs)) {
-    map_to_correct <- sf::st_set_crs(map_to_correct, crs)
-  }
-
-  # Issue warning if CRS is still missing after attempts to set it
-  if (is.na(sf::st_crs(map_to_correct)$epsg)) {
-    warning("Input map has no CRS and none was provided. Results may be incorrect.",
-            call. = FALSE)
-  }
+  map_to_correct <- sf::st_read(shp_path, ...)
 
   # --- Add Area for Polygons ---
   # Check if the map has polygon geometries and lacks an 'area_old' column

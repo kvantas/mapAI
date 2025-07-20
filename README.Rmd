@@ -16,7 +16,7 @@ knitr::opts_chunk$set(
 # mapAI
 
 <!-- badges: start -->
-[![packageversion](https://img.shields.io/badge/Package%20version-0.2.0-orange.svg?style=flat-square)](https://github.com/kvantas/mapAI)
+[![packageversion](https://img.shields.io/badge/Package%20version-0.3.0-orange.svg?style=flat-square)](https://github.com/kvantas/mapAI)
 [![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.15767080.svg)](https://doi.org/10.5281/zenodo.15767080)
 [![codecov](https://codecov.io/gh/kvantas/mapAI/branch/master/graph/badge.svg?token=8dbGQrCCnz)](https://codecov.io/gh/kvantas/mapAI)
 [![Lifecycle: stable](https://img.shields.io/badge/lifecycle-stable-brightgreen.svg)](https://lifecycle.r-lib.org/articles/stages.html#stable)
@@ -70,8 +70,8 @@ We load the generated files and train a **Generalized Additive Model (`gam`)**, 
 
 ```{r load-and-train}
 # Load the homologous points (GCPs) and the distorted vector map
-gcp_data <- read_gcps(gcp_path = demo_files$gcp_path, crs = 2100)
-map_to_correct <- read_map(shp_path = demo_files$shp_path, crs = 2100)
+gcp_data <- read_gcps(gcp_path = demo_files$gcp_path)
+map_to_correct <- read_map(shp_path = demo_files$shp_path)
 
 # Train the GAM model using the GCPs
 gam_model <- train_pai_model(gcp_data, pai_method = "gam")

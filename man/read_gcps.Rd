@@ -4,15 +4,11 @@
 \alias{read_gcps}
 \title{Read and Prepare Homologous Points (GCPs)}
 \usage{
-read_gcps(gcp_path, crs)
+read_gcps(gcp_path)
 }
 \arguments{
-\item{gcp_path}{A character string specifying the path to the CSV file of
-homologous points.}
-
-\item{crs}{The coordinate reference system (CRS) of the \code{source_x} and
-\code{source_y} coordinates. This is a \strong{required} parameter to ensure spatial
-context. It can be an EPSG code (e.g., \code{32632}) or a WKT string.}
+\item{gcp_path}{A character string specifying the path with the file name
+to the CSV file of homologous points.}
 }
 \value{
 An \code{sf} object of the homologous points, with point geometries based
@@ -36,9 +32,8 @@ errors that the models will learn to predict.
 # First, create a demo CSV file
 demo_files <- create_demo_data()
 
-# Read the GCPs, providing the CRS for the source coordinates
-# (The demo data uses a placeholder CRS of 3857)
-gcp_data <- read_gcps(gcp_path = demo_files$gcp_path, crs = 3857)
+# Read the GCPs
+gcp_data <- read_gcps(gcp_path = demo_files$gcp_path)
 
 # The output is now ready for model training
 print(gcp_data)

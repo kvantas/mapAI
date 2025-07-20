@@ -5,7 +5,7 @@
 
 <!-- badges: start -->
 
-[![packageversion](https://img.shields.io/badge/Package%20version-0.2.0-orange.svg?style=flat-square)](https://github.com/kvantas/mapAI)
+[![packageversion](https://img.shields.io/badge/Package%20version-0.3.0-orange.svg?style=flat-square)](https://github.com/kvantas/mapAI)
 [![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.15767080.svg)](https://doi.org/10.5281/zenodo.15767080)
 [![codecov](https://codecov.io/gh/kvantas/mapAI/branch/master/graph/badge.svg?token=8dbGQrCCnz)](https://codecov.io/gh/kvantas/mapAI)
 [![Lifecycle:
@@ -71,8 +71,8 @@ library(ggplot2)
 # Generate a shapefile and a GCPs CSV with complex noisy distortions
 # The function returns a list containing the paths to these new files.
 demo_files <- create_demo_data(type = "complex", seed = 42)
-#>    -> Homologous points saved to: /var/folders/yh/kq6cp_457lg059f3l02r57s80000gn/T//RtmpKusuBf/demo_gcps.csv
-#>    -> Distorted map saved to: /var/folders/yh/kq6cp_457lg059f3l02r57s80000gn/T//RtmpKusuBf/demo_map.shp
+#>    -> Homologous points saved to: /var/folders/yh/kq6cp_457lg059f3l02r57s80000gn/T//RtmptKosjn/demo_gcps.csv
+#>    -> Distorted map saved to: /var/folders/yh/kq6cp_457lg059f3l02r57s80000gn/T//RtmptKosjn/demo_map.shp
 ```
 
 ### 2. Read Data and Train a Model
@@ -83,8 +83,16 @@ distortions present in the demo data.
 
 ``` r
 # Load the homologous points (GCPs) and the distorted vector map
-gcp_data <- read_gcps(gcp_path = demo_files$gcp_path, crs = 2100)
-map_to_correct <- read_map(shp_path = demo_files$shp_path, crs = 2100)
+gcp_data <- read_gcps(gcp_path = demo_files$gcp_path)
+map_to_correct <- read_map(shp_path = demo_files$shp_path)
+#> Reading layer `demo_map' from data source 
+#>   `/private/var/folders/yh/kq6cp_457lg059f3l02r57s80000gn/T/RtmptKosjn/demo_map.shp' 
+#>   using driver `ESRI Shapefile'
+#> Simple feature collection with 30 features and 1 field
+#> Geometry type: LINESTRING
+#> Dimension:     XY
+#> Bounding box:  xmin: -0.3737642 ymin: -4.996873 xmax: 102.7303 ymax: 115.3157
+#> Projected CRS: WGS 84 / Pseudo-Mercator
 
 # Train the GAM model using the GCPs
 gam_model <- train_pai_model(gcp_data, pai_method = "gam")

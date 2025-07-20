@@ -1,6 +1,6 @@
 Package: mapAI
 Title: An R Package for Positional Accuracy Improvement of Vector Maps
-Version: 0.2.0
+Version: 0.3.0
 Authors@R: 
     person(given = "Konstantinos",
            family = "Vantas",

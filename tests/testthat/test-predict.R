@@ -3,7 +3,7 @@
 test_that("predict.pai_model() validates input correctly", {
   withr::with_tempdir({
     demo_files <- create_demo_data(output_dir = ".")
-    gcp_data <- read_gcps(gcp_path = demo_files$gcp_path, crs = 3857)
+    gcp_data <- read_gcps(gcp_path = demo_files$gcp_path)
     model_rf <- train_pai_model(gcp_data, pai_method = "rf")
 
     expect_error(predictions <- predict(model_rf, newdata = NULL))
@@ -16,7 +16,7 @@ test_that("predict.pai_model() validates input correctly", {
 test_that("predict.pai_model() returns a correctly structured data frame", {
   withr::with_tempdir({
     demo_files <- create_demo_data(output_dir = ".")
-    gcp_data <- read_gcps(gcp_path = demo_files$gcp_path, crs = 3857)
+    gcp_data <- read_gcps(gcp_path = demo_files$gcp_path)
     new_gcp_data <- gcp_data[1:10, ]
     new_gcp_data$source_x <- new_gcp_data$source_x + 10 # Alter coordinates
     model_rf <- train_pai_model(gcp_data, pai_method = "rf")
@@ -32,7 +32,7 @@ test_that("predict.pai_model() returns a correctly structured data frame", {
 test_that("predict.pai_model() correctly uses newdata for all model types", {
   withr::with_tempdir({
     demo_files <- create_demo_data(output_dir = ".")
-    gcp_data <- read_gcps(gcp_path = demo_files$gcp_path, crs = 3857)
+    gcp_data <- read_gcps(gcp_path = demo_files$gcp_path)
     new_gcp_data <- gcp_data[1:10, ]
     new_gcp_data$source_x <- new_gcp_data$source_x + 10 # Alter coordinates
 
@@ -73,7 +73,7 @@ test_that("predict.pai_model() correctly uses newdata for all model types", {
 test_that("predict.pai_model() handles NA values gracefully", {
   withr::with_tempdir({
     demo_files <- create_demo_data(output_dir = ".")
-    gcp_data <- read_gcps(gcp_path = demo_files$gcp_path, crs = 3857)
+    gcp_data <- read_gcps(gcp_path = demo_files$gcp_path)
     new_gcp_data <- gcp_data[1:10, ]
     new_gcp_data$source_x <- new_gcp_data$source_x + 10 # Alter coordinates
     model_rf <- train_pai_model(gcp_data, pai_method = "rf")

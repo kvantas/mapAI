@@ -1,7 +1,7 @@
 test_that("train_pai_model() creates valid models", {
   withr::with_tempdir({
     demo_files <- create_demo_data(output_dir = ".")
-    gcp_data <- read_gcps(gcp_path = demo_files$gcp_path, crs = 3857)
+    gcp_data <- read_gcps(gcp_path = demo_files$gcp_path)
     for (pai_method in c("rf", "lm", "gam", "helmert", "tps")) {
       model <- train_pai_model(gcp_data, pai_method = pai_method)
       expect_s3_class(model, "pai_model")
@@ -14,7 +14,7 @@ test_that("train_pai_model() creates valid models", {
 test_that("train_pai_model() internal model classes are correct", {
   withr::with_tempdir({
     demo_files <- create_demo_data(output_dir = ".")
-    gcp_data <- read_gcps(gcp_path = demo_files$gcp_path, crs = 3857)
+    gcp_data <- read_gcps(gcp_path = demo_files$gcp_path)
 
     model_rf <- train_pai_model(gcp_data, pai_method = "rf")
     expect_s3_class(model_rf$model$model_dx, "ranger")
@@ -34,7 +34,7 @@ test_that("train_pai_model() internal model classes are correct", {
 test_that("train_pai_model works with pai_method = 'helmert'", {
   withr::with_tempdir({
     demo_files <- create_demo_data(output_dir = ".")
-    gcp_data <- read_gcps(gcp_path = demo_files$gcp_path, crs = 3857)
+    gcp_data <- read_gcps(gcp_path = demo_files$gcp_path)
     model_h <- train_pai_model(gcp_data, pai_method = "helmert")
 
     expect_s3_class(model_h, "pai_model")
@@ -48,7 +48,7 @@ test_that("train_pai_model works with pai_method = 'helmert'", {
 test_that("train_pai_model works with pai_method = 'lm'", {
   withr::with_tempdir({
     demo_files <- create_demo_data(output_dir = ".")
-    gcp_data <- read_gcps(gcp_path = demo_files$gcp_path, crs = 3857)
+    gcp_data <- read_gcps(gcp_path = demo_files$gcp_path)
     model_lm <- train_pai_model(gcp_data, pai_method = "lm")
 
     expect_s3_class(model_lm, "pai_model")
@@ -62,7 +62,7 @@ test_that("train_pai_model works with pai_method = 'lm'", {
 test_that("train_pai_model works with pai_method = 'rf'", {
   withr::with_tempdir({
     demo_files <- create_demo_data(output_dir = ".")
-    gcp_data <- read_gcps(gcp_path = demo_files$gcp_path, crs = 3857)
+    gcp_data <- read_gcps(gcp_path = demo_files$gcp_path)
     model_rf <- train_pai_model(gcp_data, pai_method = "rf")
 
     expect_s3_class(model_rf, "pai_model")
@@ -76,7 +76,7 @@ test_that("train_pai_model works with pai_method = 'rf'", {
 test_that("train_pai_model works with pai_method = 'gam'", {
   withr::with_tempdir({
     demo_files <- create_demo_data(output_dir = ".")
-    gcp_data <- read_gcps(gcp_path = demo_files$gcp_path, crs = 3857)
+    gcp_data <- read_gcps(gcp_path = demo_files$gcp_path)
     model_gam <- train_pai_model(gcp_data, pai_method = "gam")
 
     expect_s3_class(model_gam, "pai_model")
@@ -89,7 +89,7 @@ test_that("train_pai_model works with pai_method = 'gam'", {
 test_that("train_pai_model works with pai_method = 'tps'", {
   withr::with_tempdir({
     demo_files <- create_demo_data(output_dir = ".")
-    gcp_data <- read_gcps(gcp_path = demo_files$gcp_path, crs = 3857)
+    gcp_data <- read_gcps(gcp_path = demo_files$gcp_path)
     model_gam <- train_pai_model(gcp_data, pai_method = "tps")
 
     expect_s3_class(model_gam, "pai_model")
@@ -101,7 +101,7 @@ test_that("train_pai_model works with pai_method = 'tps'", {
 test_that("train_pai_model produces reproducible results with seed (rf pai_method)", {
   withr::with_tempdir({
     demo_files <- create_demo_data(output_dir = ".")
-    gcp_data <- read_gcps(gcp_path = demo_files$gcp_path, crs = 3857)
+    gcp_data <- read_gcps(gcp_path = demo_files$gcp_path)
 
     model1 <- train_pai_model(gcp_data, pai_method = "rf", seed = 42)
     model2 <- train_pai_model(gcp_data, pai_method = "rf", seed = 42)
@@ -123,7 +123,7 @@ test_that("train_pai_model produces reproducible results with seed (rf pai_metho
 test_that("train_pai_model returns NULL models for invalid pai_method", {
   withr::with_tempdir({
     demo_files <- create_demo_data(output_dir = ".")
-    gcp_data <- read_gcps(gcp_path = demo_files$gcp_path, crs = 3857)
+    gcp_data <- read_gcps(gcp_path = demo_files$gcp_path)
     expect_error( train_pai_model(gcp_data, pai_method = "invalid_method"))
   })
 })
@@ -132,7 +132,7 @@ test_that("train_pai_model returns NULL models for invalid pai_method", {
 test_that("train_pai_model passes additional arguments to lm via ...", {
   withr::with_tempdir({
     demo_files <- create_demo_data(output_dir = ".")
-    gcp_data <- read_gcps(gcp_path = demo_files$gcp_path, crs = 3857)
+    gcp_data <- read_gcps(gcp_path = demo_files$gcp_path)
     # Pass 'weights' argument to lm
     weights_data <- runif(nrow(gcp_data), 0.1, 1)
     model_lm_weighted <- train_pai_model(gcp_data, pai_method = "lm", weights = weights_data)
@@ -150,7 +150,7 @@ test_that("train_pai_model passes additional arguments to lm via ...", {
 test_that("train_pai_model passes additional arguments to rf via ...", {
   withr::with_tempdir({
     demo_files <- create_demo_data(output_dir = ".")
-    gcp_data <- read_gcps(gcp_path = demo_files$gcp_path, crs = 3857)
+    gcp_data <- read_gcps(gcp_path = demo_files$gcp_path)
     # Pass 'min.node.size' argument to ranger
     model_rf_min_node <- train_pai_model(gcp_data, pai_method = "rf", min.node.size = 2)
 
@@ -167,7 +167,7 @@ test_that("train_pai_model passes additional arguments to rf via ...", {
 test_that("train_pai_model passes additional arguments to gam via ...", {
   withr::with_tempdir({
     demo_files <- create_demo_data(output_dir = ".")
-    gcp_data <- read_gcps(gcp_path = demo_files$gcp_path, crs = 3857)
+    gcp_data <- read_gcps(gcp_path = demo_files$gcp_path)
 
     # let's test a top-level argument that gam accepts, e.g., gamma
     model_gam_gamma <- train_pai_model(gcp_data, pai_method = "gam", gamma = 3)
@@ -185,7 +185,7 @@ test_that("train_pai_model passes additional arguments to gam via ...", {
 test_that("train_pai_model passes additional arguments to tps via ...", {
   withr::with_tempdir({
     demo_files <- create_demo_data(output_dir = ".")
-    gcp_data <- read_gcps(gcp_path = demo_files$gcp_path, crs = 3857)
+    gcp_data <- read_gcps(gcp_path = demo_files$gcp_path)
 
     # let's test a top-level argument that tps accepts, e.g., pai_method
     model_tps <- train_pai_model(gcp_data, pai_method = "tps", GCV = FALSE)
@@ -202,7 +202,7 @@ test_that("train_pai_model passes additional arguments to tps via ...", {
 test_that("return error with less that 60 points", {
   withr::with_tempdir({
     demo_files <- create_demo_data(output_dir = ".")
-    gcp_data <- read_gcps(gcp_path = demo_files$gcp_path, crs = 3857)
+    gcp_data <- read_gcps(gcp_path = demo_files$gcp_path)
     expect_error(train_pai_model(gcp_data[1:50, ], pai_method = "gam" ))
   })
 })

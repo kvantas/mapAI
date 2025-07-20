@@ -28,7 +28,7 @@
 #' @examples
 #' # --- 1. First, create a demo dataset to work with ---
 #' demo_files <- create_demo_data(type = "complex")
-#' gcp_data <- read_gcps(gcp_path = demo_files$gcp_path, crs = 3857)
+#' gcp_data <- read_gcps(gcp_path = demo_files$gcp_path)
 #'
 #' # --- 2. Create the default displacement plot ---
 #' plot_displacement(gcp_data)

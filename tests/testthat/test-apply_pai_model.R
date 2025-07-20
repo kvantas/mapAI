@@ -3,7 +3,7 @@
 test_that("apply_pai_model() returns valid sf with correct number of rows", {
   withr::with_tempdir({
     demo_files <- create_demo_data(output_dir = ".")
-    gcp_data <- read_gcps(gcp_path = demo_files$gcp_path, crs = 3857)
+    gcp_data <- read_gcps(gcp_path = demo_files$gcp_path)
     map_to_correct <- read_map(shp_path = demo_files$shp_path)
     model_rf <- train_pai_model(gcp_data, pai_method = "rf")
 
@@ -18,7 +18,7 @@ test_that("apply_pai_model() returns valid sf with correct number of rows", {
 test_that("apply_pai_model() adds 'area_new' for polygons", {
   withr::with_tempdir({
     demo_files <- create_demo_data(output_dir = ".")
-    gcp_data <- read_gcps(gcp_path = demo_files$gcp_path, crs = 3857)
+    gcp_data <- read_gcps(gcp_path = demo_files$gcp_path)
     polygon_file <- create_test_polygon("test_polygon.shp")
     poly_map_to_correct <- read_map(polygon_file)
     model_rf <- train_pai_model(gcp_data, pai_method = "rf")
@@ -38,7 +38,7 @@ test_that("apply_pai_model() adds 'area_new' for polygons", {
 test_that("apply_pai_model() works with different model types", {
   withr::with_tempdir({
     demo_files <- create_demo_data(output_dir = ".")
-    gcp_data <- read_gcps(gcp_path = demo_files$gcp_path, crs = 3857)
+    gcp_data <- read_gcps(gcp_path = demo_files$gcp_path)
     map_to_correct <- read_map(shp_path = demo_files$shp_path)
     model_gam <- train_pai_model(gcp_data, pai_method = "gam")
     corrected_map_gam <- apply_pai_model(pai_model = model_gam, map = map_to_correct)
@@ -50,7 +50,7 @@ test_that("apply_pai_model() works with different model types", {
 test_that("apply_pai_model() throws errors for invalid inputs", {
   withr::with_tempdir({
     demo_files <- create_demo_data(output_dir = ".")
-    gcp_data <- read_gcps(gcp_path = demo_files$gcp_path, crs = 3857)
+    gcp_data <- read_gcps(gcp_path = demo_files$gcp_path)
     map_to_correct <- read_map(shp_path = demo_files$shp_path)
     model_rf <- train_pai_model(gcp_data, pai_method = "rf")
 

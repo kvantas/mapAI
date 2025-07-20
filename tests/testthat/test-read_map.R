@@ -1,16 +1,15 @@
 test_that("read_map() works and handles errors", {
   temp_dir <- withr::local_tempdir()
   demo_files <- create_demo_data(output_dir = temp_dir)
-  map_data <- read_map(shp_path = demo_files$shp_path, crs = 3857)
+  map_data <- read_map(shp_path = demo_files$shp_path)
   expect_s3_class(map_data, "sf")
-  expect_false(is.na(sf::st_crs(map_data)))
   expect_error(read_map("non_existent_map.shp"), "Map file not found")
 })
 
 test_that("read_map() calculates 'area_old' for polygons", {
   temp_dir <- withr::local_tempdir()
   polygon_file <- create_test_polygon(file.path(temp_dir, "test_polygon.shp"))
-  poly_map <- read_map(polygon_file, crs = 3857)
+  poly_map <- read_map(polygon_file)
   expect_true("area_old" %in% names(poly_map))
   expect_s3_class(poly_map$area_old, "units")
   expect_equal(as.numeric(poly_map$area_old[1]), 100)
@@ -30,23 +29,12 @@ test_that("read_map returns an sf object for a valid shapefile", {
   expect_true(file.exists(shp_file)) # Ensure the dummy file was created
 })
 
-test_that("read_map assigns CRS if missing from file but provided by user", {
+test_that("read_map can pass arguments to st_read", {
   temp_dir <- withr::local_tempdir()
-  shp_file <- file.path(temp_dir, "map_no_crs.shp")
-  create_dummy_shp(shp_file, has_crs = FALSE)
+  shp_file <- file.path(temp_dir, "map.shp")
+  create_dummy_shp(shp_file)
 
-  # this warning is expected
-  suppressWarnings( map <- read_map(shp_file, crs = 32632) )
-  expect_equal(sf::st_crs(map)$epsg, 32632)
-})
-
-test_that("read_map warns if CRS is still missing", {
-  temp_dir <- withr::local_tempdir()
-  shp_file <- file.path(temp_dir, "map_no_crs_no_param.shp")
-  create_dummy_shp(shp_file, has_crs = FALSE)
-
-  expect_warning(map <- read_map(shp_file), "Input map has no CRS and none was provided.")
-  expect_true(is.na(sf::st_crs(map)$epsg))
+  expect_output(read_map(shp_file, quiet = FALSE), "Reading layer")
 })
 
 test_that("read_map calculates area_old for polygons without it", {

@@ -44,10 +44,10 @@ First, we use `create_demo_data()` to create our test case. We'll choose the `"c
 demo_files <- create_demo_data(type = "complex", seed = 123)
 
 # Load the GCPs (homologous points) from the demo file
-gcp_data <- read_gcps(gcp_path = demo_files$gcp_path, crs = 3857)
+gcp_data <- read_gcps(gcp_path = demo_files$gcp_path)
 
 # Load the vector map that needs correction from the demo file
-map_to_correct <- read_map(shp_path = demo_files$shp_path, crs = 3857)
+map_to_correct <- read_map(shp_path = demo_files$shp_path)
 ```
 
 ### Assess Initial Error and Train a Model
