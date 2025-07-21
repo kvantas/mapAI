@@ -4,13 +4,16 @@
 \alias{apply_pai_model}
 \title{Apply a Trained PAI Model to Correct a Vector Map}
 \usage{
-apply_pai_model(pai_model, map)
+apply_pai_model(pai_model, map, aoi = NULL)
 }
 \arguments{
 \item{pai_model}{An object of class \code{pai_model} returned by
 \code{train_pai_model()}.}
 
 \item{map}{An \code{sf} object representing the vector map to be corrected.}
+
+\item{aoi}{An optional \code{sf} polygon object representing the Area of Interest.
+If provided, the transformation is only applied within this area.}
 }
 \value{
 A new \code{sf} object with the corrected geometry.
@@ -25,6 +28,11 @@ This function is the final step in the PAI workflow, applying the learned
 spatial correction to a target map. It uses a robust feature-by-feature
 iteration that correctly handles all standard simple and multi-part geometry
 types (\code{POINT}, \code{LINESTRING}, \code{POLYGON}, etc.).
+
+If an Area of Interest (\code{aoi}) is provided, the transformation is only
+applied to the parts of the map features that fall within the \code{aoi} polygon.
+The features outside the \code{aoi} are kept in their original, untransformed
+state.
 }
 \examples{
 # This example demonstrates a full workflow with POINT geometry.

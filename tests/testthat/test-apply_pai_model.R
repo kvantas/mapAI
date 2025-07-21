@@ -175,3 +175,71 @@ test_that("apply_pai_model works correctly with MULTIPOLYGON geometry", {
   expect_equal(as.character(sf::st_geometry_type(corrected_mpoly)), "MULTIPOLYGON")
   expect_false(identical(sf::st_coordinates(multipolygon_sf), sf::st_coordinates(corrected_mpoly)))
 })
+
+
+# --- Test 7: Empty Geometry ---
+test_that("apply_pai_model handles empty geometries gracefully", {
+  # ARRANGE: Create an sf object with one empty geometry.
+  p1 <- sf::st_polygon(list(matrix(c(0,0, 10,0, 10,10, 0,10, 0,0), ncol=2, byrow=TRUE)))
+  empty_geom <- sf::st_polygon()
+  sf_with_empty <- sf::st_sf(id=1:2, geometry=sf::st_sfc(p1, empty_geom, crs = 3857))
+
+  # ACT: Apply the model.
+  corrected_sf <- expect_no_error(apply_pai_model(test_gam_model, sf_with_empty))
+
+  # ASSERT:
+  expect_s3_class(corrected_sf, "sf")
+  expect_equal(nrow(corrected_sf), 2)
+  expect_true(sf::st_is_empty(corrected_sf$geometry[[2]]))
+  expect_false(identical(sf::st_coordinates(sf_with_empty[1,]), sf::st_coordinates(corrected_sf[1,])))
+})
+
+
+# --- Test 8: Mixed Geometry Types (if applicable, though sf usually restricts this) ---
+test_that("apply_pai_model handles mixed geometry types if they appear", {
+  # ARRANGE: Create a GEOMETRYCOLLECTION (less common, but good to test).
+  p1 <- sf::st_polygon(list(matrix(c(0,0, 10,0, 10,10, 0,10, 0,0), ncol=2, byrow=TRUE)))
+  pt1 <- sf::st_point(c(50,50))
+  # Note: sf objects usually don't mix types in one column.
+  # We test this by applying the model to two separate sf objects.
+  poly_sf <- sf::st_sf(id=1, geom=sf::st_sfc(p1, crs=3857))
+  point_sf <- sf::st_sf(id=1, geom=sf::st_sfc(pt1, crs=3857))
+
+  # ACT & ASSERT:
+  corrected_poly <- expect_no_error(apply_pai_model(test_gam_model, poly_sf))
+  expect_s3_class(corrected_poly, "sf")
+  expect_equal(as.character(sf::st_geometry_type(corrected_poly)), "POLYGON")
+
+  corrected_point <- expect_no_error(apply_pai_model(test_gam_model, point_sf))
+  expect_s3_class(corrected_point, "sf")
+  expect_equal(as.character(sf::st_geometry_type(corrected_point)), "POINT")
+})
+
+# --- Test 9: AOI polygon ---
+test_that("apply_pai_model works correctly with an AOI polygon", {
+  # ARRANGE: Create a simple line and a polygon AOI that covers part of it
+  line_coords <- matrix(c(0,0, 100,0), ncol = 2, byrow = TRUE)
+  line_sf <- sf::st_sf(id = 1, geometry = sf::st_sfc(sf::st_linestring(line_coords), crs = 3857))
+
+  aoi_poly_coords <- matrix(c(-10,-10, 50,-10, 50,10, -10,10, -10,-10), ncol=2, byrow=TRUE)
+  aoi_poly <- sf::st_sf(id = 1, geometry = sf::st_sfc(sf::st_polygon(list(aoi_poly_coords)), crs = 3857))
+
+  # ACT: Apply the model with the AOI
+  corrected_line <- expect_no_error(apply_pai_model(test_gam_model, line_sf, aoi = aoi_poly))
+
+  # ASSERT
+  expect_s3_class(corrected_line, "sf")
+  # The output may have more features if the line is split, but the geometry should be valid
+  expect_true(all(sf::st_is_valid(corrected_line)))
+
+  # Check that the part inside the AOI was moved
+  original_coords <- sf::st_coordinates(line_sf)
+  corrected_coords <- sf::st_coordinates(corrected_line)
+
+  # Find which original vertices were inside the AOI
+  original_points <- sf::st_as_sf(as.data.frame(original_coords), coords = c("X", "Y"), crs = 3857)
+  inside_indices <- which(sf::st_intersects(original_points, aoi_poly, sparse = FALSE))
+
+  # The coordinates of the points inside the AOI should have changed
+  expect_false(identical(original_coords[inside_indices, ], corrected_coords[inside_indices, ]))
+})
