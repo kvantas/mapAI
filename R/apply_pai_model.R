@@ -109,7 +109,12 @@ apply_pai_model <- function(pai_model, map, aoi = NULL) {
         "LINESTRING" = sf::st_linestring(corrected_coords[, 1:2]),
         "POLYGON" = {
           rings <- split.data.frame(corrected_coords[, 1:2], f = corrected_coords[, "L1"])
-          sf::st_polygon(lapply(rings, as.matrix))
+          closed_rings <- lapply(rings, function(ring) {
+            ring_mat <- as.matrix(ring)
+            ring_mat[nrow(ring_mat), ] <- ring_mat[1, ]
+            ring_mat
+          })
+          sf::st_polygon(closed_rings)
         },
         "MULTIPOINT" = sf::st_multipoint(corrected_coords[, 1:2]),
         "MULTILINESTRING" = {
@@ -120,7 +125,12 @@ apply_pai_model <- function(pai_model, map, aoi = NULL) {
           polys <- split.data.frame(corrected_coords, f = corrected_coords[, "L2"])
           rebuilt_polys <- lapply(polys, function(p) {
             rings <- split.data.frame(p[, 1:2], f = p[, "L1"])
-            sf::st_polygon(lapply(rings, as.matrix))
+            closed_rings <- lapply(rings, function(ring) {
+              ring_mat <- as.matrix(ring)
+              ring_mat[nrow(ring_mat), ] <- ring_mat[1, ]
+              ring_mat
+            })
+            sf::st_polygon(closed_rings)
           })
           sf::st_multipolygon(rebuilt_polys)
         },
