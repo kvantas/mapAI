@@ -11,7 +11,7 @@ transformation."></head><body>
 
     <a class="navbar-brand me-2" href="../index.html">mapAI</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.3.0</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.4.0</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -49,7 +49,7 @@ transformation.</p>
 
     <div class="section level2">
     <h2 id="ref-usage">Usage<a class="anchor" aria-label="anchor" href="#ref-usage"></a></h2>
-    <div class="sourceCode"><pre class="sourceCode r"><code><span><span class="fu">apply_pai_model</span><span class="op">(</span><span class="va">pai_model</span>, <span class="va">map</span><span class="op">)</span></span></code></pre></div>
+    <div class="sourceCode"><pre class="sourceCode r"><code><span><span class="fu">apply_pai_model</span><span class="op">(</span><span class="va">pai_model</span>, <span class="va">map</span>, aoi <span class="op">=</span> <span class="cn">NULL</span><span class="op">)</span></span></code></pre></div>
     </div>
 
     <div class="section level2">
@@ -64,6 +64,11 @@ transformation.</p>
 <dt id="arg-map">map<a class="anchor" aria-label="anchor" href="#arg-map"></a></dt>
 <dd><p>An <code>sf</code> object representing the vector map to be corrected.</p></dd>
 
+
+<dt id="arg-aoi">aoi<a class="anchor" aria-label="anchor" href="#arg-aoi"></a></dt>
+<dd><p>An optional <code>sf</code> polygon object representing the Area of Interest.
+If provided, the transformation is only applied within this area.</p></dd>
+
 </dl></div>
     <div class="section level2">
     <h2 id="value">Value<a class="anchor" aria-label="anchor" href="#value"></a></h2>
@@ -75,6 +80,10 @@ transformation.</p>
 spatial correction to a target map. It uses a robust feature-by-feature
 iteration that correctly handles all standard simple and multi-part geometry
 types (<code>POINT</code>, <code>LINESTRING</code>, <code>POLYGON</code>, etc.).</p>
+<p>If an Area of Interest (<code>aoi</code>) is provided, the transformation is only
+applied to the parts of the map features that fall within the <code>aoi</code> polygon.
+The features outside the <code>aoi</code> are kept in their original, untransformed
+state.</p>
     </div>
 
     <div class="section level2">
