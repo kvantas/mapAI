@@ -19,9 +19,9 @@
 #' (`write_map()`).
 #'
 #' 2.  **Model Training & Validation:** Train a correction model using
-#' `train_pai_model()` with a choice of methods (`"helmert"`, `"lm"`, `"rf"`,
-#' `"gam"`). Robustly evaluate model performance using spatial cross-validation
-#' with `assess_pai_model()`.
+#' `train_pai_model()` with a choice of methods `helmert`,`tps`, `gam`, `lm`,
+#' `rf`, `svmRadial` and `svmLinear`. Robustly evaluate model performance
+#' using spatial cross-validation with `assess_pai_model()`.
 #'
 #' 3.  **Geometric Correction:** Apply the trained model to the full vector map
 #' to get a geometrically corrected version using `apply_pai_model()`.

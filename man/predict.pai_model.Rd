@@ -33,8 +33,9 @@ directly (e.g., \code{predict.pai_model(...)}), but rather through the generic
 Key features of this method include:
 \itemize{
 \item \strong{Automatic Model Handling:} It transparently handles the
-different output structures of \code{helmert},\code{tps}, \code{gam}, \code{lm}, \code{rf}, \code{svmRadial} and \code{svmLinear}
-models, always returning a consistent \code{data.frame}.
+different output structures of \code{helmert},\code{tps}, \code{gam}, \code{lm}, \code{rf},
+\code{svmRadial} and \code{svmLinear} models, always returning a consistent
+\code{data.frame}.
 \item \strong{Robust NA Handling:} It correctly handles \code{NA} values in the
 \code{newdata} predictors. Rows with \code{NA} inputs will produce \code{NA} outputs,
 ensuring the output has the same number of rows as the input and

@@ -10,8 +10,9 @@
 #'   Key features of this method include:
 #' \itemize{
 #'   \item \strong{Automatic Model Handling:} It transparently handles the
-#'    different output structures of `helmert`,`tps`, `gam`, `lm`, `rf`, `svmRadial` and `svmLinear`
-#'    models, always returning a consistent `data.frame`.
+#'    different output structures of `helmert`,`tps`, `gam`, `lm`, `rf`,
+#'    `svmRadial` and `svmLinear` models, always returning a consistent
+#'    `data.frame`.
 #'   \item \strong{Robust NA Handling:} It correctly handles `NA` values in the
 #'     `newdata` predictors. Rows with `NA` inputs will produce `NA` outputs,
 #'     ensuring the output has the same number of rows as the input and

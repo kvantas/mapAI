@@ -6,8 +6,8 @@
 #'   It implements a differential analysis by calculating the first partial
 #'   derivatives of the spatial transformation learned by a `pai_model`. This is
 #'   achieved using a  **numerical differentiation** (finite difference) method
-#'   that is universally applicable to all models in the package (`lm`, `rf`,
-#'   `gam`, `helmert`).
+#'   that is universally applicable to all models in the package (`helmert`,
+#'   `tps`, `gam`, `lm`, `rf`,`svmRadial` and `svmLinear`).
 #'
 #'   From these derivatives, it calculates key distortion metrics that describe
 #'   how shape, area, and angles are warped at every point.

@@ -20,7 +20,7 @@
 #'
 #' @param gcp_data An `sf` object of homologous points, from `read_gcps()`.
 #' @param pai_method A character string specifying the algorithm to assess. One of:
-#'   "lm", "gam", "rf", "helmert", "svmRadial", "svmLinear", "tps".
+#'   `helmert`,`tps`, `gam`, `lm`, `rf`, `svmRadial` and `svmLinear`.
 #' @param validation_type A character string specifying the validation
 #'   strategy. One of "random", "spatial", "probability", or "stratified".
 #' @param k_folds An integer for the number of folds in CV. Only used for
