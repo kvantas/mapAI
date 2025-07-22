@@ -26,6 +26,7 @@ PAI model at the location of the Ground Control Points (GCPs)."></head><body>
   </ul></li>
       </ul><ul class="navbar-nav"><li class="nav-item"><form class="form-inline" role="search">
  <input class="form-control" type="search" name="search-input" id="search-input" autocomplete="off" aria-label="Search site" placeholder="Search for" data-search-index="../search.json"></form></li>
+<li class="nav-item"><a class="external-link nav-link" href="https://github.com/kvantas/mapAI/" aria-label="GitHub"><span class="fa fab fa-github fa-lg"></span></a></li>
       </ul></div>
 
 
@@ -35,7 +36,7 @@ PAI model at the location of the Ground Control Points (GCPs)."></head><body>
   <main id="main" class="col-md-9"><div class="page-header">
 
       <h1>Plot Model Residuals at Homologous Point Locations</h1>
-
+      <small class="dont-index">Source: <a href="https://github.com/kvantas/mapAI/blob/master/R/plot_residuals.R" class="external-link"><code>R/plot_residuals.R</code></a></small>
       <div class="d-none name"><code>plot_residuals.Rd</code></div>
     </div>
 
@@ -52,7 +53,8 @@ PAI model at the location of the Ground Control Points (GCPs).</p>
 <span>  title <span class="op">=</span> <span class="st">"Model Residual Error Vectors"</span>,</span>
 <span>  subtitle <span class="op">=</span> <span class="st">"Arrows point from predicted to true target locations"</span>,</span>
 <span>  arrow_color <span class="op">=</span> <span class="st">"darkblue"</span>,</span>
-<span>  point_color <span class="op">=</span> <span class="st">"blue"</span></span>
+<span>  point_color <span class="op">=</span> <span class="st">"blue"</span>,</span>
+<span>  exaggeration_factor <span class="op">=</span> <span class="fl">1</span></span>
 <span><span class="op">)</span></span></code></pre></div>
     </div>
 
@@ -84,6 +86,13 @@ arrows.</p></dd>
 <dt id="arg-point-color">point_color<a class="anchor" aria-label="anchor" href="#arg-point-color"></a></dt>
 <dd><p>A character string specifying the color of the points
 marking the predicted locations.</p></dd>
+
+
+<dt id="arg-exaggeration-factor">exaggeration_factor<a class="anchor" aria-label="anchor" href="#arg-exaggeration-factor"></a></dt>
+<dd><p>A numeric value to scale the length of the
+residual vectors. A value of 2, for instance, will double their
+plotted length, making subtle residuals more visible. Defaults to 1
+(no exaggeration).</p></dd>
 
 </dl></div>
     <div class="section level2">
@@ -118,7 +127,12 @@ chosen model was not complex enough to capture the full distortion pattern.</p>
 <span class="r-msg co"><span class="r-pr">#&gt;</span> Calculating model residuals...</span>
 <span class="r-plt img"><img src="plot_residuals-1.png" alt="" width="700" height="433"></span>
 <span class="r-in"><span></span></span>
-<span class="r-in"><span><span class="co"># --- 3. Compare with a more advanced model ---</span></span></span>
+<span class="r-in"><span><span class="co"># --- 3. Exaggerate the residuals to make them more visible ---</span></span></span>
+<span class="r-in"><span><span class="fu">plot_residuals</span><span class="op">(</span><span class="va">helmert_model</span>, <span class="va">swiss_cps</span>, exaggeration_factor <span class="op">=</span> <span class="fl">10</span><span class="op">)</span></span></span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span> Calculating model residuals...</span>
+<span class="r-plt img"><img src="plot_residuals-2.png" alt="" width="700" height="433"></span>
+<span class="r-in"><span></span></span>
+<span class="r-in"><span><span class="co"># --- 4. Compare with a more advanced model ---</span></span></span>
 <span class="r-in"><span>  <span class="va">gam_model</span> <span class="op">&lt;-</span> <span class="fu"><a href="train_pai_model.html">train_pai_model</a></span><span class="op">(</span><span class="va">swiss_cps</span>, pai_method <span class="op">=</span> <span class="st">"gam"</span><span class="op">)</span></span></span>
 <span class="r-msg co"><span class="r-pr">#&gt;</span> Training 'gam' model...</span>
 <span class="r-in"><span></span></span>
@@ -128,7 +142,7 @@ chosen model was not complex enough to capture the full distortion pattern.</p>
 <span class="r-in"><span>               point_color <span class="op">=</span> <span class="st">"#66c2a5"</span>  <span class="co"># A lighter green</span></span></span>
 <span class="r-in"><span><span class="op">)</span></span></span>
 <span class="r-msg co"><span class="r-pr">#&gt;</span> Calculating model residuals...</span>
-<span class="r-plt img"><img src="plot_residuals-2.png" alt="" width="700" height="433"></span>
+<span class="r-plt img"><img src="plot_residuals-3.png" alt="" width="700" height="433"></span>
 <span class="r-in"><span></span></span>
 </code></pre></div>
     </div>

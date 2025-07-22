@@ -28,6 +28,7 @@ vector maps."></head><body>
   </ul></li>
       </ul><ul class="navbar-nav"><li class="nav-item"><form class="form-inline" role="search">
  <input class="form-control" type="search" name="search-input" id="search-input" autocomplete="off" aria-label="Search site" placeholder="Search for" data-search-index="../search.json"></form></li>
+<li class="nav-item"><a class="external-link nav-link" href="https://github.com/kvantas/mapAI/" aria-label="GitHub"><span class="fa fab fa-github fa-lg"></span></a></li>
       </ul></div>
 
 
@@ -37,7 +38,7 @@ vector maps."></head><body>
   <main id="main" class="col-md-9"><div class="page-header">
 
       <h1>mapAI: Positional Accuracy Improvement for Historical Maps</h1>
-
+      <small class="dont-index">Source: <a href="https://github.com/kvantas/mapAI/blob/master/R/mapAI-package.R" class="external-link"><code>R/mapAI-package.R</code></a></small>
       <div class="d-none name"><code>mapAI.Rd</code></div>
     </div>
 
@@ -62,9 +63,9 @@ visualization.</p><div class="section">
 generate synthetic data (<code><a href="create_demo_data.html">create_demo_data()</a></code>) and save results
 (<code><a href="write_map.html">write_map()</a></code>).</p></li>
 <li><p><strong>Model Training &amp; Validation:</strong> Train a correction model using
-<code><a href="train_pai_model.html">train_pai_model()</a></code> with a choice of methods (<code>"helmert"</code>, <code>"lm"</code>, <code>"rf"</code>,
-<code>"gam"</code>). Robustly evaluate model performance using spatial cross-validation
-with <code><a href="assess_pai_model.html">assess_pai_model()</a></code>.</p></li>
+<code><a href="train_pai_model.html">train_pai_model()</a></code> with a choice of methods <code>helmert</code>,<code>tps</code>, <code>gam</code>, <code>lm</code>,
+<code>rf</code>, <code>svmRadial</code> and <code>svmLinear</code>. Robustly evaluate model performance
+using spatial cross-validation with <code><a href="assess_pai_model.html">assess_pai_model()</a></code>.</p></li>
 <li><p><strong>Geometric Correction:</strong> Apply the trained model to the full vector map
 to get a geometrically corrected version using <code><a href="apply_pai_model.html">apply_pai_model()</a></code>.</p></li>
 <li><p><strong>Distortion Analysis &amp; Visualization:</strong> Go beyond correction to quantify

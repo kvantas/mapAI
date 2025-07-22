@@ -26,6 +26,7 @@ a PAI model at specified locations, based on Tissot's indicatrix theory."></head
   </ul></li>
       </ul><ul class="navbar-nav"><li class="nav-item"><form class="form-inline" role="search">
  <input class="form-control" type="search" name="search-input" id="search-input" autocomplete="off" aria-label="Search site" placeholder="Search for" data-search-index="../search.json"></form></li>
+<li class="nav-item"><a class="external-link nav-link" href="https://github.com/kvantas/mapAI/" aria-label="GitHub"><span class="fa fab fa-github fa-lg"></span></a></li>
       </ul></div>
 
 
@@ -35,7 +36,7 @@ a PAI model at specified locations, based on Tissot's indicatrix theory."></head
   <main id="main" class="col-md-9"><div class="page-header">
 
       <h1>Perform a Differential Distortion Analysis</h1>
-
+      <small class="dont-index">Source: <a href="https://github.com/kvantas/mapAI/blob/master/R/analyze_distortion.R" class="external-link"><code>R/analyze_distortion.R</code></a></small>
       <div class="d-none name"><code>analyze_distortion.Rd</code></div>
     </div>
 
@@ -102,8 +103,8 @@ the axis of maximum scale (in degrees).</p></dd>
 It implements a differential analysis by calculating the first partial
 derivatives of the spatial transformation learned by a <code>pai_model</code>. This is
 achieved using a  <strong>numerical differentiation</strong> (finite difference) method
-that is universally applicable to all models in the package (<code>lm</code>, <code>rf</code>,
-<code>gam</code>, <code>helmert</code>).</p>
+that is universally applicable to all models in the package (<code>helmert</code>,
+<code>tps</code>, <code>gam</code>, <code>lm</code>, <code>rf</code>,<code>svmRadial</code> and <code>svmLinear</code>).</p>
 <p>From these derivatives, it calculates key distortion metrics that describe
 how shape, area, and angles are warped at every point.</p>
 <p><strong>Interpreting Results by Model Type:</strong></p>

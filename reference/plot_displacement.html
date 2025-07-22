@@ -26,6 +26,7 @@
   </ul></li>
       </ul><ul class="navbar-nav"><li class="nav-item"><form class="form-inline" role="search">
  <input class="form-control" type="search" name="search-input" id="search-input" autocomplete="off" aria-label="Search site" placeholder="Search for" data-search-index="../search.json"></form></li>
+<li class="nav-item"><a class="external-link nav-link" href="https://github.com/kvantas/mapAI/" aria-label="GitHub"><span class="fa fab fa-github fa-lg"></span></a></li>
       </ul></div>
 
 
@@ -35,7 +36,7 @@
   <main id="main" class="col-md-9"><div class="page-header">
 
       <h1>Plot Displacement Vectors</h1>
-
+      <small class="dont-index">Source: <a href="https://github.com/kvantas/mapAI/blob/master/R/plot_displacement.R" class="external-link"><code>R/plot_displacement.R</code></a></small>
       <div class="d-none name"><code>plot_displacement.Rd</code></div>
     </div>
 
@@ -110,8 +111,8 @@ non-linear warping).</p>
     <h2 id="ref-examples">Examples<a class="anchor" aria-label="anchor" href="#ref-examples"></a></h2>
     <div class="sourceCode"><pre class="sourceCode r"><code><span class="r-in"><span><span class="co"># --- 1. First, create a demo dataset to work with ---</span></span></span>
 <span class="r-in"><span><span class="va">demo_files</span> <span class="op">&lt;-</span> <span class="fu"><a href="create_demo_data.html">create_demo_data</a></span><span class="op">(</span>type <span class="op">=</span> <span class="st">"complex"</span><span class="op">)</span></span></span>
-<span class="r-msg co"><span class="r-pr">#&gt;</span>    -&gt; Homologous points saved to: /tmp/Rtmpmg6F5Q/demo_gcps.csv</span>
-<span class="r-msg co"><span class="r-pr">#&gt;</span>    -&gt; Distorted map saved to: /tmp/Rtmpmg6F5Q/demo_map.shp</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span>    -&gt; Homologous points saved to: /tmp/RtmpxtbG7N/demo_gcps.csv</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span>    -&gt; Distorted map saved to: /tmp/RtmpxtbG7N/demo_map.shp</span>
 <span class="r-in"><span><span class="va">gcp_data</span> <span class="op">&lt;-</span> <span class="fu"><a href="read_gcps.html">read_gcps</a></span><span class="op">(</span>gcp_path <span class="op">=</span> <span class="va">demo_files</span><span class="op">$</span><span class="va">gcp_path</span><span class="op">)</span></span></span>
 <span class="r-in"><span></span></span>
 <span class="r-in"><span><span class="co"># --- 2. Create the default displacement plot ---</span></span></span>
