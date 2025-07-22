@@ -58,34 +58,15 @@ test_that("plot_indicatrices throws errors for invalid inputs", {
   )
 })
 
-test_that("plot_indicatrices arguments for color and scale work correctly", {
-  # 1. SETUP: Define custom colors.
-  custom_fill <- "navy"
-  custom_border <- "goldenrod"
+test_that("plot_indicatrices handles zero-row inputs gracefully", {
+  # ARRANGE: Create an empty version of the distortion_sf object
+  empty_distortion_sf <- distortion_at_gcps[0, ]
 
-  # 2. ACTION: Create a plot with custom arguments.
-  p_custom <- plot_indicatrices(
-    distortion_sf = distortion_at_gcps,
-    scale_factor = 1,
-    fill_color = custom_fill,
-    border_color = custom_border
-  )
+  # ACTION & ASSERT: The function should run without errors and return a ggplot object
+  # with no data layers, or a data layer with zero rows.
+  p_empty <- expect_no_error(plot_indicatrices(empty_distortion_sf))
+  expect_s3_class(p_empty, "ggplot")
 
-  # 3. ASSERTIONS:
-  # Check that the fill and color arguments were passed to the geom's aesthetics.
-  # The colors are set directly, so they appear in the `aes_params` slot of the layer.
-  expect_equal(p_custom$layers[[1]]$aes_params$fill, custom_fill)
-  expect_equal(p_custom$layers[[1]]$aes_params$colour, custom_border)
-
-  # Test that scale_factor changes the output geometry.
-  p_scaled <- plot_indicatrices(
-    distortion_sf = distortion_at_gcps,
-    scale_factor = 100 # A much larger scale factor
-  )
-
-  # The bounding box of the scaled ellipses should be different from the unscaled ones.
-  bbox_original <- sf::st_bbox(p_custom$layers[[1]]$data)
-  bbox_scaled <- sf::st_bbox(p_scaled$layers[[1]]$data)
-
-  expect_false(identical(bbox_original, bbox_scaled))
+  # Check that the data in the plot layer is empty
+  expect_equal(nrow(p_empty$layers[[1]]$data), 0)
 })

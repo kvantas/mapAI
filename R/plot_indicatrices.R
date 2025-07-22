@@ -67,7 +67,7 @@ plot_indicatrices <- function(distortion_sf, scale_factor = 1,
   indicatrices_list <- vector("list", nrow(distortion_sf))
 
   # --- Create Ellipse for each point ---
-  for (i in 1:nrow(distortion_sf)) {
+  for (i in seq_len(nrow(distortion_sf))) {
     point_data <- distortion_sf[i, ]
     # The center of the ellipse is its original SOURCE location
     center_coords <- source_coords[i, ]
