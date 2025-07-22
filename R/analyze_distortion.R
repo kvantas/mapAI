@@ -72,7 +72,9 @@
 #'   distortion_results,
 #'   metric = "area_scale")
 #'
-analyze_distortion <- function(pai_model, points_to_analyze, reference_scale = 1) {
+analyze_distortion <- function(pai_model,
+                               points_to_analyze,
+                               reference_scale = 1) {
 
   # --- Input Validation ---
   if (!inherits(pai_model, "pai_model")) {

@@ -30,6 +30,7 @@ test_that("plot_residuals handles custom arguments correctly", {
   custom_subtitle <- "A test of custom labels"
   custom_arrow_color <- "firebrick"
   custom_point_color <- "orange"
+  custom_exaggeration <- 5
 
   # 2. ACTION: Create a plot with the custom arguments.
   p_custom <- plot_residuals(
@@ -38,7 +39,8 @@ test_that("plot_residuals handles custom arguments correctly", {
     title = custom_title,
     subtitle = custom_subtitle,
     arrow_color = custom_arrow_color,
-    point_color = custom_point_color
+    point_color = custom_point_color,
+    exaggeration_factor = custom_exaggeration
   )
 
   # 3. ASSERTIONS:
@@ -50,6 +52,22 @@ test_that("plot_residuals handles custom arguments correctly", {
   # These are fixed parameters, so they appear in the `aes_params` slot.
   expect_equal(p_custom$layers[[1]]$aes_params$colour, custom_arrow_color)
   expect_equal(p_custom$layers[[2]]$aes_params$colour, custom_point_color)
+
+  # Check that the exaggeration factor was correctly applied by comparing the
+  # length of the residual vectors in the plot data.
+  plot_data_default <- ggplot2::ggplot_build(plot_residuals(test_helmert_model, gcps))
+  plot_data_exaggerated <- ggplot2::ggplot_build(plot_residuals(test_helmert_model, gcps, exaggeration_factor = 2))
+
+  # Extract segment data
+  segments_default <- plot_data_default$data[[1]]
+  segments_exaggerated <- plot_data_exaggerated$data[[1]]
+
+  # Calculate squared length of a sample residual vector
+  len_default <- (segments_default$xend[1] - segments_default$x[1])^2 + (segments_default$yend[1] - segments_default$y[1])^2
+  len_exaggerated <- (segments_exaggerated$xend[1] - segments_exaggerated$x[1])^2 + (segments_exaggerated$yend[1] - segments_exaggerated$y[1])^2
+
+  # The exaggerated length should be 4 times the default (since exaggeration is 2 and length is squared)
+  expect_equal(len_exaggerated, 4 * len_default, tolerance = 1e-6)
 })
 
 test_that("plot_residuals throws errors for invalid inputs", {

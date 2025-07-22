@@ -77,7 +77,7 @@ validation_df <- rbind(cvra, cvsp, valr, vals) %>%
   select(Model_Method = Method, Mean_2D_RMSE_m = Mean_RMSE_2D, Std_Deviation_of_RMSE_m = SD_RMSE_2D) %>%
   mutate(across(where(is.numeric), ~ round(.x, 1)))
 
-validation_df$type = c("Standard 10-fold cross-validation",
+validation_df$type <- c("Standard 10-fold cross-validation",
                        "Spatial 10-fold cross-validation",
                        "Design-based validation",
                        "Design-based validation using stratified random sampling")

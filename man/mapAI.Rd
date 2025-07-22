@@ -24,9 +24,9 @@ The main workflow follows a logical sequence:
 generate synthetic data (\code{create_demo_data()}) and save results
 (\code{write_map()}).
 \item \strong{Model Training & Validation:} Train a correction model using
-\code{train_pai_model()} with a choice of methods (\code{"helmert"}, \code{"lm"}, \code{"rf"},
-\code{"gam"}). Robustly evaluate model performance using spatial cross-validation
-with \code{assess_pai_model()}.
+\code{train_pai_model()} with a choice of methods \code{helmert},\code{tps}, \code{gam}, \code{lm},
+\code{rf}, \code{svmRadial} and \code{svmLinear}. Robustly evaluate model performance
+using spatial cross-validation with \code{assess_pai_model()}.
 \item \strong{Geometric Correction:} Apply the trained model to the full vector map
 to get a geometrically corrected version using \code{apply_pai_model()}.
 \item \strong{Distortion Analysis & Visualization:} Go beyond correction to quantify

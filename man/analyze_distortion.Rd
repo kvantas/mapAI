@@ -37,8 +37,8 @@ This function is the core analytical engine of the \code{mapAI} package.
 It implements a differential analysis by calculating the first partial
 derivatives of the spatial transformation learned by a \code{pai_model}. This is
 achieved using a  \strong{numerical differentiation} (finite difference) method
-that is universally applicable to all models in the package (\code{lm}, \code{rf},
-\code{gam}, \code{helmert}).
+that is universally applicable to all models in the package (\code{helmert},
+\code{tps}, \code{gam}, \code{lm}, \code{rf},\code{svmRadial} and \code{svmLinear}).
 
 From these derivatives, it calculates key distortion metrics that describe
 how shape, area, and angles are warped at every point.

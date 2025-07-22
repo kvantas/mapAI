@@ -10,7 +10,8 @@ plot_residuals(
   title = "Model Residual Error Vectors",
   subtitle = "Arrows point from predicted to true target locations",
   arrow_color = "darkblue",
-  point_color = "blue"
+  point_color = "blue",
+  exaggeration_factor = 1
 )
 }
 \arguments{
@@ -27,6 +28,11 @@ arrows.}
 
 \item{point_color}{A character string specifying the color of the points
 marking the predicted locations.}
+
+\item{exaggeration_factor}{A numeric value to scale the length of the
+residual vectors. A value of 2, for instance, will double their
+plotted length, making subtle residuals more visible. Defaults to 1
+(no exaggeration).}
 }
 \value{
 A \code{ggplot} object, which can be further customized.
@@ -59,7 +65,10 @@ helmert_model <- train_pai_model(swiss_cps, pai_method = "helmert")
 # --- 2. Plot the residuals with default colors ---
 plot_residuals(helmert_model, swiss_cps)
 
-# --- 3. Compare with a more advanced model ---
+# --- 3. Exaggerate the residuals to make them more visible ---
+plot_residuals(helmert_model, swiss_cps, exaggeration_factor = 10)
+
+# --- 4. Compare with a more advanced model ---
   gam_model <- train_pai_model(swiss_cps, pai_method = "gam")
 
 # The residuals for the GAM model should be much smaller and more random.
