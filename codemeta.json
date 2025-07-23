@@ -5,8 +5,9 @@
   "description": "An R package for Positional Accuracy Improvement of Vector Maps that uses supervised learning algorithms. It uses as input a csv file with homologous points and a vector map of the area of interest in order to correct it.",
   "name": "mapAI: An R Package for Positional Accuracy Improvement of Vector Maps",
   "codeRepository": "https://github.com/kvantas/mapAI",
+  "issueTracker": "https://github.com/kvantas/mapAI/issues",
   "license": "https://spdx.org/licenses/MIT",
-  "version": "0.3.0",
+  "version": "0.4.0",
   "programmingLanguage": {
     "@type": "ComputerLanguage",
     "name": "R",
@@ -205,18 +206,6 @@
     },
     "10": {
       "@type": "SoftwareApplication",
-      "identifier": "patchwork",
-      "name": "patchwork",
-      "provider": {
-        "@id": "https://cran.r-project.org",
-        "@type": "Organization",
-        "name": "Comprehensive R Archive Network (CRAN)",
-        "url": "https://cran.r-project.org"
-      },
-      "sameAs": "https://CRAN.R-project.org/package=patchwork"
-    },
-    "11": {
-      "@type": "SoftwareApplication",
       "identifier": "viridis",
       "name": "viridis",
       "provider": {
@@ -227,7 +216,7 @@
       },
       "sameAs": "https://CRAN.R-project.org/package=viridis"
     },
-    "12": {
+    "11": {
       "@type": "SoftwareApplication",
       "identifier": "e1071",
       "name": "e1071",
@@ -239,7 +228,7 @@
       },
       "sameAs": "https://CRAN.R-project.org/package=e1071"
     },
-    "13": {
+    "12": {
       "@type": "SoftwareApplication",
       "identifier": "R",
       "name": "R",
@@ -247,7 +236,7 @@
     },
     "SystemRequirements": null
   },
-  "fileSize": "616.673KB",
+  "fileSize": "613.38KB",
   "citation": [
     {
       "@type": "CreativeWork",
@@ -265,7 +254,6 @@
       "sameAs": "https://doi.org/10.5281/zenodo.15767080"
     }
   ],
-  "relatedLink": "https://kvantas.github.io/mapAI/",
   "readme": "https://github.com/kvantas/mapAI/blob/master/README.md",
   "contIntegration": ["https://codecov.io/gh/kvantas/mapAI", "https://github.com/kvantas/mapAI/actions/workflows/R-CMD-check.yaml"],
   "developmentStatus": "https://lifecycle.r-lib.org/articles/stages.html#stable"

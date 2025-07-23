@@ -30,7 +30,6 @@ library(mapAI)
 library(sf)
 library(dplyr)
 library(ggplot2)
-library(patchwork)
 ```
 
 ## Load and Explore the Package Data

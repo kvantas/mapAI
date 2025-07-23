@@ -4,7 +4,14 @@
 \alias{plot_correction_surface}
 \title{Plot the Learned Correction Surface}
 \usage{
-plot_correction_surface(pai_model, gcp_data, n_grid = 100, plot_gcps = TRUE)
+plot_correction_surface(
+  pai_model,
+  gcp_data,
+  n_grid = 100,
+  plot_gcps = TRUE,
+  dx_range = NULL,
+  dy_range = NULL
+)
 }
 \arguments{
 \item{pai_model}{A trained \code{pai_model} object returned by \code{train_pai_model()}.}
@@ -18,10 +25,16 @@ compute. Defaults to 100.}
 
 \item{plot_gcps}{A logical value indicating whether to plot the GCP
 locations on the correction surfaces. Defaults to \code{TRUE}.}
+
+\item{dx_range}{A numeric vector of length 2 specifying the limits for the
+\code{dx} color scale (e.g., \code{c(-10, 10)}). Defaults to \code{NULL}, which uses the
+data's range.}
+
+\item{dy_range}{A numeric vector of length 2 specifying the limits for the
+\code{dy} color scale. Defaults to \code{NULL}.}
 }
 \value{
-A \code{patchwork} object containing two \code{ggplot} plots, one for \code{dx} and
-one for \code{dy}.
+A list containing two \code{ggplot} objects: \code{dx_plot} and \code{dy_plot}. You can plot them individually.
 }
 \description{
 Visualizes the spatial correction field (dx, dy) learned by a
@@ -60,22 +73,24 @@ data(gcps)
 pai_model_gam <- train_pai_model(gcps, pai_method = "gam")
 
 # --- 3. Generate and display the plot ---
-# This creates the two-panel plot showing the dx and dy correction fields.
-correction_plot <- plot_correction_surface(
+# This creates a list with two plots, one for dx and one for dy.
+correction_plots <- plot_correction_surface(
   pai_model = pai_model_gam,
   gcp_data = gcps,
   n_grid = 75 # Using a slightly coarser grid for a quick example
 )
 
-# To display the plot in an interactive session:
-print(correction_plot)
+# To display the plots, you can print them individually.
+print(correction_plots$dx_plot)
+print(correction_plots$dy_plot)
 
-# You can also hide the GCPs
-correction_plot_no_gcps <- plot_correction_surface(
+# --- 4. Set custom ranges for the color scales ---
+custom_range_plots <- plot_correction_surface(
   pai_model = pai_model_gam,
   gcp_data = gcps,
-  plot_gcps = FALSE
+  dx_range = c(-5, 5),
+  dy_range = c(-10, 0)
 )
-print(correction_plot_no_gcps)
+print(custom_range_plots$dx_plot)
 }
 }

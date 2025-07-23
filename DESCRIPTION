@@ -34,7 +34,6 @@ Imports:
     fields,
     units,
     ggplot2,
-    patchwork,
     viridis,
     e1071
 Depends: 

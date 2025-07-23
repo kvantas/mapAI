@@ -8,7 +8,6 @@ library(mapAI)
 library(sf)
 library(dplyr)
 library(ggplot2)
-library(patchwork)
 library(knitr)
 dir.create("./data_raw/figures", showWarnings = FALSE, recursive = TRUE)
 
@@ -87,7 +86,7 @@ plot_b <- ggplot() +
   geom_sf(data = gam_corrected_grid, color = "#e41a1c") +
   labs(title = "(b) GAM Model Correction") +
   theme_minimal()
-figure3_plot <- plot_a + plot_b
+figure3_plot <- grid.arrange(plot_a, plot_b, ncol = 2)
 figure3_plot
 ggsave("./data_raw/figures/figure3_grid_comparison.png", plot = figure3_plot, width = 8, height = 4, dpi = 300)
 message("Saved Figure 3: Grid Correction Comparison")
@@ -105,7 +104,7 @@ plot_area <- plot_distortion_surface(distortion_results, "log2_area_scale", dive
   labs(title = "(a) Logarithmic Areal Distortion")
 plot_shear <- plot_distortion_surface(distortion_results, "max_shear") +
   labs(title = "(b) Maximum Angular Distortion (°)")
-figure4_plot <- plot_area + plot_shear
+figure4_plot <- grid.arrange(plot_area, plot_shear, ncol = 2)
 
 ggsave("./data_raw/figures/figure4_distortion_surfaces.png", plot = figure4_plot, width = 9, height = 4, dpi = 300)
 message("Saved Figure 4: Distortion Surface Plots")

@@ -129,12 +129,9 @@ plot_shear <- plot_distortion_surface(
   distortion_results, metric = "max_shear"
 ) + labs(title = "Maximum Shear Distortion (°)")
 
-# Combine plots using the patchwork library
-if (requireNamespace("patchwork", quietly = TRUE)) {
-  plot_area + plot_shear
-} else {
-  plot_area
-}
+# Show the plot
+plot_area
+
 ```
 These plots provide a detailed map of where the model learned to apply the most significant stretching, shrinking, and shearing, offering insights that may correlate with physical map degradation or historical cartographic techniques.
 

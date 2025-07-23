@@ -9,7 +9,8 @@ plot_distortion_surface(
   metric,
   gcp_data = NULL,
   palette = "viridis",
-  diverging = FALSE
+  diverging = FALSE,
+  value_range = NULL
 )
 }
 \arguments{
@@ -28,6 +29,10 @@ palette (e.g., "viridis", "magma", "cividis"), used when \code{diverging=FALSE}.
 
 \item{diverging}{A logical value. If \code{TRUE}, a diverging color scale is used,
 which is ideal for metrics like \code{area_scale} or \code{log2_area_scale}.}
+
+\item{value_range}{A numeric vector of length 2 specifying the limits for the
+color scale (e.g., \code{c(0, 1)}). Defaults to \code{NULL}, which uses the
+data's range.}
 }
 \value{
 A \code{ggplot} object, which can be further customized.
@@ -93,12 +98,11 @@ plot_distortion_surface(
   palette = "magma"
 )
 
-# --- 4. Plot a metric using a diverging scale ---
-# 'log2_area_scale' is ideal for this, as it's centered at 0.
+# --- 4. Plot a metric with a custom range ---
 plot_distortion_surface(
-  distortion_on_grid,
-  metric = "log2_area_scale",
-  diverging = TRUE
+ distortion_on_grid,
+ metric = "max_shear",
+ value_range = c(0, 0.1)
 )
 
 }

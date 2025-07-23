@@ -50,6 +50,9 @@
 #'   palette (e.g., "viridis", "magma", "cividis"), used when `diverging=FALSE`.
 #' @param diverging A logical value. If `TRUE`, a diverging color scale is used,
 #'   which is ideal for metrics like `area_scale` or `log2_area_scale`.
+#' @param value_range A numeric vector of length 2 specifying the limits for the
+#'  color scale (e.g., `c(0, 1)`). Defaults to `NULL`, which uses the
+#'  data's range.
 #'
 #' @return A `ggplot` object, which can be further customized.
 #'
@@ -79,16 +82,16 @@
 #'   palette = "magma"
 #' )
 #'
-#' # --- 4. Plot a metric using a diverging scale ---
-#' # 'log2_area_scale' is ideal for this, as it's centered at 0.
+#' # --- 4. Plot a metric with a custom range ---
 #' plot_distortion_surface(
-#'   distortion_on_grid,
-#'   metric = "log2_area_scale",
-#'   diverging = TRUE
+#'  distortion_on_grid,
+#'  metric = "max_shear",
+#'  value_range = c(0, 0.1)
 #' )
 #'
 plot_distortion_surface <- function(distortion_sf, metric, gcp_data = NULL,
-                                    palette = "viridis", diverging = FALSE) {
+                                    palette = "viridis", diverging = FALSE,
+                                    value_range = NULL) {
 
   # --- Input Validation ---
   valid_metrics <- c("a", "b", "area_scale", "log2_area_scale", "max_shear",
@@ -155,12 +158,14 @@ plot_distortion_surface <- function(distortion_sf, metric, gcp_data = NULL,
     p <- p + ggplot2::scale_color_gradient2(
       aesthetics = aesthetic_to_scale,
       low = "#3B4CC0", mid = "#F1F1F1", high = "#B40426",
-      midpoint = midpoint
+      midpoint = midpoint,
+      limits = value_range
     )
   } else {
     p <- p + ggplot2::scale_color_viridis_c(
       aesthetics = aesthetic_to_scale,
-      option = palette
+      option = palette,
+      limits = value_range
     )
   }
 

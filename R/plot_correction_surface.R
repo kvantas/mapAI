@@ -28,13 +28,16 @@
 #'   compute. Defaults to 100.
 #' @param plot_gcps A logical value indicating whether to plot the GCP
 #' locations on the correction surfaces. Defaults to `TRUE`.
+#' @param dx_range A numeric vector of length 2 specifying the limits for the
+#'  `dx` color scale (e.g., `c(-10, 10)`). Defaults to `NULL`, which uses the
+#'  data's range.
+#' @param dy_range A numeric vector of length 2 specifying the limits for the
+#'  `dy` color scale. Defaults to `NULL`.
 #'
-#' @return A `patchwork` object containing two `ggplot` plots, one for `dx` and
-#'   one for `dy`.
+#' @return A list containing two `ggplot` objects: `dx_plot` and `dy_plot`. You can plot them individually.
 #'
 #' @import ggplot2
 #' @import dplyr
-#' @import patchwork
 #' @import viridis
 #' @importFrom rlang .data
 #' @export
@@ -52,28 +55,32 @@
 #' pai_model_gam <- train_pai_model(gcps, pai_method = "gam")
 #'
 #' # --- 3. Generate and display the plot ---
-#' # This creates the two-panel plot showing the dx and dy correction fields.
-#' correction_plot <- plot_correction_surface(
+#' # This creates a list with two plots, one for dx and one for dy.
+#' correction_plots <- plot_correction_surface(
 #'   pai_model = pai_model_gam,
 #'   gcp_data = gcps,
 #'   n_grid = 75 # Using a slightly coarser grid for a quick example
 #' )
 #'
-#' # To display the plot in an interactive session:
-#' print(correction_plot)
+#' # To display the plots, you can print them individually.
+#' print(correction_plots$dx_plot)
+#' print(correction_plots$dy_plot)
 #'
-#' # You can also hide the GCPs
-#' correction_plot_no_gcps <- plot_correction_surface(
+#' # --- 4. Set custom ranges for the color scales ---
+#' custom_range_plots <- plot_correction_surface(
 #'   pai_model = pai_model_gam,
 #'   gcp_data = gcps,
-#'   plot_gcps = FALSE
+#'   dx_range = c(-5, 5),
+#'   dy_range = c(-10, 0)
 #' )
-#' print(correction_plot_no_gcps)
+#' print(custom_range_plots$dx_plot)
 #' }
 plot_correction_surface <- function(pai_model,
                                     gcp_data,
                                     n_grid = 100,
-                                    plot_gcps = TRUE) {
+                                    plot_gcps = TRUE,
+                                    dx_range = NULL,
+                                    dy_range = NULL) {
   if (!inherits(pai_model, "pai_model")) {
     stop("pai_model must be a valid pai_model object.")
   }
@@ -91,37 +98,47 @@ plot_correction_surface <- function(pai_model,
   predictions <- predict(pai_model, newdata = grid_to_predict)
   plot_data <- cbind(grid_to_predict, predictions)
 
-  # Plot for dx
-  suppressWarnings(
+  # --- Create dx plot ---
   p_dx <- ggplot(plot_data,
                  aes(x = .data$source_x, y = .data$source_y, fill = .data$dx)) +
     geom_raster() +
     geom_contour(aes(z = .data$dx), color = "white", alpha = 0.4, bins = 12) +
-    scale_fill_viridis(option = "viridis", name = "dx") +
     labs(title = "Correction Surface (dx)", x = "X", y = "Y") +
     coord_equal() + theme_minimal()
-  )
-  # Plot for dy
-  suppressWarnings(
+
+  # Apply custom dx range if provided
+  if (!is.null(dx_range) && is.numeric(dx_range) && length(dx_range) == 2) {
+    p_dx <- p_dx + scale_fill_viridis(option = "viridis", name = "dx", limits = dx_range)
+  } else {
+    p_dx <- p_dx + scale_fill_viridis(option = "viridis", name = "dx")
+  }
+
+  # --- Create dy plot ---
   p_dy <- ggplot(plot_data,
                  aes(x = .data$source_x, y = .data$source_y, fill = .data$dy)) +
     geom_raster() +
     geom_contour(aes(z = .data$dy), color = "white", alpha = 0.4, bins = 12) +
-    scale_fill_viridis(option = "viridis", name = "dy") +
     labs(title = "Correction Surface (dy)", x = "X", y = "Y") +
     coord_equal() + theme_minimal()
-)
-  if (plot_gcps) {
-    p_dx <- p_dx + geom_point(data = gcp_data, inherit.aes = FALSE,
-                              mapping = aes(x = .data$source_x,
-                                            y = .data$source_y),
-                              shape = 3, color = "black", size = 0.8,
-                              alpha = 0.7)
-    p_dy <- p_dy + geom_point(data = gcp_data, inherit.aes = FALSE,
-                              mapping = aes(x = .data$source_x,
-                                            y = .data$source_y),
-                              shape = 3, color = "black", size = 0.8,
-                              alpha = 0.7)
+
+  # Apply custom dy range if provided
+  if (!is.null(dy_range) && is.numeric(dy_range) && length(dy_range) == 2) {
+    p_dy <- p_dy + scale_fill_viridis(option = "viridis", name = "dy", limits = dy_range)
+  } else {
+    p_dy <- p_dy + scale_fill_viridis(option = "viridis", name = "dy")
   }
-  return(p_dx + p_dy)
+
+  # Add GCPs if requested
+  if (plot_gcps) {
+    gcp_layer <- geom_point(data = gcp_data, inherit.aes = FALSE,
+                            mapping = aes(x = .data$source_x,
+                                          y = .data$source_y),
+                            shape = 3, color = "black", size = 0.8,
+                            alpha = 0.7)
+    p_dx <- p_dx + gcp_layer
+    p_dy <- p_dy + gcp_layer
+  }
+
+  # Return a named list of plots
+  return(list(dx_plot = p_dx, dy_plot = p_dy))
 }

@@ -43,8 +43,7 @@ print(all_assessments)
 final_model <- train_pai_model(gcp_data = gcp_data, pai_method = "gam", seed = 123)
 corrected_map <- apply_pai_model(pai_model = final_model, map = map_to_correct)
 
-plot_correction_surface(pai_model = final_model, gcp_data = gcp_data) +
-  patchwork::plot_annotation(title = "Learned Correction Field (dx and dy)")
+plot_correction_surface(pai_model = final_model, gcp_data = gcp_data)
 
 plot(st_geometry(map_to_correct), col = "grey70", lty = 2,
      main = "Map Correction Comparison", border = 'grey40')
