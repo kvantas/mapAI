@@ -52,7 +52,8 @@ the output of <code><a href="analyze_distortion.html">analyze_distortion()</a></
 <span>  <span class="va">metric</span>,</span>
 <span>  gcp_data <span class="op">=</span> <span class="cn">NULL</span>,</span>
 <span>  palette <span class="op">=</span> <span class="st">"viridis"</span>,</span>
-<span>  diverging <span class="op">=</span> <span class="cn">FALSE</span></span>
+<span>  diverging <span class="op">=</span> <span class="cn">FALSE</span>,</span>
+<span>  value_range <span class="op">=</span> <span class="cn">NULL</span></span>
 <span><span class="op">)</span></span></code></pre></div>
     </div>
 
@@ -84,6 +85,12 @@ palette (e.g., "viridis", "magma", "cividis"), used when <code>diverging=FALSE</
 <dt id="arg-diverging">diverging<a class="anchor" aria-label="anchor" href="#arg-diverging"></a></dt>
 <dd><p>A logical value. If <code>TRUE</code>, a diverging color scale is used,
 which is ideal for metrics like <code>area_scale</code> or <code>log2_area_scale</code>.</p></dd>
+
+
+<dt id="arg-value-range">value_range<a class="anchor" aria-label="anchor" href="#arg-value-range"></a></dt>
+<dd><p>A numeric vector of length 2 specifying the limits for the
+color scale (e.g., <code>c(0, 1)</code>). Defaults to <code>NULL</code>, which uses the
+data's range.</p></dd>
 
 </dl></div>
     <div class="section level2">
@@ -151,12 +158,11 @@ coordinates and can be safely ignored; the plot is still accurate.</p>
 <span class="r-wrn co"><span class="r-pr">#&gt;</span> <span style="color: #00BBBB;">ℹ</span> Consider using `geom_tile()` instead.</span>
 <span class="r-plt img"><img src="plot_distortion_surface-1.png" alt="" width="700" height="433"></span>
 <span class="r-in"><span></span></span>
-<span class="r-in"><span><span class="co"># --- 4. Plot a metric using a diverging scale ---</span></span></span>
-<span class="r-in"><span><span class="co"># 'log2_area_scale' is ideal for this, as it's centered at 0.</span></span></span>
+<span class="r-in"><span><span class="co"># --- 4. Plot a metric with a custom range ---</span></span></span>
 <span class="r-in"><span><span class="fu">plot_distortion_surface</span><span class="op">(</span></span></span>
-<span class="r-in"><span>  <span class="va">distortion_on_grid</span>,</span></span>
-<span class="r-in"><span>  metric <span class="op">=</span> <span class="st">"log2_area_scale"</span>,</span></span>
-<span class="r-in"><span>  diverging <span class="op">=</span> <span class="cn">TRUE</span></span></span>
+<span class="r-in"><span> <span class="va">distortion_on_grid</span>,</span></span>
+<span class="r-in"><span> metric <span class="op">=</span> <span class="st">"max_shear"</span>,</span></span>
+<span class="r-in"><span> value_range <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="fl">0</span>, <span class="fl">0.1</span><span class="op">)</span></span></span>
 <span class="r-in"><span><span class="op">)</span></span></span>
 <span class="r-msg co"><span class="r-pr">#&gt;</span> Regular grid detected. Creating a surface plot with geom_raster().</span>
 <span class="r-wrn co"><span class="r-pr">#&gt;</span> <span class="warning">Warning: </span>Raster pixels are placed at uneven horizontal intervals and will be shifted</span>
