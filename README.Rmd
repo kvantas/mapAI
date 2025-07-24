@@ -129,11 +129,11 @@ plot_shear <- plot_distortion_surface(
   distortion_results, metric = "max_shear"
 ) + labs(title = "Maximum Shear Distortion (°)")
 
-# Show the plot
+# Show the plots
 plot_area
-
+plot_shear
 ```
-These plots provide a detailed map of where the model learned to apply the most significant stretching, shrinking, and shearing, offering insights that may correlate with physical map degradation or historical cartographic techniques.
+These plots provide a detailed map of where the model learned to apply  stretching, shrinking, and shearing, offering insights that may correlate with physical map degradation or historical cartographic techniques.
 
 By providing these tools, `mapAI` empowers researchers to not only correct their historical maps with high accuracy but also to gain a deeper, quantitative understanding of their geometric properties.
 

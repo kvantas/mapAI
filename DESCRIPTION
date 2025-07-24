@@ -11,7 +11,7 @@ Description: An R package for Positional Accuracy  Improvement of Vector
     Maps that uses supervised learning algorithms. It uses as input a csv file
     with homologous points and a vector map of the area of interest in order to
     correct it.
-URL:  https://github.com/kvantas/mapAI
+URL:  https://kvantas.github.io/mapAI
 BugReports: https://github.com/kvantas/mapAI/issues
 License: MIT + file LICENSE
 Encoding: UTF-8
