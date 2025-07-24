@@ -60,7 +60,7 @@
       <h1>Getting Started with mapAI: A Complete Workflow</h1>
             
       
-      <small class="dont-index">Source: <a href="https://github.com/kvantas/mapAI/blob/0.4.0/vignettes/demo_data.Rmd" class="external-link"><code>vignettes/demo_data.Rmd</code></a></small>
+      <small class="dont-index">Source: <a href="https://github.com/kvantas/mapAI/blob/master/vignettes/demo_data.Rmd" class="external-link"><code>vignettes/demo_data.Rmd</code></a></small>
       <div class="d-none name"><code>demo_data.Rmd</code></div>
     </div>
 
@@ -84,7 +84,7 @@ techniques based on Tissot’s indicatrix theory.</li>
 </ol>
 <div class="sourceCode" id="cb1"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="co"># Load the necessary libraries</span></span>
-<span><span class="kw"><a href="https://rdrr.io/r/base/library.html" class="external-link">library</a></span><span class="op">(</span><span class="va"><a href="https://github.com/kvantas/mapAI" class="external-link">mapAI</a></span><span class="op">)</span></span>
+<span><span class="kw"><a href="https://rdrr.io/r/base/library.html" class="external-link">library</a></span><span class="op">(</span><span class="va"><a href="https://kvantas.github.io/mapAI">mapAI</a></span><span class="op">)</span></span>
 <span><span class="kw"><a href="https://rdrr.io/r/base/library.html" class="external-link">library</a></span><span class="op">(</span><span class="va"><a href="https://ggplot2.tidyverse.org" class="external-link">ggplot2</a></span><span class="op">)</span></span>
 <span><span class="kw"><a href="https://rdrr.io/r/base/library.html" class="external-link">library</a></span><span class="op">(</span><span class="va"><a href="https://r-spatial.github.io/sf/" class="external-link">sf</a></span><span class="op">)</span></span>
 <span><span class="co">#&gt; Linking to GEOS 3.12.1, GDAL 3.8.4, PROJ 9.4.0; sf_use_s2() is TRUE</span></span>
@@ -111,15 +111,15 @@ into R using the package’s reading functions.</p>
 <div class="sourceCode" id="cb2"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="co"># Create the shapefile and GCPs CSV in a temporary directory</span></span>
 <span><span class="va">demo_files</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/create_demo_data.html">create_demo_data</a></span><span class="op">(</span>type <span class="op">=</span> <span class="st">"complex"</span>, seed <span class="op">=</span> <span class="fl">123</span><span class="op">)</span></span>
-<span><span class="co">#&gt;    -&gt; Homologous points saved to: /tmp/Rtmp7QXT0h/demo_gcps.csv</span></span>
-<span><span class="co">#&gt;    -&gt; Distorted map saved to: /tmp/Rtmp7QXT0h/demo_map.shp</span></span>
+<span><span class="co">#&gt;    -&gt; Homologous points saved to: /tmp/Rtmp1XpXa1/demo_gcps.csv</span></span>
+<span><span class="co">#&gt;    -&gt; Distorted map saved to: /tmp/Rtmp1XpXa1/demo_map.shp</span></span>
 <span></span>
 <span><span class="co"># Load the GCPs (homologous points) from the demo file</span></span>
 <span><span class="va">gcp_data</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/read_gcps.html">read_gcps</a></span><span class="op">(</span>gcp_path <span class="op">=</span> <span class="va">demo_files</span><span class="op">$</span><span class="va">gcp_path</span><span class="op">)</span></span>
 <span></span>
 <span><span class="co"># Load the vector map that needs correction from the demo file</span></span>
 <span><span class="va">map_to_correct</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/read_map.html">read_map</a></span><span class="op">(</span>shp_path <span class="op">=</span> <span class="va">demo_files</span><span class="op">$</span><span class="va">shp_path</span><span class="op">)</span></span>
-<span><span class="co">#&gt; Reading layer `demo_map' from data source `/tmp/Rtmp7QXT0h/demo_map.shp' using driver `ESRI Shapefile'</span></span>
+<span><span class="co">#&gt; Reading layer `demo_map' from data source `/tmp/Rtmp1XpXa1/demo_map.shp' using driver `ESRI Shapefile'</span></span>
 <span><span class="co">#&gt; Simple feature collection with 30 features and 1 field</span></span>
 <span><span class="co">#&gt; Geometry type: LINESTRING</span></span>
 <span><span class="co">#&gt; Dimension:     XY</span></span>
