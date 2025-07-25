@@ -70,8 +70,8 @@
 #' custom_range_plots <- plot_correction_surface(
 #'   pai_model = pai_model_gam,
 #'   gcp_data = gcps,
-#'   dx_range = c(-5, 5),
-#'   dy_range = c(-10, 0)
+#'   dx_range = c(-1, 1),
+#'   dy_range = c(-1, 1)
 #' )
 #' print(custom_range_plots$dx_plot)
 #' }

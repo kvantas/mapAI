@@ -102,7 +102,8 @@ plot_distortion_surface(
 plot_distortion_surface(
  distortion_on_grid,
  metric = "max_shear",
- value_range = c(0, 0.1)
+ value_range = c(0, 45),
+ palette = "magma"
 )
 
 }

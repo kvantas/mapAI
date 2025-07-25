@@ -36,15 +36,10 @@
 #' # --- 2. Apply the Model to Correct the Points ---
 #' corrected_points <- apply_pai_model(gam_model, gcps)
 #'
-#' # --- 3. Inspect and Visualize ---
+#' # --- 3. Inspect  ---
 #' # The coordinates of the corrected points should be different.
 #' head(sf::st_coordinates(gcps))
 #' head(sf::st_coordinates(corrected_points))
-#'
-#' # Visually confirm the points have moved
-#' plot(sf::st_geometry(gcps), col = 'grey', pch = 4, cex=0.5,
-#'      main = "Original (Grey) vs. Corrected (Red) Points")
-#' plot(sf::st_geometry(corrected_points), col = 'red', pch = 16, cex=0.5, add = TRUE)
 #'
 apply_pai_model <- function(pai_model, map, aoi = NULL) {
   # --- 1. Input Validation ---

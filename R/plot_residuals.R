@@ -47,10 +47,10 @@
 #' plot_residuals(helmert_model, swiss_cps)
 #'
 #' # --- 3. Exaggerate the residuals to make them more visible ---
-#' plot_residuals(helmert_model, swiss_cps, exaggeration_factor = 10)
+#' plot_residuals(helmert_model, swiss_cps, exaggeration_factor = 3)
 #'
 #' # --- 4. Compare with a more advanced model ---
-#'   gam_model <- train_pai_model(swiss_cps, pai_method = "gam")
+#' gam_model <- train_pai_model(swiss_cps, pai_method = "gam")
 #'
 #' # The residuals for the GAM model should be much smaller and more random.
 #' plot_residuals(gam_model, swiss_cps,

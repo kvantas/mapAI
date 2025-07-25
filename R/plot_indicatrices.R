@@ -36,17 +36,17 @@
 #' @export
 #' @examples
 #' # --- 1. Train a model and analyze distortion ---
-#' data(gcps)
-#' gam_model <- train_pai_model(gcps, pai_method = "gam")
-#' distortion_at_gcps <- analyze_distortion(gam_model, gcps)
+#' data(swiss_cps)
+#' gam_model <- train_pai_model(swiss_cps, pai_method = "gam")
+#' distortion_at_gcps <- analyze_distortion(gam_model, swiss_cps)
 #'
 #' # --- 2. Plot the indicatrices ---
-#' # Note that the pai_model is no longer needed. The function plots the
-#' # distortion centered on the source locations from the distortion_sf object.
+#' # The function plots the distortion centered on the source locations from the
+#' # distortion_sf object.
 #' # The scale_factor needs to be large enough to make the ellipses visible.
 #' plot_indicatrices(
 #'   distortion_sf = distortion_at_gcps,
-#'   scale_factor = 20
+#'   scale_factor = 800
 #' )
 #'
 plot_indicatrices <- function(distortion_sf, scale_factor = 1,

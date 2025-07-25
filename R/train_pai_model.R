@@ -29,6 +29,19 @@
 #' @import dplyr
 #' @importFrom stats lm as.formula
 #' @export
+#' @examples
+#' # Load the ground control points data
+#' data(gcps)
+#'
+#' # Train a General Additive Model (GAM)
+#' gam_model <- train_pai_model(gcps, pai_method = "gam")
+#' summary(gam_model$model)
+#'
+#' # Train a linear model
+#' lm_model <- train_pai_model(gcps, pai_method = "lm")
+#' summary(lm_model$model$model_dx)
+#' summary(lm_model$model$model_dy)
+#'
 train_pai_model <- function(gcp_data, pai_method, seed = 123, ...) {
 
   set.seed(seed)
@@ -99,7 +112,7 @@ train_pai_model <- function(gcp_data, pai_method, seed = 123, ...) {
         # SVM tuning can be computationally expensive, so we use a small subset of ranges
         # Users can pass more extensive tune_control for more thorough tuning
         tune_control <- e1071::tune.control(sampling = "cross", cross = 5)
-        
+
         ranges <- if (kernel_type == "radial") {
           list(gamma = 2^(-1:1), cost = 2^(2:4))
         } else {

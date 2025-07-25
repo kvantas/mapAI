@@ -37,3 +37,17 @@ results. This function will prevent training these models with fewer than
 60 homologous points to avoid overfitting. If you have a small number of
 points, please use the more robust "lm" or "helmert" methods.
 }
+\examples{
+# Load the ground control points data
+data(gcps)
+
+# Train a General Additive Model (GAM)
+gam_model <- train_pai_model(gcps, pai_method = "gam")
+summary(gam_model$model)
+
+# Train a linear model
+lm_model <- train_pai_model(gcps, pai_method = "lm")
+summary(lm_model$model$model_dx)
+summary(lm_model$model$model_dy)
+
+}
