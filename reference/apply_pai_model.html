@@ -101,7 +101,7 @@ state.</p>
 <span class="r-msg co"><span class="r-pr">#&gt;</span> Applying PAI model to map features...</span>
 <span class="r-msg co"><span class="r-pr">#&gt;</span> Correction complete.</span>
 <span class="r-in"><span></span></span>
-<span class="r-in"><span><span class="co"># --- 3. Inspect and Visualize ---</span></span></span>
+<span class="r-in"><span><span class="co"># --- 3. Inspect  ---</span></span></span>
 <span class="r-in"><span><span class="co"># The coordinates of the corrected points should be different.</span></span></span>
 <span class="r-in"><span><span class="fu"><a href="https://rdrr.io/r/utils/head.html" class="external-link">head</a></span><span class="op">(</span><span class="fu">sf</span><span class="fu">::</span><span class="fu"><a href="https://r-spatial.github.io/sf/reference/st_coordinates.html" class="external-link">st_coordinates</a></span><span class="op">(</span><span class="va">gcps</span><span class="op">)</span><span class="op">)</span></span></span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>             X       Y</span>
@@ -119,12 +119,6 @@ state.</p>
 <span class="r-out co"><span class="r-pr">#&gt;</span> [4,] 268509.6 4488540</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> [5,] 268515.7 4488405</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> [6,] 268840.7 4488505</span>
-<span class="r-in"><span></span></span>
-<span class="r-in"><span><span class="co"># Visually confirm the points have moved</span></span></span>
-<span class="r-in"><span><span class="fu"><a href="https://rdrr.io/r/graphics/plot.default.html" class="external-link">plot</a></span><span class="op">(</span><span class="fu">sf</span><span class="fu">::</span><span class="fu"><a href="https://r-spatial.github.io/sf/reference/st_geometry.html" class="external-link">st_geometry</a></span><span class="op">(</span><span class="va">gcps</span><span class="op">)</span>, col <span class="op">=</span> <span class="st">'grey'</span>, pch <span class="op">=</span> <span class="fl">4</span>, cex<span class="op">=</span><span class="fl">0.5</span>,</span></span>
-<span class="r-in"><span>     main <span class="op">=</span> <span class="st">"Original (Grey) vs. Corrected (Red) Points"</span><span class="op">)</span></span></span>
-<span class="r-in"><span><span class="fu"><a href="https://rdrr.io/r/graphics/plot.default.html" class="external-link">plot</a></span><span class="op">(</span><span class="fu">sf</span><span class="fu">::</span><span class="fu"><a href="https://r-spatial.github.io/sf/reference/st_geometry.html" class="external-link">st_geometry</a></span><span class="op">(</span><span class="va">corrected_points</span><span class="op">)</span>, col <span class="op">=</span> <span class="st">'red'</span>, pch <span class="op">=</span> <span class="fl">16</span>, cex<span class="op">=</span><span class="fl">0.5</span>, add <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span></span></span>
-<span class="r-plt img"><img src="apply_pai_model-1.png" alt="" width="700" height="433"></span>
 <span class="r-in"><span></span></span>
 </code></pre></div>
     </div>

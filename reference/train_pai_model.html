@@ -90,6 +90,90 @@ results. This function will prevent training these models with fewer than
 points, please use the more robust "lm" or "helmert" methods.</p>
     </div>
 
+    <div class="section level2">
+    <h2 id="ref-examples">Examples<a class="anchor" aria-label="anchor" href="#ref-examples"></a></h2>
+    <div class="sourceCode"><pre class="sourceCode r"><code><span class="r-in"><span><span class="co"># Load the ground control points data</span></span></span>
+<span class="r-in"><span><span class="fu"><a href="https://rdrr.io/r/utils/data.html" class="external-link">data</a></span><span class="op">(</span><span class="va">gcps</span><span class="op">)</span></span></span>
+<span class="r-in"><span></span></span>
+<span class="r-in"><span><span class="co"># Train a General Additive Model (GAM)</span></span></span>
+<span class="r-in"><span><span class="va">gam_model</span> <span class="op">&lt;-</span> <span class="fu">train_pai_model</span><span class="op">(</span><span class="va">gcps</span>, pai_method <span class="op">=</span> <span class="st">"gam"</span><span class="op">)</span></span></span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span> Training 'gam' model...</span>
+<span class="r-in"><span><span class="fu"><a href="https://rdrr.io/r/base/summary.html" class="external-link">summary</a></span><span class="op">(</span><span class="va">gam_model</span><span class="op">$</span><span class="va">model</span><span class="op">)</span></span></span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> Family: Multivariate normal </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> Link function: </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> Formula:</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> dx ~ s(source_x, source_y)</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> &lt;environment: 0x56303cdd22f8&gt;</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> dy ~ s(source_x, source_y)</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> &lt;environment: 0x56303cdd22f8&gt;</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> Parametric coefficients:</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>               Estimate Std. Error z value Pr(&gt;|z|)    </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> (Intercept)    0.05257    0.01722   3.053  0.00227 ** </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> (Intercept).1 -0.31945    0.02119 -15.074  &lt; 2e-16 ***</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> ---</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> Signif. codes:  0 ‘***’ 0.001 ‘**’ 0.01 ‘*’ 0.05 ‘.’ 0.1 ‘ ’ 1</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> Approximate significance of smooth terms:</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>                           edf Ref.df Chi.sq p-value    </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> s(source_x,source_y)   23.845  27.45  234.5  &lt;2e-16 ***</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> s.1(source_x,source_y)  7.624  10.63  156.8  &lt;2e-16 ***</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> ---</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> Signif. codes:  0 ‘***’ 0.001 ‘**’ 0.01 ‘*’ 0.05 ‘.’ 0.1 ‘ ’ 1</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> Deviance explained = 39.9%</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> -REML = -305.73  Scale est. = 1         n = 300</span>
+<span class="r-in"><span></span></span>
+<span class="r-in"><span><span class="co"># Train a linear model</span></span></span>
+<span class="r-in"><span><span class="va">lm_model</span> <span class="op">&lt;-</span> <span class="fu">train_pai_model</span><span class="op">(</span><span class="va">gcps</span>, pai_method <span class="op">=</span> <span class="st">"lm"</span><span class="op">)</span></span></span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span> Training 'lm' model...</span>
+<span class="r-in"><span><span class="fu"><a href="https://rdrr.io/r/base/summary.html" class="external-link">summary</a></span><span class="op">(</span><span class="va">lm_model</span><span class="op">$</span><span class="va">model</span><span class="op">$</span><span class="va">model_dx</span><span class="op">)</span></span></span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> Call:</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> stats::lm(formula = formula, data = data)</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> Residuals:</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>      Min       1Q   Median       3Q      Max </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> -1.27422 -0.18591  0.00183  0.15729  1.18893 </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> Coefficients:</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>               Estimate Std. Error t value Pr(&gt;|t|)    </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> (Intercept) -6.644e+03  7.461e+02  -8.904   &lt;2e-16 ***</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> source_x     5.886e-05  1.373e-04   0.429    0.668    </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> source_y     1.477e-03  1.663e-04   8.880   &lt;2e-16 ***</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> ---</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> Signif. codes:  0 ‘***’ 0.001 ‘**’ 0.01 ‘*’ 0.05 ‘.’ 0.1 ‘ ’ 1</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> Residual standard error: 0.3619 on 297 degrees of freedom</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> Multiple R-squared:  0.2109,	Adjusted R-squared:  0.2056 </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> F-statistic: 39.68 on 2 and 297 DF,  p-value: 5.333e-16</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> </span>
+<span class="r-in"><span><span class="fu"><a href="https://rdrr.io/r/base/summary.html" class="external-link">summary</a></span><span class="op">(</span><span class="va">lm_model</span><span class="op">$</span><span class="va">model</span><span class="op">$</span><span class="va">model_dy</span><span class="op">)</span></span></span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> Call:</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> stats::lm(formula = formula, data = data)</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> Residuals:</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>      Min       1Q   Median       3Q      Max </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> -1.22190 -0.22767 -0.03835  0.20294  1.60099 </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> Coefficients:</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>               Estimate Std. Error t value Pr(&gt;|t|)    </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> (Intercept) -6.104e+03  7.848e+02  -7.778 1.22e-13 ***</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> source_x    -1.228e-03  1.444e-04  -8.505 9.02e-16 ***</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> source_y     1.434e-03  1.749e-04   8.196 7.53e-15 ***</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> ---</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> Signif. codes:  0 ‘***’ 0.001 ‘**’ 0.01 ‘*’ 0.05 ‘.’ 0.1 ‘ ’ 1</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> Residual standard error: 0.3806 on 297 degrees of freedom</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> Multiple R-squared:  0.3129,	Adjusted R-squared:  0.3083 </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> F-statistic: 67.64 on 2 and 297 DF,  p-value: &lt; 2.2e-16</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> </span>
+<span class="r-in"><span></span></span>
+</code></pre></div>
+    </div>
   </main><aside class="col-md-3"><nav id="toc" aria-label="Table of contents"><h2>On this page</h2>
     </nav></aside></div>
 
