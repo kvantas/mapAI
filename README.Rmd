@@ -18,7 +18,6 @@ knitr::opts_chunk$set(
 <!-- badges: start -->
 [![packageversion](https://img.shields.io/badge/Package%20version-0.4.0-orange.svg?style=flat-square)](https://github.com/kvantas/mapAI)
 [![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.15767080.svg)](https://doi.org/10.5281/zenodo.15767080)
-[![codecov](https://codecov.io/gh/kvantas/mapAI/graph/badge.svg?token=8dbGQrCCnz)](https://codecov.io/gh/kvantas/mapAI)
 [![Lifecycle: stable](https://img.shields.io/badge/lifecycle-stable-brightgreen.svg)](https://lifecycle.r-lib.org/articles/stages.html#stable)
 [![R-CMD-check](https://github.com/kvantas/mapAI/actions/workflows/R-CMD-check.yaml/badge.svg)](https://github.com/kvantas/mapAI/actions/workflows/R-CMD-check.yaml)
 <!-- badges: end -->
