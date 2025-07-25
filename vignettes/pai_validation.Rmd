@@ -106,7 +106,7 @@ knitr::kable(all_results, caption = "Comparison of Validation Results", digits =
 
 Now, let's visualize these results to make the comparison clear.
 
-```{r r plotresults}
+```{r r-plotresults}
 ggplot(all_results, aes(x = Method, y = Mean_RMSE_2D, fill = ValidationType)) +
   geom_col(position = "dodge") +
   geom_errorbar(
