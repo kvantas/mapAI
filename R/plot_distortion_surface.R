@@ -140,8 +140,6 @@ plot_distortion_surface <- function(distortion_sf, metric, gcp_data = NULL,
     aesthetic_to_scale <- "color"
   }
 
-  p <- p + labs(fill = metric, color = metric)
-
   # --- Add GCPs if provided ---
   if (!is.null(gcp_data)) {
     p <- p +
@@ -155,15 +153,25 @@ plot_distortion_surface <- function(distortion_sf, metric, gcp_data = NULL,
   # --- Apply Color Scale ---
   if (diverging) {
     midpoint <- if (metric == "area_scale") 1 else 0
-    p <- p + ggplot2::scale_color_gradient2(
-      aesthetics = aesthetic_to_scale,
+    scale_function <- if (aesthetic_to_scale == "fill") {
+      ggplot2::scale_fill_gradient2
+    } else {
+      ggplot2::scale_color_gradient2
+    }
+    p <- p + scale_function(
+      name = metric,
       low = "#3B4CC0", mid = "#F1F1F1", high = "#B40426",
       midpoint = midpoint,
       limits = value_range
     )
   } else {
-    p <- p + ggplot2::scale_color_viridis_c(
-      aesthetics = aesthetic_to_scale,
+    scale_function <- if (aesthetic_to_scale == "fill") {
+      ggplot2::scale_fill_viridis_c
+    } else {
+      ggplot2::scale_color_viridis_c
+    }
+    p <- p + scale_function(
+      name = metric,
       option = palette,
       limits = value_range
     )

@@ -13,6 +13,7 @@ test_that("plot_distortion_surface correctly identifies scattered points and use
   expect_message(plot_distortion_surface(distortion_at_gcps, metric = "area_scale"), "Scattered points detected")
   p_scatter <- suppressMessages(plot_distortion_surface(distortion_at_gcps, metric = "area_scale"))
   expect_s3_class(p_scatter$layers[[1]]$geom, "GeomPoint")
+
 })
 
 test_that("plot_distortion_surface correctly identifies a regular grid and uses geom_raster", {
@@ -51,4 +52,42 @@ test_that("value_range argument sets scale limits correctly", {
 
   # ASSERT
   expect_s3_class(p$layers[[1]]$geom, "GeomRaster")
+})
+
+
+test_that("plot_distortion_surface works with Helmert models (constant distortion)", {
+  # SETUP
+  helmert_model <- train_pai_model(gcps, pai_method = "helmert")
+  analysis_grid <- sf::st_make_grid(gcps, n = c(5, 5)) %>% sf::st_centroid() %>% sf::st_sf()
+  distortion_helmert <- analyze_distortion(helmert_model, analysis_grid)
+
+  # ACTION
+  p_helmert <- suppressMessages(
+    plot_distortion_surface(distortion_helmert, metric = "area_scale")
+  )
+
+  # ASSERT
+  expect_s3_class(p_helmert, "ggplot")
+  expect_s3_class(p_helmert$layers[[1]]$geom, "GeomRaster")
+})
+
+test_that("gcp_data and diverging scale arguments work correctly", {
+  # SETUP
+  analysis_grid <- sf::st_make_grid(gcps, n = c(5, 5)) %>% sf::st_centroid() %>% sf::st_sf()
+  distortion_on_grid <- analyze_distortion(test_gam_model, analysis_grid)
+
+  # TEST 1: gcp_data adds a geom_sf layer
+  p_with_gcps <- suppressMessages(
+    plot_distortion_surface(distortion_on_grid, metric = "area_scale", gcp_data = gcps)
+  )
+  # The first layer is geom_raster, the second should be geom_sf for the GCPs
+  expect_s3_class(p_with_gcps$layers[[2]]$geom, "GeomSf")
+
+  # TEST 2: diverging = TRUE uses a diverging color scale
+  p_diverging <- suppressMessages(
+    plot_distortion_surface(distortion_on_grid, metric = "area_scale", diverging = TRUE)
+  )
+  # Check that the scale is a diverging scale
+  scale <- p_diverging$scales$get_scales("fill")
+  expect_s3_class(scale, "ScaleContinuous")
 })
