@@ -63,8 +63,8 @@ library(ggplot2)
 # Generate a shapefile and a GCPs CSV with complex noisy distortions
 # The function returns a list containing the paths to these new files.
 demo_files <- create_demo_data(type = "complex", seed = 42)
-#>    -> Homologous points saved to: /var/folders/yh/kq6cp_457lg059f3l02r57s80000gn/T//Rtmpva2x8O/demo_gcps.csv
-#>    -> Distorted map saved to: /var/folders/yh/kq6cp_457lg059f3l02r57s80000gn/T//Rtmpva2x8O/demo_map.shp
+#>    -> Homologous points saved to: /var/folders/yh/kq6cp_457lg059f3l02r57s80000gn/T//Rtmp9cjS8x/demo_gcps.csv
+#>    -> Distorted map saved to: /var/folders/yh/kq6cp_457lg059f3l02r57s80000gn/T//Rtmp9cjS8x/demo_map.shp
 ```
 
 ### 2. Read Data and Train a Model
@@ -78,7 +78,7 @@ distortions present in the demo data.
 gcp_data <- read_gcps(gcp_path = demo_files$gcp_path)
 map_to_correct <- read_map(shp_path = demo_files$shp_path)
 #> Reading layer `demo_map' from data source 
-#>   `/private/var/folders/yh/kq6cp_457lg059f3l02r57s80000gn/T/Rtmpva2x8O/demo_map.shp' 
+#>   `/private/var/folders/yh/kq6cp_457lg059f3l02r57s80000gn/T/Rtmp9cjS8x/demo_map.shp' 
 #>   using driver `ESRI Shapefile'
 #> Simple feature collection with 30 features and 1 field
 #> Geometry type: LINESTRING
@@ -165,3 +165,11 @@ plot_shear
 ```
 
 <img src="man/figures/README-advanced-analysis-2.png" width="100%" />
+
+## Meta
+
+- Bug reports, suggestions, and code are welcome.
+
+- License:
+
+  - All code is licensed MIT.

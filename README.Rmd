@@ -139,3 +139,10 @@ plot_shear <- plot_distortion_surface(
 plot_area
 plot_shear
 ```
+
+## Meta
+
+* Bug reports, suggestions, and code are welcome.
+
+* License:
+    + All code is licensed MIT.

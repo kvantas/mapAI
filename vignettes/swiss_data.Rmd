@@ -38,7 +38,7 @@ library(knitr)
 
 We begin by loading the `swiss_cps` dataset. This `sf` object contains 343 control points where the `source` coordinates have been pre-aligned, so we can focus on the residual `dx` and `dy` errors.
 
-```{r load-data}
+```{r load_data}
 # Load the built-in Swiss control points dataset
 data(swiss_cps)
 
@@ -64,7 +64,7 @@ Before training a final model, it is crucial to assess its expected performance.
   * **Design-Based Validation**: We also test validation based on sampling probability (`probability`) and stratified random sampling (`stratified`), which are useful when the data points have a known design or structure.
 
 
-```{r assess-model, message=FALSE}
+```{r assess_model, message=FALSE}
 # Run four different validation methods using a GAM
 cvra <- assess_pai_model(swiss_cps, pai_method = "gam", validation_type = "random", k_folds = 10, seed = 1)
 cvsp <- assess_pai_model(swiss_cps, pai_method = "gam", validation_type = "spatial", k_folds = 10, seed = 1)

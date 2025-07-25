@@ -11,7 +11,7 @@ vignette: >
 knitr::opts_chunk$set(
   collapse = TRUE,
   comment = "#>",
-  fig.path = "man/figures/start-",
+  fig.path = "man/figures/gets_",
   out.width="100%",
   fig.dim = c(8, 6)
   )
@@ -39,7 +39,7 @@ library(magrittr) # For the %>% pipe operator
 
 First, we use `create_demo_data()` to create our test case. We'll choose the `"complex"` distortion type as it represents a challenging combination of errors. We then load these files into R using the package's reading functions.
 
-```{r create-and-load}
+```{r createdata}
 # Create the shapefile and GCPs CSV in a temporary directory
 demo_files <- create_demo_data(type = "complex", seed = 123)
 
@@ -70,7 +70,7 @@ pai_model_gam <- train_pai_model(gcp_data, pai_method = "gam")
 
 We apply our trained model to the map grid and then visualize the result by overlaying the corrected grid on the original.
 
-```{r apply-and-visualize}
+```{r visualize}
 # Apply the trained model to the full map
 corrected_map <- apply_pai_model(pai_model = pai_model_gam, map = map_to_correct)
 
@@ -102,7 +102,7 @@ Beyond simple correction, `mapAI` provides powerful tools to quantify and visual
 
 We first create a regular grid of **points** for our analysis. Then, we use the `analyze_distortion()` function with our trained `gam_model` to calculate the detailed distortion metrics at each point.
 
-```{r analyze-distortion, message=FALSE}
+```{r distortions, message=FALSE}
 # Create a regular grid of points for the analysis
 analysis_points <- sf::st_make_grid(gcp_data, n = c(25, 25)) %>%
   sf::st_centroid() %>%
@@ -123,7 +123,7 @@ Now we can use `plot_distortion_surface()` to visualize these metrics.
 
 These are two of the most fundamental distortion metrics. `log2_area_scale` shows where the map has been stretched or shrunk, while `max_angular_distortion_rad` shows where angles have been deformed (shear).
 
-```{r plot-surfaces}
+```{r plotsurfaces}
 # Plot for log2(sigma) - areal distortion
 plot_area <- plot_distortion_surface(
   distortion_results,
@@ -149,7 +149,7 @@ plot_shear <- plot_distortion_surface(
 
 This is a combined measure of distortion that balances both areal and angular errors. We can calculate it from the `a` and `b` values produced by `analyze_distortion`.
 
-```{r plot-airy}
+```{r plotairy}
 # Plot the Airy-Kavrayskiy metric
 plot_distortion_surface(
   distortion_results,
@@ -163,7 +163,7 @@ plot_distortion_surface(
 
 Finally, `plot_indicatrices` provides the richest visualization, showing the distortion ellipses themselves. The shape, size, and orientation of each ellipse represent the local distortion pattern.
 
-```{r plot-indicatrices}
+```{r plotindicatrices}
 # Plot the indicatrices at the locations of the analysis points
 # We use a large scale_factor to make the ellipses clearly visible.
 plot_indicatrices(

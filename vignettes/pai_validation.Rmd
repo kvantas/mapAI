@@ -11,7 +11,7 @@ vignette: >
 knitr::opts_chunk$set(
   collapse = TRUE,
   comment = "#>",
-  fig.path = "man/figures/valid-",
+  fig.path = "man/figures/valid_",
   out.width="100%",
   fig.dim = c(8, 6)
 )
@@ -41,7 +41,7 @@ The `mapAI` package comes with two datasets from the Kastoria study:
 
 Since this data is already included in the package, we can load it directly with the data() function.
 
-```{r load data}
+```{r load_data}
 # Load the built-in datasets
 data(parcels)
 data(gcps)
@@ -76,7 +76,7 @@ By offering this comprehensive suite of pai_methods (random CV, SCV, and design-
 
 Let's compare the results from these pai_methods for all three models (`lm`, `rf`, and `gam`).
 
-```{r validatemodels, message=FALSE}
+```{r validate_models, message=FALSE}
 # Helper function to run validation for all models
 validate_all_pai_methods <- function(gcp_data, validation_type) {
   message(paste("\nRunning", validation_type, "cross-validation..."))
@@ -106,7 +106,7 @@ knitr::kable(all_results, caption = "Comparison of Validation Results", digits =
 
 Now, let's visualize these results to make the comparison clear.
 
-```{r r-plotresults}
+```{r plot_results}
 ggplot(all_results, aes(x = Method, y = Mean_RMSE_2D, fill = ValidationType)) +
   geom_col(position = "dodge") +
   geom_errorbar(
