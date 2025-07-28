@@ -43,7 +43,7 @@ jobs:
       - name: Copy figures
         run: |
           mkdir -p docs/reference/figures
-          cp -r man/figures/* docs/reference/figures/
+          cp -r vignettes/man/figures/* docs/reference/figures/
         shell: bash
 
       - name: Deploy to GitHub pages 🚀
