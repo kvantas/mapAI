@@ -2,7 +2,7 @@
 % Please edit documentation in R/helmert.R
 \name{helmert}
 \alias{helmert}
-\title{Internal Helmert 2D Transformation Solver}
+\title{Helmert 2D Transformation Solver}
 \usage{
 helmert(source_x, source_y, target_x, target_y)
 }
@@ -17,12 +17,27 @@ helmert(source_x, source_y, target_x, target_y)
 }
 \value{
 An object of class \code{helmert} containing the calculated coefficients
-and the original data centroids, ready for use by \code{predict.pai_model}.
+and the original data centroids.
 }
 \description{
 Calculates the four parameters of a 2D similarity (Helmert)
 transformation using a standard, numerically stable least-squares solution
-based on centroids. This is an internal function called by
-\code{train_pai_model}.
+based on centroids.
 }
-\keyword{internal}
+\examples{
+# Sample data
+source_coords <- data.frame(source_x = c(10, 20, 30, 15),
+                           source_y = c(15, 25, 10, 5))
+
+target_coords <- data.frame(target_x = c(110.5, 119.8, 131.2, 114.0),
+                         target_y = c(114.5, 125.2, 109.8, 104.9))
+
+# Calculate Helmert transformation
+helmert_model <- helmert(
+  source_x = source_coords$source_x,
+  source_y = source_coords$source_y,
+  target_x = target_coords$target_x,
+  target_y = target_coords$target_y
+)
+print(helmert_model)
+}
