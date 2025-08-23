@@ -1,5 +1,8 @@
 #' Validate Input for Helmert  and create_gcps function
-input_validation <- function(source_x, source_y, target_x, target_y) {
+#' @keywords internal
+input_validation <- function(source_x, source_y,
+                             target_x, target_y) {
+
   if (length(source_x) != length(source_y) ||
       length(source_x) != length(target_x) ||
       length(source_x) != length(target_y)) {
@@ -18,4 +21,20 @@ input_validation <- function(source_x, source_y, target_x, target_y) {
   if (length(unique(target_x)) < 2 || length(unique(target_y)) < 2) {
     stop("Target points must not be co-located.", call. = FALSE)
   }
+}
+
+#' Validate newdata for predict.pai_train function
+#' @keywords internal
+new_data_validation <- function(newdata) {
+
+  if (!all(c("source_x", "source_y") %in% names(newdata))) {
+    stop("`newdata` must contain 'source_x' and 'source_y' columns.",
+         call. = FALSE)
+  }
+
+  if (any(!is.finite(c(newdata$source_x, newdata$source_y)))) {
+    stop("All coordinates in `newdata` must be finite numbers.",
+         call. = FALSE)
+  }
+
 }
