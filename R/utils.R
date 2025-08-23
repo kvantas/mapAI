@@ -1,5 +1,6 @@
 #' Validate Input for Helmert  and create_gcps function
 #' @keywords internal
+#' @noRd
 input_validation <- function(source_x, source_y,
                              target_x, target_y) {
 
@@ -25,6 +26,7 @@ input_validation <- function(source_x, source_y,
 
 #' Validate newdata for predict.pai_train function
 #' @keywords internal
+#' @noRd
 new_data_validation <- function(newdata) {
 
   if (!all(c("source_x", "source_y") %in% names(newdata))) {
