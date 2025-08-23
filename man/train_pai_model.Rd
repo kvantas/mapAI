@@ -4,50 +4,48 @@
 \alias{train_pai_model}
 \title{Train a PAI Model}
 \usage{
-train_pai_model(gcp_data, pai_method, seed = 123, ...)
+train_pai_model(gcp_data, method, seed = 123, ...)
 }
 \arguments{
-\item{gcp_data}{An \code{sf} object of homologous points from \code{read_gcps()}.}
+\item{gcp_data}{An \code{gcp} object of homologous points.}
 
-\item{pai_method}{A character string specifying the algorithm. One of:
-"lm","tps", "gam", "rf", "svmRadial", "svmLinear", or "helmert".}
+\item{method}{A character string specifying a built-in algorithm, OR a list
+defining a custom model.}
 
-\item{seed}{An integer for setting the random seed for reproducibility.}
+\item{seed}{An integer for reproducibility.}
 
-\item{...}{Additional arguments passed to the underlying model fitting
-functions (\code{mgcv::gam}, \code{stats::lm}, \code{ranger::ranger}, \code{fields::Tps}, \code{e1071::svm}).}
+\item{...}{Additional arguments passed to the model's \code{fit} function.}
 }
 \value{
 A trained model object of class \code{pai_model}.
 }
 \description{
-Trains a supervised learning or analytical model to define a
-spatial transformation.
+Trains a supervised learning model using a flexible plug-in
+architecture, allowing for easy extension with both built-in and custom
+algorithms.
 }
 \details{
-This function serves as a factory for creating transformation
-models. It supports machine learning methods ("lm", "gam", "rf", "svmRadial", "svmLinear") that learn
-the relationship between source coordinates and displacement vectors, as
-well as the analytical "helmert" method which solves for a global
-similarity transformation.
+This function is the central training utility for the package. It
+uses a \code{method} argument that can be either a character string to call a
+built-in model (\code{"helmert"} \code{"lm"},  \code{"gam_biv"}, \code{"rf"}, \code{"tps"},), or a
+list to define a completely custom model on the fly.
 
-\strong{Important}: The more flexible machine learning models, \code{gam} and \code{rf},
-require a sufficient number of data points to produce stable and reliable
-results. This function will prevent training these models with fewer than
-60 homologous points to avoid overfitting. If you have a small number of
-points, please use the more robust "lm" or "helmert" methods.
+\strong{Using Custom Models}: To provide a custom model, the \code{method}
+argument should be a list with four required elements: \code{label} (a string),
+\code{modelType} ("univariate" or "bivariate"), \code{fit} (a function), and \code{predict}
+(a function). This allows advanced users to integrate virtually any
+regression algorithm into the \code{mapAI} workflow.
 }
 \examples{
-# Load the ground control points data
-data(gcps)
+# Example using built-in models
 
-# Train a General Additive Model (GAM)
-gam_model <- train_pai_model(gcps, pai_method = "gam")
-summary(gam_model$model)
+demo_data <- create_demo_data()
 
-# Train a linear model
-lm_model <- train_pai_model(gcps, pai_method = "lm")
-summary(lm_model$model$model_dx)
-summary(lm_model$model$model_dy)
+# fit a linear model (two independent univariate models)
+lm_model <- train_pai_model(gcp_data = demo_data$gcp, method = "lm")
+print(lm_model)
 
+# fit a bivariate GAM model
+gam_model <- train_pai_model(gcp_data = demo_data$gcp, method = "gam_biv")
+print(gam_model)
 }
