@@ -1,7 +1,7 @@
 #' @title Create a Simulated Historical Map Dataset for Demonstration
 #' @description Generates a simulated dataset representing a distorted
-#'   historical map and a corresponding set of homologous points (GCPs), saving
-#'   them as files.
+#'   historical map and a corresponding set of homologous points (GCPs),
+#'   returing them inside a list
 #' @details This function implements the simulation framework described in
 #'   Vantas and Mirkopoulou, 2025. It first creates a regular grid of points
 #'   representing the "true" geography. It then applies one of three distortion
@@ -27,8 +27,6 @@
 #' @param n_points An integer specifying the number of points along each axis of
 #'  the initial grid. The total number of homologous points will be
 #'  `n_points^2`. Defaults to 15.
-#' @param output_dir A character string specifying the directory where the demo
-#'  files will be saved. Defaults to a temporary directory (`tempdir()`).
 #' @param seed An integer for setting the random seed for reproducibility.
 #'  Defaults to 42.
 #' @param grid_limits A numeric vector of the form `c(xmin, xmax, ymin, ymax)`
@@ -44,46 +42,28 @@
 #'  (amplitude), `Ec`, `Nc` (center coordinates), and `sigma2` (variance).
 #'  Defaults to `list(A = 4, Ec = 50, Nc = 0, sigma2 = 20)`.
 #'
-#' @return A list containing the full paths to the generated files:
-#'   \item{shp_path}{The path to the 'demo_map.shp' shapefile.}
-#'   \item{gcp_path}{The path to the 'demo_gcps.csv' file.}
+#' @return A list containing the generated data:
+#'   \item{gcp}{The homologous data }
+#'   \item{map}{The distorted map grid lines as an `sf` object}
 #'
 #' @import sf
-#' @import dplyr
+#' @importFrom dplyr mutate .data
 #' @importFrom stats predict rnorm
 #' @importFrom utils write.csv
 #' @export
 #' @examples
 #' \dontrun{
-#' # --- 1. Generate the demonstration data with default complex distortion ---
-#' demo_files <- create_demo_data(type = "complex", noise_sd = 0.5)
+#' # Generate the demonstration data with default complex distortion
+#' demo_data <- create_demo_data(type = "complex", noise_sd = 0.5)
+#' # plot homologous points
+#' plot(demo_data$gcp)
 #'
-#' # --- Generate data with only Helmert distortion and custom parameters ---
-#' custom_helmert_params <- list(s = 1.0, angle_deg = 5, tx = 10, ty = 15)
-#' helmert_files <- create_demo_data(
-#'   type = "helmert",
-#'   helmert_params = custom_helmert_params,
-#'   n_points = 10
-#'  )
-#'
-#' # --- 2. Use the generated files in the new workflow ---
-#' # Read the GCPs and map separately
-#' gcp_data <- read_gcps(gcp_path = demo_files$gcp_path)
-#' map_to_correct <- read_map(shp_path = demo_files$shp_path)
-#'
-#' # --- 3. Train a model ---
-#' rf_model <- train_pai_model(gcp_data, pai_method = "rf")
-#'
-#' # --- 4. Apply the trained model to the map ---
-#' corrected_map <- apply_pai_model(pai_model = rf_model, map = map_to_correct)
-#'
-#' # --- 5. Visualize the results ---
-#' plot_correction_surface(rf_model, gcp_data)
+#' # plot distorted map grid
+#' plot(demo_data$map, col = "black", main = "")
 #' }
 create_demo_data <- function(type = "complex",
                              noise_sd = 0.5,
                              n_points = 15,
-                             output_dir = tempdir(),
                              seed = 42,
                              grid_limits = c(0, 100, 0, 100),
                              helmert_params = list(s = 1.005, angle_deg = 1,
@@ -186,16 +166,12 @@ create_demo_data <- function(type = "complex",
   # --- Create Output Files ---
 
   # 4. Create and save the homologous points (GCPs) CSV
-  gcp_df <- final_data %>%
-    dplyr::select(
-      source_x = "x_distorted",
-      source_y = "y_distorted",
-      target_x = "x_true",
-      target_y = "y_true"
+  gcp <- read_gcp(
+      source_x = final_data$x_distorted,
+      source_y = final_data$y_distorted,
+      target_x = final_data$x_true,
+      target_y = final_data$y_true
     )
-  gcp_path <- file.path(output_dir, "demo_gcps.csv")
-  write.csv(gcp_df, gcp_path, row.names = FALSE)
-  message(paste("   -> Homologous points saved to:", gcp_path))
 
   # 5. Create and save the "old map" shapefile (as a distorted grid)
   distorted_pts_matrix <- as.matrix(final_data[, c("x_distorted", "y_distorted")])
@@ -217,10 +193,7 @@ create_demo_data <- function(type = "complex",
   grid_sfc <- sf::st_sfc(c(horiz_lines, vert_lines), crs = 3857)
   map_sf <- sf::st_as_sf(data.frame(id = seq_along(grid_sfc)), geom = grid_sfc)
 
-  shp_path <- file.path(output_dir, "demo_map.shp")
-  sf::st_write(map_sf, shp_path, delete_layer = TRUE, quiet = TRUE)
-  message(paste("   -> Distorted map saved to:", shp_path))
 
-  # --- Return file paths ---
-  return(list(shp_path = shp_path, gcp_path = gcp_path))
+  # --- Return Results ---
+  return(list(gcp = gcp, map = map_sf))
 }
