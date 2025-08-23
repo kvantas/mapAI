@@ -8,7 +8,10 @@ library(utils)
 library(mockery)
 
 # Helper function to create a dummy shapefile for testing
-create_dummy_shp <- function(file_path, geometry_type = "POLYGON", has_crs = TRUE, has_area_old = FALSE) {
+create_dummy_shp <- function(file_path,
+                             geometry_type = "POLYGON",
+                             has_crs = TRUE,
+                             has_area_old = FALSE) {
   if (geometry_type == "POLYGON") {
     # Create a simple polygon
     poly <- st_polygon(list(cbind(c(0, 1, 1, 0, 0), c(0, 0, 1, 1, 0))))
@@ -60,8 +63,7 @@ create_dummy_gcp_data <- function(n = 500) {
     source_y = runif(n, 0, 1000),
     dx = rnorm(n, 0, 5), # Increased variance for dx and dy
     dy = rnorm(n, 0, 5)
-  ) %>%
-    sf::st_as_sf(coords = c("source_x", "source_y"), crs = 4326, remove = FALSE)
+  )
 }
 
 # Function to create a simple square polygon for area tests
