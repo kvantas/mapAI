@@ -4,15 +4,41 @@
 \alias{residuals.pai_model}
 \title{Residuals Method for pai_model Objects}
 \usage{
-\method{residuals}{pai_model}(x)
+\method{residuals}{pai_model}(
+  object,
+  title = "Model Residual Error Vectors",
+  subtitle = "Arrows point from predicted to true target locations",
+  arrow_color = "darkblue",
+  point_color = "blue",
+  exaggeration_factor = 1
+)
 }
 \arguments{
-\item{x}{An object of class \code{pai_model}.}
+\item{object}{An object of class \code{pai_model}.}
+
+\item{title}{A character string for the plot's main title.}
+
+\item{subtitle}{A character string for the plot's subtitle.}
+
+\item{arrow_color}{A character string specifying the color of the residual
+arrows.}
+
+\item{point_color}{A character string specifying the color of the points
+marking the predicted locations.}
+
+\item{exaggeration_factor}{A numeric value to scale the length of the
+residual vectors. A value of 2, for instance, will double their
+plotted length, making subtle residuals more visible. Defaults to 1
+(no exaggeration).}
+}
+\value{
+A plot with the residual as arrows using a \code{ggplot} object, which
+can be further customized.
 }
 \description{
-Residuals Method for pai_model Objects
+Visualizes the residual errors of a trained \code{pai_model} as arrows
+pointing from predicted to actual target locations.
 }
-\details{
-The residuals method computes the residuals of the model and returns
-a list with them and two plots for dx and dy.
+\examples{
+# See ?train_pai_model for a complete, runnable example.
 }

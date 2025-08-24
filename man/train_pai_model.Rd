@@ -27,7 +27,7 @@ algorithms.
 \details{
 This function is the central training utility for the package. It
 uses a \code{method} argument that can be either a character string to call a
-built-in model (\code{"helmert"} \code{"lm"},  \code{"gam_biv"}, \code{"rf"}, \code{"tps"},), or a
+built-in model (\code{"helmert"}, \code{"lm"},  \code{"gam_biv"}, \code{"rf"}, \code{"tps"}), or a
 list to define a completely custom model on the fly.
 
 \strong{Using Custom Models}: To provide a custom model, the \code{method}
@@ -47,5 +47,14 @@ print(lm_model)
 
 # fit a bivariate GAM model
 gam_model <- train_pai_model(gcp_data = demo_data$gcp, method = "gam_biv")
+
+# print method
 print(gam_model)
+
+# plot the residuals of the GAM model
+residuals.pai_model(gam_model)
+
+# plot the learned correction surfaces for dx and dy for the model
+surface(gam_model)
+
 }

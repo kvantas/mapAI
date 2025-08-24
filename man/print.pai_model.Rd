@@ -17,3 +17,6 @@ Print Method for pai_model Objects
 \details{
 The print method provides a concise summary of the trained model,
 }
+\examples{
+# See ?train_pai_model for a complete, runnable example.
+}

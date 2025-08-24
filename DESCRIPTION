@@ -25,17 +25,15 @@ Suggests:
     testthat (>= 3.0.0)
 Config/testthat/edition: 3
 Imports: 
+    akima,
     dplyr,
     magrittr,
-    mgcv,
     rlang,
     sf,
-    ranger,
-    fields,
     units,
     ggplot2,
+    ggforce,
     viridis,
-    e1071
 Depends: 
     R (>= 3.5)
 LazyData: true

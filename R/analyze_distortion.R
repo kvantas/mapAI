@@ -1,127 +1,111 @@
 #' @title Perform a Differential Distortion Analysis
 #' @description Computes a comprehensive set of detailed distortion metrics for
 #'   a PAI model at specified locations, based on Tissot's indicatrix theory.
-#'
-#' @details This function is the core analytical engine of the `mapAI` package.
-#'   It implements a differential analysis by calculating the first partial
-#'   derivatives of the spatial transformation learned by a `pai_model`. This is
-#'   achieved using a  **numerical differentiation** (finite difference) method
-#'   that is universally applicable to all models in the package (`helmert`,
-#'   `tps`, `gam`, `lm`, `rf`,`svmRadial` and `svmLinear`).
-#'
-#'   From these derivatives, it calculates key distortion metrics that describe
-#'   how shape, area, and angles are warped at every point.
+#' @details This function is the core analytical engine of the package. It
+#'   implements a differential analysis by calculating the first partial
+#'   derivatives of the spatial transformation learned by a `pai_model` using
+#'   numerical differentiation. From these derivatives, it calculates key
+#'   distortion metrics that describe how shape, area, and angles are warped.
 #'
 #' **Interpreting Results by Model Type:**
-#'
-#'   The nature of the output is **highly dependent** on the model used:
+#'   The nature of the output is highly dependent on the model used.
 #' \itemize{
-#'   \item \strong{`gam` & `tps` (Recommended for this analysis)}: Produce a
-#'   smooth, differentiable surface. The distortion metrics will be
-#'     **spatially variable** and provide a rich, meaningful understanding of
-#'     how distortion changes across the map.
-#'   \item \strong{`helmert` & `lm`}: Represent global transformations.
-#'   The distortion metrics will be **constant for every point**.
-#'   \item \strong{`rf`}: Creates a step-like surface. The local derivatives may
-#'    be effectively zero, resulting in metrics indicating no local distortion
-#'    (e.g.,  `area_scale` = 1, `max_shear` = 0).
+#'   \item \strong{`gam` & `tps`}: Produce a smooth, differentiable surface,
+#'     leading to spatially variable and meaningful distortion metrics.
+#'   \item \strong{`helmert` & `lm`}: Represent global transformations, resulting
+#'     in distortion metrics that are constant for every point.
+#'   \item \strong{`rf`}: Creates a step-like surface where local derivatives
+#'     may be zero, potentially showing no local distortion.
 #' }
 #'
-#' @param pai_model A model object of class `pai_model` from
-#'   `train_pai_model()`.
-#' @param points_to_analyze An `sf` object of **points** where the analysis
-#'   should be performed.
-#' @param reference_scale A single numeric value used to normalize the area
-#'   scale calculation. Defaults to `1` (no normalization).
+#' @param pai_model A model object of class `pai_model`.
+#' @param newdata A data frame with `source_x` and `source_y` columns.
+#' If `NULL` (default),
+#'   the GCPs used to train the model will be used.
+#' @param reference_scale A single numeric value to normalize area scale.
 #'
-#' @return An `sf` object containing the original points and new columns with
-#'   all calculated distortion metrics: \item{a, b}{The semi-major and
-#'   semi-minor axes of the Tissot indicatrix.} \item{area_scale}{The areal
-#'   distortion factor (`a * b`).} \item{log2_area_scale}{The base-2 logarithm
-#'   of `area_scale`, a symmetric metric centered at 0.} \item{max_shear}{The
-#'   maximum angular distortion in degrees.} \item{max_angular_distortion}{The
-#'   maximum angular distortion in radians (the `2Omega` metric).}
-#'   \item{airy_kavrayskiy}{The Airy-Kavrayskiy measure, a balanced metric
-#'   combining areal and angular distortion.} \item{theta_a}{The orientation of
-#'   the axis of maximum scale (in degrees).}
+#' @return An `distortion` object (a data frame) with the original points and
+#'  new columns for all calculated distortion metrics (e.g., `a`, `b`,
+#'  `area_scale`, `max_shear`).
 #'
-#' @import sf
-#' @import dplyr
-#' @importFrom stats predict
-#' @importFrom magrittr %>%
 #' @export
 #' @examples
-#' # This example showcases the full analytical workflow.
+#'   # Create data and train a model
+#'   demo_data <- create_demo_data()
+#'   gam_model <- train_pai_model(demo_data$gcp, method = "gam_biv")
 #'
-#' library(magrittr)
+#'   # Analyze distortion on the training points
+#'   distortion_results <- analyze_distortion(gam_model)
+#'   print(distortion_results)
+#'   summary(distortion_results)
 #'
-#' # --- 1. Load data and train a GAM model ---
-#' data(gcps)
-#' gam_model <- train_pai_model(gcps, pai_method = "gam")
+#'   # plot a selected metric
+#'   plot(distortion_results, metric = "area_scale", diverging = TRUE)
 #'
-#' # --- 2. Create a regular grid of POINTS for analysis ---
-#' analysis_points <- sf::st_make_grid(gcps, n = c(25, 25)) %>%
-#'   sf::st_centroid() %>%
-#'   sf::st_sf()
-#'
-#' # --- 3. Run the distortion analysis ---
-#' distortion_results <- analyze_distortion(gam_model, analysis_points)
-#'
-#' # --- 4. Visualize the area scale ---
-#' plot_distortion_surface(
-#'   distortion_results,
-#'   metric = "area_scale")
-#'
+#' # Plot Tissot's indicatrices using automatic scale factor
+#'  indicatrices(distortion_results)
 analyze_distortion <- function(pai_model,
-                               points_to_analyze,
+                               newdata = NULL,
                                reference_scale = 1) {
 
-  # --- Input Validation ---
+  # --- Input validation ---
+
   if (!inherits(pai_model, "pai_model")) {
     stop("`pai_model` must be an object of class 'pai_model'.", call. = FALSE)
   }
-  if (!inherits(points_to_analyze, "sf")) {
-    stop("`points_to_analyze` must be an sf object.", call. = FALSE)
+
+  if (!is.null(newdata)) {
+    new_data_validation(newdata)
+  } else {
+    newdata <- pai_model$gcp
   }
 
-  coords_df <- as.data.frame(sf::st_coordinates(points_to_analyze))
-  names(coords_df) <- c("source_x", "source_y")
-  n_points <- nrow(coords_df)
+  if (!is.numeric(reference_scale) || length(reference_scale) != 1 || reference_scale <= 0) {
+    stop("`reference_scale` must be a single positive numeric value.", call. = FALSE)
+  }
 
-  # --- Numerical Derivatives Calculation ---
-  message(paste("Calculating distortion metrics for",
-                pai_model$method, "model..."))
+  message(paste("Calculating distortion metrics for", pai_model$model_info$label, "model..."))
 
-  coord_range <- max(c(diff(range(coords_df$source_x)),
-                       diff(range(coords_df$source_y))), na.rm = TRUE)
+  # --- Efficient Numerical Derivatives Calculation ---
+
+  # Determine a small step size h
+  coord_range <- max(c(diff(range(newdata$source_x)),
+                       diff(range(newdata$source_y))),
+                     na.rm = TRUE)
   h <- coord_range * 1e-6
-  coords_x_plus_h <- coords_df
-  coords_x_plus_h$source_x <- coords_df$source_x + h
 
-  coords_x_minus_h <- coords_df
-  coords_x_minus_h$source_x <- coords_df$source_x - h
+  # --- Step 1: Compute partial derivatives with respect to x ---
+  # Create minimal data frames for prediction
+  coords_x_plus_h <- data.frame(source_x = newdata$source_x + h,
+                                source_y = newdata$source_y)
+  coords_x_minus_h <- data.frame(source_x = newdata$source_x - h,
+                                 source_y = newdata$source_y)
 
-  coords_y_plus_h <- coords_df
-  coords_y_plus_h$source_y <- coords_df$source_y + h
-
-  coords_y_minus_h <- coords_df
-  coords_y_minus_h$source_y <- coords_df$source_y - h
-
-  T_x_plus  <- data.frame(predict(pai_model, newdata = coords_x_plus_h)) + coords_x_plus_h
-  T_x_minus <- data.frame(predict(pai_model, newdata = coords_x_minus_h)) + coords_x_minus_h
-  T_y_plus  <- data.frame(predict(pai_model, newdata = coords_y_plus_h)) + coords_y_plus_h
-  T_y_minus <- data.frame(predict(pai_model, newdata = coords_y_minus_h)) + coords_y_minus_h
-
-  names(T_x_plus) <- names(T_x_minus) <- names(T_y_plus) <- names(T_y_minus) <- c("target_x", "target_y")
+  # Predict transformed coordinates (this is the corrected logic)
+  T_x_plus <- predict(pai_model, newdata = coords_x_plus_h)
+  T_x_minus <- predict(pai_model, newdata = coords_x_minus_h)
 
   dfx_dx <- (T_x_plus$target_x - T_x_minus$target_x) / (2 * h)
   dfy_dx <- (T_x_plus$target_y - T_x_minus$target_y) / (2 * h)
+
+  # Explicitly remove large intermediate objects to free memory
+  rm(coords_x_plus_h, coords_x_minus_h, T_x_plus, T_x_minus)
+
+  # --- Step 2: Compute partial derivatives with respect to y ---
+  coords_y_plus_h <- data.frame(source_x = newdata$source_x,
+                                source_y = newdata$source_y + h)
+  coords_y_minus_h <- data.frame(source_x = newdata$source_x,
+                                 source_y = newdata$source_y - h)
+
+  T_y_plus <- predict(pai_model, newdata = coords_y_plus_h)
+  T_y_minus <- predict(pai_model, newdata = coords_y_minus_h)
+
   dfx_dy <- (T_y_plus$target_x - T_y_minus$target_x) / (2 * h)
   dfy_dy <- (T_y_plus$target_y - T_y_minus$target_y) / (2 * h)
 
-  # --- Common calculation block ---
-  message("Finalizing metrics from derivatives...")
+  rm(coords_y_plus_h, coords_y_minus_h, T_y_plus, T_y_minus)
 
+  # --- Finalizing metrics from derivatives (vectorized and efficient) ---
   E <- dfx_dx^2 + dfy_dx^2
   G <- dfx_dy^2 + dfy_dy^2
   F_metric <- dfx_dx * dfx_dy + dfy_dx * dfy_dy
@@ -132,29 +116,298 @@ analyze_distortion <- function(pai_model,
   b <- sqrt(0.5 * (E + G - sqrt_term))
 
   area_scale <- a * b
-  max_shear_rad <- asin((a - b) / (a + b))
+
+  # Add results to a new data frame to avoid modifying the input object directly
+  results <- newdata
+  results$a <- a
+  results$b <- b
+  results$area_scale <- area_scale
+  results$log2_area_scale <- log2(area_scale / (reference_scale^2))
+  results$max_shear <- asin((a - b) / (a + b)) * 180 / pi
+  results$max_angular_distortion <- 2 * asin((a - b) / (a + b))
+  results$airy_kavrayskiy <- 0.5 * (log(a)^2 + log(b)^2)
+
   theta_xp <- atan2(dfy_dx, dfx_dx)
   alpha_p <- atan2(2 * F_metric, E - G) / 2
-  theta_a <- theta_xp - alpha_p
+  results$theta_a <- (theta_xp - alpha_p) * 180 / pi
 
-  # --- compute log2sigma, 2*Omega, Airy-Kavrayskiy metrics
-  log2_area_scale <- log2(area_scale / (reference_scale^2))
-  max_angular_distortion <- 2 * asin((a - b) / (a + b)) # This is 2*Omega
-  airy_kavrayskiy <- 0.5 * (log(a)^2 + log(b)^2)
-
-  # --- Add all metrics to the output sf object ---
-  results_sf <- points_to_analyze %>%
-    dplyr::mutate(
-      a = a,
-      b = b,
-      area_scale = area_scale,
-      log2_area_scale = log2_area_scale,
-      max_shear = max_shear_rad * 180 / pi,
-      max_angular_distortion = max_angular_distortion,
-      airy_kavrayskiy = airy_kavrayskiy,
-      theta_a = theta_a * 180 / pi
-    )
+  class(results) <- c("distortion", "data.frame")
 
   message("Distortion analysis complete.")
-  return(results_sf)
+  return(results)
+}
+
+
+#' @title Print Method for distortion Objects
+#' @description Custom print method for `distortion` objects to provide a concise
+#'  summary of the distortion analysis results.
+#' @param x An object of class `distortion`.
+#' @param ... Additional arguments (not used).
+#' @export
+#' @examples
+#' # See ?analyze_distortion for a runnable example that creates a
+#' # distortion object.
+print.distortion <- function(object, ...) {
+  cat("Distortion Analysis Results\n")
+  cat("---------------------------\n")
+  cat("Number of Points Analyzed:", nrow(object), "\n")
+  cat("Metrics Included:\n")
+  cat(" - a: Major axis length of Tissot's indicatrix\n")
+  cat(" - b: Minor axis length of Tissot's indicatrix\n")
+  cat(" - area_scale: Area distortion factor\n")
+  cat(" - log2_area_scale: Log2 area distortion relative to reference scale\n")
+  cat(" - max_shear: Maximum shear distortion (degrees)\n")
+  cat(" - max_angular_distortion: Maximum angular distortion (radians)\n")
+  cat(" - airy_kavrayskiy: Airy-Kavrayskiy distortion measure\n")
+  cat(" - theta_a: Orientation of maximum distortion (degrees)\n")
+
+  n <- nrow(object)
+  if (n > 10) {
+    cat("Displaying first 10 points:\n")
+    object <- object[1:10, ]
+  }
+  print.data.frame(object)
+  invisible(object)
+}
+
+
+#' @title Summary Method for distortion Objects
+#' @description Provides a statistical summary of the distortion metrics
+#' contained in a `distortion` object.
+#' @param object An object of class `distortion`.
+#' @param ... Additional arguments (not used).
+#' @return A data frame summarizing key statistics for each distortion metric.
+#' @export
+#' @examples
+#' # See ?analyze_distortion for a runnable example.
+summary.distortion <- function(object, ...) {
+  if (!inherits(object, "distortion")) {
+    stop("`object` must be of class 'distortion'.", call. = FALSE)
+  }
+
+  metrics <- c("a", "b", "area_scale", "log2_area_scale",
+               "max_shear", "max_angular_distortion", "airy_kavrayskiy",
+               "theta_a")
+
+  summary_list <- lapply(metrics, function(metric) {
+    if (metric %in% names(object)) {
+      data <- object[[metric]]
+      c(
+        Mean = mean(data, na.rm = TRUE),
+        Median = median(data, na.rm = TRUE),
+        SD = sd(data, na.rm = TRUE),
+        Min = min(data, na.rm = TRUE),
+        Max = max(data, na.rm = TRUE)
+      )
+    } else {
+      NULL
+    }
+  })
+
+  summary_df <- do.call(rbind, summary_list)
+  rownames(summary_df) <- metrics
+  return(as.data.frame(summary_df))
+}
+
+#' @title Visualize a Distortion Metric as a Continuous Surface
+#' @description Creates a smooth, interpolated surface visualization of a
+#'   distortion metric from the output of `analyze_distortion()`.
+#'
+#' @details This function visualizes the distortion field as it exists on the
+#'   **source map's coordinate space**. It uses linear interpolation via the
+#'   `akima` package to create a continuous raster surface, even from scattered,
+#'   irregular input points (like the original GCPs). This provides a true
+#'   surface plot in all cases.
+#'
+#' @param x A `distortion` object returned by `analyze_distortion()`.
+#' @param metric A character string specifying the metric to plot.
+#' @param palette A viridis color palette name (e.g., "viridis", "magma").
+#' @param diverging If `TRUE`, uses a red-white-blue diverging color scale.
+#' @param value_range A numeric vector of length 2 specifying color scale limits.
+#' @param add_points If `TRUE`, the original analysis points are overlaid.
+#' @param n_grid The resolution of the interpolation grid (e.g., 200x200).
+#'
+#' @return A `ggplot` object.
+#'
+#' @import ggplot2
+#' @importFrom rlang .data sym
+#' @importFrom akima interp
+#' @importFrom viridis scale_fill_viridis
+#' @export
+#' @examples
+#' # See ?analyze_distortion for a runnable example.
+plot.distortion <- function(x,
+                            metric = "area_scale",
+                            palette = "viridis",
+                            diverging = FALSE,
+                            value_range = NULL,
+                            add_points = TRUE,
+                            n_grid = 200) {
+
+  # --- 1. Input Validation ---
+  plot_input_validation(x, metric, palette, diverging, value_range, add_points)
+
+
+  # --- 2. Interpolate Data for a Smooth Surface ---
+  message("Interpolating data to create a smooth surface...")
+  interp_result <- tryCatch({
+    akima::interp(
+      x = x$source_x,
+      y = x$source_y,
+      z = x[[metric]],
+      nx = n_grid,
+      ny = n_grid
+    )
+  }, error = function(e) {
+    stop("Interpolation failed. Ensure you have at least 5 non-collinear points.",
+         call. = FALSE)
+  })
+
+  # Convert interpolation result to a plottable data frame
+  interp_df <- data.frame(
+    source_x = rep(interp_result$x, times = length(interp_result$y)),
+    source_y = rep(interp_result$y, each = length(interp_result$x)),
+    metric_val = as.vector(interp_result$z)
+  )
+  # Remove NA values which can occur at the convex hull of the points
+  interp_df <- stats::na.omit(interp_df)
+
+  # --- 3. Create the Base Plot ---
+  p <- ggplot2::ggplot(interp_df, aes(x = .data$source_x, y = .data$source_y)) +
+    geom_raster(aes(fill = .data$metric_val)) +
+    coord_equal(expand = FALSE) +
+    labs(
+      title = paste("Distortion Analysis:", metric),
+      subtitle = "Interpolated surface from analysis points",
+      x = "Source X Coordinate",
+      y = "Source Y Coordinate",
+      fill = metric # Legend title
+    ) +
+    theme_minimal()
+
+  # --- 4. Refactored and Corrected Color Scale Application ---
+  scale_layer <- NULL
+  if (diverging) {
+    midpoint <- if (metric == "area_scale") 1 else 0
+    scale_layer <- scale_fill_gradient2(
+      low = "#3B4CC0", mid = "#F1F1F1", high = "#B40426",
+      midpoint = midpoint,
+      limits = value_range,
+      na.value = "transparent"
+    )
+  } else {
+    scale_layer <- scale_fill_viridis_c(
+      option = palette,
+      limits = value_range,
+      na.value = "transparent"
+    )
+  }
+  p <- p + scale_layer
+
+  # --- 5. Optionally Add Original Points ---
+  if (add_points) {
+    p <- p +
+      geom_point(
+        data = x,
+        aes(x = .data$source_x, y = .data$source_y),
+        shape = 3, color = "black", size = 1.5, alpha = 0.7,
+        inherit.aes = FALSE # Important!
+      )
+  }
+
+  return(p)
+}
+
+#' @title Generate Tissot's Indicatrices from Distortion Analysis
+#' @description Creates a spatial object of ellipses (Tissot's indicatrices)
+#'  representing local distortion at each analysis point.
+#' @param object A `distortion` object returned by `analyze_distortion()`.
+#' @param ... Additional arguments passed to specific methods.
+#' @return A `ggplot` object containing the distortion ellipses plotted in the
+#'   source coordinate space.
+#' @export
+#' @examples
+#' # See ?analyze_distortion for a complete, runnable example.
+
+indicatrices <- function(object, ...) {
+  UseMethod("indicatrices")
+}
+
+#' @title Plot Tissot's Indicatrices of Distortion
+#' @description Visualizes distortion by drawing Tissot's indicatrices
+#'   (ellipses) at their original source locations.
+#' @details This function creates a powerful visual representation of
+#' distortion. It draws an ellipse at each analyzed point, centered on its
+#' **source coordinate**. The size, shape, and orientation of the ellipse
+#' graphically represent the distortion at that location.
+#'
+#' @param object A `distortion` object from `analyze_distortion()`.
+#' @param scale_factor A numeric value to control the visual size of the
+#'   plotted ellipses. If `NULL` (the default), a reasonable scale factor is
+#'   automatically calculated based on the spatial extent of the data.
+#' @param fill_color A character string specifying the fill color of the ellipses.
+#' @param border_color A character string specifying the border color.
+#' @param alpha A numeric value (0-1) for the transparency of the ellipses.
+#'
+#' @return A `ggplot` object.
+#'
+#' @import ggplot2
+#' @importFrom ggforce geom_ellipse
+#' @export
+#' @examples
+#' # See ?analyze_distortion for a complete, runnable example.
+indicatrices.distortion <- function(object,
+                                    scale_factor = NULL,
+                                    fill_color = "lightblue",
+                                    border_color = "black",
+                                    alpha = 0.7) {
+
+  # --- 1. Input Validation ---
+  # Note: validation for scale_factor now allows NULL
+  indicatrices_validation(object, scale_factor, fill_color, border_color)
+
+  # --- 2. Automatic Scale Factor Calculation ---
+  if (is.null(scale_factor)) {
+    # Calculate the maximum spatial extent (width or height) of the points
+    x_range <- diff(range(object$source_x, na.rm = TRUE))
+    y_range <- diff(range(object$source_y, na.rm = TRUE))
+    max_extent <- max(x_range, y_range)
+
+    # Calculate a scale factor that makes the average ellipse ~1/40th of the extent
+    avg_axis <- mean(object$a, na.rm = TRUE)
+    if (avg_axis > 0 && max_extent > 0) {
+      scale_factor <- (max_extent / 40) / avg_axis
+      message(paste("`scale_factor` is NULL. Automatically chosen value:", round(scale_factor, 2)))
+    } else {
+      warning("Could not automatically determine scale_factor. Defaulting to 1.", call. = FALSE)
+      scale_factor <- 1 # Fallback for edge cases
+    }
+  }
+
+  # --- 3. Create the Plot using ggforce ---
+  p <- ggplot(
+    data = object,
+    aes(
+      x0 = .data$source_x,
+      y0 = .data$source_y,
+      a = .data$a * scale_factor,
+      b = .data$b * scale_factor,
+      angle = .data$theta_a * pi / 180
+    )
+  ) +
+    ggforce::geom_ellipse(
+      fill = fill_color,
+      color = border_color,
+      alpha = alpha
+    ) +
+    coord_equal(expand = TRUE) +
+    labs(
+      title = "Tissot's Indicatrices of Distortion",
+      subtitle = "Ellipses are centered on their source coordinates",
+      x = "Source X Coordinate",
+      y = "Source Y Coordinate"
+    ) +
+    theme_minimal()
+
+  return(p)
 }

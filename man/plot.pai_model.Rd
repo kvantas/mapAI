@@ -18,3 +18,6 @@ Plot Method for pai_model Objects
 The plot method visualizes the model components based on whether the
 model is univariate or bivariate.
 }
+\examples{
+# See ?train_pai_model for a complete, runnable example.
+}

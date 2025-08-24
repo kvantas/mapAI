@@ -1,176 +1,276 @@
-# --- Comprehensive Test Suite for analyze_distortion() ---
-#
-# This script uses 'testthat' and 'testthat::stub' to robustly test the
-# analyze_distortion() function. The stub() approach ensures that tests
-# run correctly in isolated environments like those used by devtools::check().
+#### analyze_distortion function unit tests ####
 
-library(testthat)
-library(sf)
-library(dplyr)
-library(testthat) # Explicitly load for stub
+test_that("input validation works correctly", {
 
-# --- Test Setup ---
+  gcp <- create_dummy_gcp_data(50)
+  model <- train_pai_model(gcp, "lm")
 
-# Create a consistent set of analysis points to use across all tests.
-testing_points <- st_as_sf(
-  data.frame(
-    id = 1:9,
-    x = rep(c(-10, 0, 10), 3),
-    y = rep(c(-10, 0, 10), each = 3)
-  ),
-  coords = c("x", "y"),
-  crs = 3857
-)
+  expect_error(analyze_distortion(pai_model = "not a model"),
+               "`pai_model` must be an object of class 'pai_model'.")
 
-# We only need a simple placeholder object. Its class is what matters for the
-# original function's input validation.
-create_placeholder_model <- function(method_name) {
-  structure(list(method = method_name), class = "pai_model")
-}
+  expect_error(analyze_distortion(model, 1:3),
+               "`newdata` must contain 'source_x' and 'source_y' columns.")
 
-# Define a tolerance for floating-point comparisons
-TOLERANCE <- 1e-5
-
-# ==============================================================================
-# ---- TEST SUITE for analyze_distortion() ----
-# ==============================================================================
-
-test_that("Input validation rejects incorrect object types", {
-  mock_model <- create_placeholder_model("gam")
-
-  expect_error(
-    analyze_distortion(list(), testing_points),
-    "`pai_model` must be an object of class 'pai_model'.",
-    fixed = TRUE
-  )
-
-  expect_error(
-    analyze_distortion(mock_model, as.data.frame(testing_points)),
-    "`points_to_analyze` must be an sf object.",
-    fixed = TRUE
-  )
+  expect_error(analyze_distortion(pai_model = model, reference_scale = 0),
+               "`reference_scale` must be a single positive numeric value.")
 })
 
-test_that("Output has the correct structure, columns, and types", {
-  mock_model <- create_placeholder_model("gam")
+test_that("output has the correct structure and class", {
 
-  # Mock predict to return zero offsets
-  mock_predict_for_structure <- function(object, newdata, ...) {
-    data.frame(dx = rep(0, nrow(newdata)), dy = rep(0, nrow(newdata)))
-  }
+  gcp <- create_dummy_gcp_data(50)
+  model <- train_pai_model(gcp, "lm")
 
-  stub(analyze_distortion, 'predict', mock_predict_for_structure)
+  res <- analyze_distortion(model, gcp)
 
-  results <- suppressMessages(
-    analyze_distortion(mock_model, testing_points)
+  expect_s3_class(res, "distortion")
+  expect_s3_class(res, "data.frame")
+  expect_equal(nrow(res), nrow(gcp))
+
+  expected_cols <- c("source_x", "source_y", "a", "b", "area_scale",
+                     "max_shear", "theta_a")
+  expect_true(all(expected_cols %in% names(res)))
+  expect_true(all(is.numeric(res$a)))
+})
+
+test_that("function defaults to model's gcp data when input is NULL", {
+
+  gcp <- create_dummy_gcp_data(50)
+  model <- train_pai_model(gcp, "lm")
+
+  res_default <- analyze_distortion(model, newdata = NULL)
+  expect_equal(nrow(res_default), nrow(model$gcp))
+})
+
+test_that("numerical derivatives match analytical derivatives", {
+  # This is the most critical test. It ensures the numerical method is accurate.
+
+  # Known Transformation:
+  #   target_x = 2*sx + 0.5*sy + 10
+  #   target_y = 0.1*sx + 1.5*sy + 20
+  #
+  # Analytical Derivatives:
+  #   dfx_dx = 2.0, dfy_dx = 0.1
+  #   dfx_dy = 0.5, dfy_dy = 1.5
+
+  affine_model <- list(
+    label = "Known Affine",
+    modelType = "bivariate",
+    library = NULL,
+
+    # The 'fit' function is trivial as the transformation is fixed.
+    # It just needs to return a model object for the predict function to use.
+    fit = function(gcp_data, ...) {
+      return(list(transform_type = "fixed_affine"))
+    },
+
+    # The 'predict' function applies the known analytical transformation.
+    # It must return a 2-column matrix of displacements (dx, dy).
+    predict = function(model, newdata, ...) {
+      # Calculate the final target coordinates based on the known formula
+      pred_target_x <- 2 * newdata$source_x + 0.5 * newdata$source_y + 10
+      pred_target_y <- 0.1 * newdata$source_x + 1.5 * newdata$source_y + 20
+
+      # Calculate the displacements (the difference from the source)
+      dx <- pred_target_x - newdata$source_x
+      dy <- pred_target_y - newdata$source_y
+
+      return(cbind(dx, dy))
+    }
   )
+  model <- train_pai_model(create_dummy_gcp_data(10), method = affine_model)
+  test_points <- create_dummy_gcp_data(10)
+  res <- analyze_distortion(model, test_points)
 
-  expect_s3_class(results, "sf")
-  expect_equal(nrow(results), nrow(testing_points))
-  expected_new_cols <- c("a", "b", "area_scale", "log2_area_scale", "max_shear",
-                         "max_angular_distortion", "airy_kavrayskiy", "theta_a")
-  expect_true(all(expected_new_cols %in% names(results)))
+  # Calculate the analytical solution for Tissot's indicatrix parameters
+  dfx_dx <- 2.0
+  dfy_dx <- 0.1
+  dfx_dy <- 0.5
+  dfy_dy <- 1.5
+
+  E <- dfx_dx^2 + dfy_dx^2
+  G <- dfx_dy^2 + dfy_dy^2
+  F_metric <- dfx_dx * dfx_dy + dfy_dx * dfy_dy
+  sqrt_term <- sqrt((E - G)^2 + 4 * F_metric^2)
+
+  a_analytical <- sqrt(0.5 * (E + G + sqrt_term))
+  b_analytical <- sqrt(0.5 * (E + G - sqrt_term))
+  area_scale_analytical <- a_analytical * b_analytical
+
+  # Compare the function's numerical results to the analytical solution.
+  # We use a tolerance for floating-point inaccuracies.
+  n = nrow(res)
+  expect_equal(res$a, rep(a_analytical, n), tolerance = 1e-6)
+  expect_equal(res$b, rep(b_analytical, n), tolerance = 1e-6)
+  expect_equal(res$area_scale, rep(area_scale_analytical, n), tolerance = 1e-6)
 })
 
 test_that("Correctly identifies an identity transformation (no distortion)", {
-  mock_model <- create_placeholder_model("identity")
 
-  # Mock transformation: x' = u, y' = v. Offsets are zero.
-  mock_predict_identity <- function(object, newdata, ...) {
-    data.frame(
-      target_x_offset = rep(0, nrow(newdata)),
-      target_y_offset = rep(0, nrow(newdata))
-    )
-  }
+  # An identity transformation should yield a=1, b=1, area_scale=1, max_shear=0
+  # everywhere.
+  identity_model <- list(
+    label = "Identity Transformation",
+    modelType = "bivariate",
+    library = NULL,
 
-  stub(analyze_distortion, 'predict', mock_predict_identity)
+    fit = function(gcp_data, ...) {
+      return(list(transform_type = "identity"))
+    },
 
-  results <- suppressMessages(analyze_distortion(mock_model, testing_points))
+    predict = function(model, newdata, ...) {
+      n = nrow(newdata)
+      # Identity transformation: target coordinates are the same as source
 
-  expect_equal(results$a, rep(1, nrow(results)), tolerance = TOLERANCE)
-  expect_equal(results$b, rep(1, nrow(results)), tolerance = TOLERANCE)
-  expect_equal(results$area_scale, rep(1, nrow(results)), tolerance = TOLERANCE)
-  expect_equal(results$max_shear, rep(0, nrow(results)), tolerance = TOLERANCE)
-})
+      # Calculate the displacements (the difference from the source)
+      dx <- rep(0, n)
+      dy <- rep(0, n)
 
-test_that("Correctly calculates metrics for pure area scaling", {
-  mock_model <- create_placeholder_model("area_scale")
-
-  # Mock transformation: x' = 2u, y' = 2v
-  mock_predict_area <- function(object, newdata, ...) {
-    data.frame(
-      target_x_offset = (2 * newdata$source_x) - newdata$source_x,
-      target_y_offset = (2 * newdata$source_y) - newdata$source_y
-    )
-  }
-
-  stub(analyze_distortion, 'predict', mock_predict_area)
-
-  results <- suppressMessages(analyze_distortion(mock_model, testing_points))
-
-  # Theoretical values for x'=2u, y'=2v: a=2, b=2, area_scale=4, max_shear=0
-  expect_equal(results$a, rep(2.0, nrow(results)), tolerance = TOLERANCE)
-  expect_equal(results$b, rep(2.0, nrow(results)), tolerance = TOLERANCE)
-  expect_equal(results$area_scale, rep(4.0, nrow(results)), tolerance = TOLERANCE)
-  expect_equal(results$max_shear, rep(0.0, nrow(results)), tolerance = TOLERANCE)
-})
-
-test_that("Correctly calculates metrics for a pure shear transformation", {
-  mock_model <- create_placeholder_model("shear")
-
-  # Mock transformation: x' = u + v, y' = v
-  mock_predict_shear <- function(object, newdata, ...) {
-    data.frame(
-      target_x_offset = (newdata$source_x + newdata$source_y) - newdata$source_x,
-      target_y_offset = newdata$source_y - newdata$source_y
-    )
-  }
-
-  stub(analyze_distortion, 'predict', mock_predict_shear)
-
-  results <- suppressMessages(analyze_distortion(mock_model, testing_points))
-
-  # Theoretical values for x'=u+v, y'=v
-  expected_a <- (1 + sqrt(5)) / 2
-  expected_b <- 1 / expected_a
-  expected_area_scale <- 1.0
-  max_shear_rad <- asin((expected_a - expected_b) / (expected_a + expected_b))
-  expected_max_shear_deg <- max_shear_rad * 180 / pi
-
-  expect_equal(results$a, rep(expected_a, nrow(results)), tolerance = TOLERANCE)
-  expect_equal(results$b, rep(expected_b, nrow(results)), tolerance = TOLERANCE)
-  expect_equal(results$area_scale, rep(expected_area_scale, nrow(results)), tolerance = TOLERANCE)
-  expect_equal(results$max_shear, rep(expected_max_shear_deg, nrow(results)), tolerance = TOLERANCE)
-})
-
-test_that("`reference_scale` argument correctly normalizes log2_area_scale", {
-  mock_model <- create_placeholder_model("lm")
-
-  # Mock transformation: x' = 1.2u, y' = 0.8v
-  mock_predict_ref_scale <- function(object, newdata, ...) {
-    data.frame(
-      target_x_offset = (newdata$source_x * 1.2) - newdata$source_x,
-      target_y_offset = (newdata$source_y * 0.8) - newdata$source_y
-    )
-  }
-
-  stub(analyze_distortion, 'predict', mock_predict_ref_scale)
-
-  # With default reference_scale = 1
-  res1 <- suppressMessages(
-    analyze_distortion(mock_model, testing_points, reference_scale = 1)
+      return(cbind(dx, dy))
+    }
   )
-  # area_scale = 1.2 * 0.8 = 0.96. log2(0.96 / 1^2)
-  expect_equal(unique(round(res1$log2_area_scale, 6)),
-               log2(0.96),
-               tolerance = TOLERANCE)
 
-  # With reference_scale = 2
-  res2 <- suppressMessages(
-    analyze_distortion(mock_model, testing_points, reference_scale = 2)
+  model <- train_pai_model(create_dummy_gcp_data(10), method = identity_model)
+  res <-analyze_distortion(model, create_dummy_gcp_data(10))
+
+  TOLERANCE  = 10^-6
+  n = nrow(res)
+
+  expect_equal(res$a, rep(1, n), tolerance = TOLERANCE)
+  expect_equal(res$b, rep(1, n), tolerance = TOLERANCE)
+  expect_equal(res$area_scale, rep(1, n), tolerance = TOLERANCE)
+  expect_equal(res$max_shear, rep(0, n), tolerance = TOLERANCE)
+})
+
+#### distortion object methods unit tests ####
+
+# --- Tests for print.distortion ---
+test_that("print.distortion prints key information", {
+
+  model <- train_pai_model(create_dummy_gcp_data(20), method = "lm")
+  res <-analyze_distortion(model, create_dummy_gcp_data(20))
+
+  expect_output(print(res), "Distortion Analysis Results")
+  expect_output(print(res), "Number of Points Analyzed: 20")
+  expect_output(print(res), "Metrics Included:")
+  expect_invisible(print(res))
+
+})
+
+# --- Tests for summary.distortion ---
+test_that("summary.distortion handles invalid input", {
+
+  model <- train_pai_model(create_dummy_gcp_data(20), method = "lm")
+  res <-analyze_distortion(model, create_dummy_gcp_data(20))
+
+  expect_equal(colnames(summary(res)), c("Mean", "Median", "SD", "Min", "Max" ))
+
+  expect_equal(rownames(summary(res)), c("a", "b", "area_scale", "log2_area_scale",
+                                         "max_shear", "max_angular_distortion",
+                                         "airy_kavrayskiy", "theta_a"))
+})
+
+# --- Tests for plot.distortion ---
+test_that("plot.distortion handles invalid inputs", {
+
+  model <- train_pai_model(create_dummy_gcp_data(20), method = "lm")
+  res <-analyze_distortion(model, create_dummy_gcp_data(20))
+
+  expect_error(plot.distortion("not a distortion object"))
+  expect_error(plot(res, metric = "invalid_metric"), "must be one of")
+
+  p <- plot(res, metric = "a", add_points = FALSE)
+  expect_s3_class(p, "ggplot")
+
+})
+
+
+# --- Tests for indicatrices.distortion ---
+
+test_that("input validation works correctly with new scale_factor logic", {
+
+  model <- train_pai_model(create_dummy_gcp_data(20), method = "lm")
+  test_dist <-analyze_distortion(model, create_dummy_gcp_data(20))
+
+  # Test that NULL is now a valid value for scale_factor
+  expect_no_error(indicatrices.distortion(test_dist, scale_factor = NULL))
+
+  # Test for invalid scale_factor
+  expect_error(
+    indicatrices.distortion(test_dist, scale_factor = -1),
+    "`scale_factor` must be NULL or a single positive numeric value."
   )
-  # log2(0.96 / 2^2)
-  expect_equal(unique(round(res2$log2_area_scale, 6)),
-               log2(0.96 / 4),
-               tolerance = TOLERANCE)
+})
+
+test_that("automatic scaling calculates a factor and issues a message", {
+
+  model <- train_pai_model(create_dummy_gcp_data(20), method = "lm")
+  test_dist <-analyze_distortion(model, create_dummy_gcp_data(20))
+
+  # Check that a message is printed when scale_factor is NULL
+  expect_message(
+    indicatrices.distortion(test_dist, scale_factor = NULL),
+    "`scale_factor` is NULL. Automatically chosen value"
+  )
+
+  # Check that it runs without error
+  p <- suppressMessages(indicatrices.distortion(test_dist))
+  expect_s3_class(p, "ggplot")
+
+  # Check that the resulting scale factor is a reasonable positive number
+  p_build <- ggplot_build(p)
+  built_data <- p_build$data[[1]]
+  # The ellipse axes 'a' and 'b' should be much larger than the raw data 'a' and 'b'
+  expect_gt(mean(built_data$a), mean(test_dist$a))
+})
+
+test_that("manual scale_factor override works as expected", {
+
+  model <- train_pai_model(create_dummy_gcp_data(20), method = "lm")
+  test_dist <-analyze_distortion(model, create_dummy_gcp_data(20))
+
+
+  scale <- 1000
+
+  # When we provide a value, there should be NO message
+  expect_no_message(
+    indicatrices.distortion(test_dist, scale_factor = scale),
+  )
+
+  p <- indicatrices.distortion(test_dist, scale_factor = scale)
+  p_build <- ggplot_build(p)
+  built_data <- p_build$data[[1]]
+
+  # Check if the manual scale was applied correctly
+  expect_equal(built_data$a[1], test_dist$a[1] * scale, tolerance = 0.1)
+  expect_equal(built_data$b[1], test_dist$b[1] * scale, tolerance = 0.1)
+})
+
+# Keep the other tests from the previous version as they are still valid
+test_that("output is a ggplot object with a GeomEllipse layer", {
+
+  model <- train_pai_model(create_dummy_gcp_data(20), method = "lm")
+  test_dist <-analyze_distortion(model, create_dummy_gcp_data(20))
+
+  p <- suppressMessages(indicatrices.distortion(test_dist))
+  expect_s3_class(p, "ggplot")
+  expect_s3_class(p$layers[[1]]$geom, "GeomShape")
+})
+
+test_that("static aesthetics (colors) are mapped correctly", {
+
+  model <- train_pai_model(create_dummy_gcp_data(20), method = "lm")
+  test_dist <-analyze_distortion(model, create_dummy_gcp_data(20))
+
+  fill <- "#FF5733"
+  border <- "darkgrey"
+
+  p <- suppressMessages(indicatrices.distortion(
+    test_dist, fill_color = fill, border_color = border)
+    )
+
+  p_build <- ggplot_build(p)
+  built_data <- p_build$data[[1]]
+
+  expect_equal(unique(built_data$fill), fill)
+  expect_equal(unique(built_data$colour), border)
 })

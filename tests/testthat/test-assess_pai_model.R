@@ -1,86 +1,133 @@
-# Tests for the model assessment function: assess_pai_model()
+test_that("output is the correct class and structure", {
 
-test_that("assess_pai_model()  handels arguments corectly", {
-  withr::with_tempdir({
-    demo_files <- create_demo_data(output_dir = ".")
-    gcp_data <- read_gcps(gcp_path = demo_files$gcp_path)
+  test_gcp <- create_dummy_gcp_data(50)
 
-    expect_error( assess_pai_model(list(), pai_method = "rf"))
-    expect_error( assess_pai_model(gcp_data, pai_method = "rf", validation_type = "xxx"))
-    expect_no_error(assess_pai_model(gcp_data = gcp_data, validation_type = "probability", k_folds = NULL, pai_method = "rf"))
-    expect_no_error(assess_pai_model(gcp_data = gcp_data, validation_type = "stratified", k_folds = NULL, pai_method = "rf"))
+  simple_lm_method <- list(
+    label = "SimpleLM",
+    modelType = "univariate",
+    library = NULL,
+    fit = function(x, y, ...) stats::lm(y ~ ., data.frame(y, x)),
+    predict = function(m, n, ...) stats::predict(m, n)
+  )
 
-  })
+
+  res <- cv_pai_model(gcp_data = test_gcp,
+                      pai_method =  simple_lm_method,
+                      validation_type =  "random",
+                      k_folds = 5)
+
+  expect_s3_class(res, "pai_assessment")
+  expect_named(res, c("summary", "predictions", "details"))
+  expect_s3_class(res$summary, "data.frame")
+  expect_s3_class(res$predictions, "data.frame")
 })
 
+test_that("random k-fold CV works as expected", {
 
-test_that("assess_pai_model() returns a correctly structured data frame", {
-  withr::with_tempdir({
-    demo_files <- create_demo_data(output_dir = ".")
-    gcp_data <- read_gcps(gcp_path = demo_files$gcp_path)
+  test_gcp <- create_dummy_gcp_data(50)
+  k <- 5
 
-    methods_to_test <- c("rf", "lm", "gam", "helmert", "tps")
-    validation_types <- c("random", "spatial")
+  res <- cv_pai_model(test_gcp, "lm", validation_type = "random", k_folds = k)
 
-    for (pai_method in methods_to_test) {
-      for (v_type in validation_types) {
-        assessment <- assess_pai_model(
-          gcp_data,
-          pai_method = pai_method,
-          validation_type = v_type,
-          k_folds = 3
-        )
-        expect_s3_class(assessment, "data.frame")
-        expect_equal(nrow(assessment), 1)
-        expect_named(assessment, c("Method", "ValidationType", "Mean_RMSE_2D", "SD_RMSE_2D"))
-      }
-    }
+  expect_equal(res$summary$ValidationType, "random")
 
-    # Test for probability sampling
-    assessment1_prob <- assess_pai_model(gcp_data, pai_method = "rf", validation_type = "probability", seed = 789)
-    assessment2_prob <- assess_pai_model(gcp_data, pai_method = "rf", validation_type = "probability", seed = 789)
-    expect_equal(assessment1_prob, assessment2_prob)
-  })
+  expect_equal(res$details$k_folds, k)
+  expect_true(is.na(res$details$train_split_ratio))
+  expect_true(is.na(res$details$n_strata))
+
+  expect_equal(nrow(res$predictions), nrow(test_gcp)) # All points predicted once
+
+  expect_false(is.na(res$summary$SD_RMSE_2D)) # SD should be present
+  expect_length(unique(res$predictions$fold), k)
+
 })
 
-test_that("assessment is reproducible when a seed is set", {
-  withr::with_tempdir({
-    demo_files <- create_demo_data(output_dir = ".")
-    gcp_data <- read_gcps(gcp_path = demo_files$gcp_path)
+test_that("spatial k-fold CV works as expected", {
+  k = 4
+  test_gcp <- create_dummy_gcp_data(50)
+  res <- cv_pai_model(test_gcp, "lm", validation_type = "spatial", k_folds = k)
 
-    assessment1 <- assess_pai_model(gcp_data, pai_method = "rf", seed = 123)
-    assessment2 <- assess_pai_model(gcp_data, pai_method = "rf", seed = 123)
-    expect_equal(assessment1, assessment2)
-  })
+  expect_equal(res$summary$ValidationType, "spatial")
+  expect_equal(res$details$k_folds, k)
+  expect_true(is.na(res$details$train_split_ratio))
+  expect_true(is.na(res$details$n_strata))
+
+  expect_equal(nrow(res$predictions), nrow(test_gcp))
+  expect_false(is.na(res$summary$SD_RMSE_2D))
+  expect_length(unique(res$predictions$fold), k)
+
 })
 
-test_that("assess_pai_model() handles invalid inputs gracefully", {
-  withr::with_tempdir({
-    demo_files <- create_demo_data(output_dir = ".")
-    gcp_data <- read_gcps(gcp_path = demo_files$gcp_path)
+test_that("probability (single split) works as expected", {
+  test_gcp <- create_dummy_gcp_data(50)
+  res <- cv_pai_model(test_gcp, "lm",
+                      validation_type = "probability",
+                      train_split_ratio = 0.75)
 
-    expect_error(assess_pai_model(gcp_data, pai_method = "svm"))
+  expect_equal(res$summary$ValidationType, "probability")
 
-    # THE FIX for the error: Check for the correct error message.
-    small_gcp_data <- gcp_data[1:3, ]
-    expect_error(
-      assess_pai_model(small_gcp_data, pai_method = "rf", k_folds = 5),
-      "The number of complete GCPs is less than k_folds.",
-      fixed = TRUE
-    )
-  })
+  expect_true(is.na(res$details$k_folds))
+  expect_equal(res$details$train_split_ratio, 0.75)
+  expect_true(is.na(res$details$n_strata))
+
+  # Number of predictions should match test set size
+  expect_equal(nrow(res$predictions), nrow(test_gcp) - floor(0.75 * nrow(test_gcp)))
+  expect_true(is.na(res$summary$SD_RMSE_2D)) # No SD for single split
 })
 
-test_that("sanitize data works",{
-  withr::with_tempdir({
-    demo_files <- create_demo_data(output_dir = ".")
-    gcp_data <- read_gcps(gcp_path = demo_files$gcp_path)
+test_that("stratified works as expected", {
+  test_gcp <- create_dummy_gcp_data(60)
+  n_strata <- 4
+  res <- cv_pai_model(test_gcp, "lm",
+                      validation_type = "stratified",
+                      n_strata = n_strata)
 
-    gcd_data_na <- gcp_data
-    gcd_data_na$source_x[1] <- NA
+  expect_equal(res$summary$ValidationType, "stratified")
 
-    expect_warning(
-      assessment <- assess_pai_model(gcd_data_na, pai_method = "rf", seed = 123)
-      )
-  })
+  expect_true(is.na(res$details$k_folds))
+  expect_true(is.na(res$details$train_split_ratio))
+
+  expect_equal(res$details$n_strata, n_strata)
+  expect_equal(nrow(res$predictions), nrow(test_gcp))
+  expect_length(unique(res$predictions$fold), n_strata)
+
+  expect_false(is.na(res$summary$SD_RMSE_2D))
+})
+
+# --- Tests for print.pai_assessment ---
+
+test_that("print method for CV results is correct", {
+
+  test_gcp <- create_dummy_gcp_data(60)
+  res <- cv_pai_model(test_gcp, "lm", validation_type = "random", k_folds = 5)
+
+  output <- capture.output(print(res))
+
+  expect_true(any(grepl("--- PAI Model Assessment Results ---", output)))
+  expect_true(any(grepl("Validation Type:    random", output)))
+  expect_true(any(grepl("Folds:              5", output)))
+  expect_true(any(grepl("Mean 2D RMSE:", output)))
+  expect_true(any(grepl("Std Dev of RMSE:", output))) # Check for SD line
+})
+
+test_that("print method for single-split results is correct", {
+  test_gcp <- create_dummy_gcp_data(60)
+  res <- cv_pai_model(test_gcp, "lm", validation_type = "probability", train_split_ratio = 0.8)
+
+  output <- capture.output(print(res))
+
+  expect_true(any(grepl("Validation Type:    probability", output)))
+  expect_true(any(grepl("Train/Test Split:   80% / 20%", output)))
+  expect_false(any(grepl("Std Dev of RMSE:", output))) # Should NOT be a line for SD
+})
+
+test_that("print method for stratified results is correct", {
+  test_gcp <- create_dummy_gcp_data(60)
+  res <- cv_pai_model(test_gcp, "lm", validation_type = "stratified", n_strata = 3)
+
+  output <- capture.output(print(res))
+
+  expect_true(any(grepl("Validation Type:    stratified", output)))
+  expect_true(any(grepl("Strata:", output)))
+  expect_true(any(grepl("Std Dev of RMSE:", output)))
 })

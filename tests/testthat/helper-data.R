@@ -3,9 +3,7 @@
 
 library(testthat)
 library(sf)
-library(dplyr)
 library(utils)
-library(mockery)
 
 # Helper function to create a dummy shapefile for testing
 create_dummy_shp <- function(file_path,
@@ -42,28 +40,27 @@ create_dummy_shp <- function(file_path,
   return(file_path)
 }
 
-# Helper function to create a dummy GCP CSV file
-create_dummy_gcp_csv <- function(path, data = NULL) {
-  if (is.null(data)) {
-    data <- data.frame(
-      source_x = c(10, 20, 30),
-      source_y = c(100, 110, 120),
-      target_x = c(12, 23, 35),
-      target_y = c(101, 112, 124)
-    )
-  }
-  utils::write.csv(data, path, row.names = FALSE)
-}
 
-# Helper function to create dummy gcp_data
-create_dummy_gcp_data <- function(n = 500) {
+# Helper function to create dummy gcp_data *** Refactored package function
+create_dummy_gcp_data <- function(n = 200) {
   set.seed(123) # for reproducibility of dummy data
-  data.frame(
-    source_x = runif(n, 0, 1000), # Increased range for source_x and source_y
-    source_y = runif(n, 0, 1000),
-    dx = rnorm(n, 0, 5), # Increased variance for dx and dy
-    dy = rnorm(n, 0, 5)
+  df <- data.frame(
+    source_x = runif(n, 0, 1000),
+    source_y = runif(n, 0, 1000)
   )
+
+  # make target coordinates a simple function of sources with noise
+  df$target_x <- 1.05 * df$source_x + 0.0005 * df$source_x^2  + runif(n, 0, 1)
+  df$target_y <- 1.25 * df$source_y - 0.00006 * df$source_y^2  + runif(n, 0, 1)
+
+  # compute displacements
+  df$dx <- df$target_x - df$source_x
+  df$dy <- df$target_y - df$source_y
+
+  class(df) <- c("gcp", "data.frame")
+
+  return(df)
+
 }
 
 # Function to create a simple square polygon for area tests

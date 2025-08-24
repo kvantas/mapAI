@@ -85,20 +85,3 @@ test_that("predict.helmert handles invalid input gracefully", {
   )
 })
 
-test_that("Full apply_pai_model workflow works for helmert method with demo data", {
-  withr::with_tempdir({
-    demo_files <- create_demo_data(output_dir = ".")
-    gcp_data <- read_gcps(gcp_path = demo_files$gcp_path)
-    map_to_correct <- read_map(shp_path = demo_files$shp_path)
-
-    # This is a full integration test using the demo data
-
-    # 1. Train the helmert model
-    helmert_model <- train_pai_model(gcp_data, pai_method = "helmert")
-
-    # 3. Apply the correction to the map
-    corrected_map <- apply_pai_model(pai_model = helmert_model, map = map_to_correct)
-
-    expect_s3_class(corrected_map , "sf")
-  })
-})

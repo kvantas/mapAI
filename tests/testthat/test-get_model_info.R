@@ -1,6 +1,3 @@
-# test the get_model_info function usint the buil-in lm method and a custom model
-# list
-
 test_that("get_model_info works with built-in models", {
   model_info <- get_model_info("lm")
   expect_type(model_info, "list")
@@ -30,8 +27,6 @@ test_that("get_model_info works with custom model list", {
   expect_true(is.function(model_info$fit))
   expect_true(is.function(model_info$predict))
 })
-
-# test that get_model_info errors with invalid inputs
 
 test_that("get_model_info errors with invalid built-in model", {
   expect_error(get_model_info("nonexistent_model"),
