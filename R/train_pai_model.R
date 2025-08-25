@@ -24,18 +24,11 @@
 #'
 #' demo_data <- create_demo_data()
 #'
-#' # fit a linear model (two independent univariate models)
-#' lm_model <- train_pai_model(gcp_data = demo_data$gcp, method = "lm")
-#' print(lm_model)
-#'
 #' # fit a bivariate GAM model
 #' gam_model <- train_pai_model(gcp_data = demo_data$gcp, method = "gam_biv")
 #'
-#' # print method
-#' print(gam_model)
-#'
 #' # plot the residuals of the GAM model
-#' residuals.pai_model(gam_model)
+#' residuals(gam_model)
 #'
 #' # plot the learned correction surfaces for dx and dy for the model
 #' surface(gam_model)
@@ -281,6 +274,7 @@ plot.pai_model <- function(x, ...) {
 #'   residual vectors. A value of 2, for instance, will double their
 #'   plotted length, making subtle residuals more visible. Defaults to 1
 #'   (no exaggeration).
+#' @param ... Additional arguments (not used).
 #' @return A plot with the residual as arrows using a `ggplot` object, which
 #' can be further customized.
 #' @import ggplot2
@@ -295,7 +289,8 @@ residuals.pai_model <- function(
     subtitle = "Arrows point from predicted to true target locations",
     arrow_color = "darkblue",
     point_color = "blue",
-    exaggeration_factor = 1) {
+    exaggeration_factor = 1,
+    ...) {
 
   # Predict the displacements
   pred <- predict(object, object$gcp)
@@ -343,8 +338,17 @@ residuals.pai_model <- function(
 #' @description This is a generic function that generates a surface
 #'  representation for both `dx` and `dy`  from a fitted model object. T
 #'
-#' @param object The fitted model object.
-#' @param ... Additional arguments passed to specific methods.
+#' @param object A trained `pai_model` object returned by `train_pai_model()`.
+#' @param n_grid The resolution of the interpolation grid used to create the
+#'  smooth surface. Higher values create a more detailed plot but take longer to
+#'   compute. Defaults to 100.
+#' @param plot_gcp A logical value indicating whether to plot the GCP
+#' locations on the correction surfaces. Defaults to `TRUE`.
+#' @param dx_range A numeric vector of length 2 specifying the limits for the
+#'  `dx` color scale (e.g., `c(-10, 10)`). Defaults to `NULL`, which uses the
+#'  data's range.
+#' @param dy_range A numeric vector of length 2 specifying the limits for the
+#'  `dy` color scale. Defaults to `NULL`.
 #'
 #' @return A surface representation (e.g. a list with two ggplots).
 #' @import ggplot2
@@ -354,7 +358,11 @@ residuals.pai_model <- function(
 #' @examples
 #' # See ?train_pai_model for a complete, runnable example.
 
-surface <- function(object, ...) {
+surface <- function(object,
+                    n_grid,
+                    plot_gcp,
+                    dx_range,
+                    dy_range) {
   UseMethod("surface")
 }
 

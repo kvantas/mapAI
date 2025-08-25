@@ -10,7 +10,8 @@
   subtitle = "Arrows point from predicted to true target locations",
   arrow_color = "darkblue",
   point_color = "blue",
-  exaggeration_factor = 1
+  exaggeration_factor = 1,
+  ...
 )
 }
 \arguments{
@@ -30,6 +31,8 @@ marking the predicted locations.}
 residual vectors. A value of 2, for instance, will double their
 plotted length, making subtle residuals more visible. Defaults to 1
 (no exaggeration).}
+
+\item{...}{Additional arguments (not used).}
 }
 \value{
 A plot with the residual as arrows using a \code{ggplot} object, which

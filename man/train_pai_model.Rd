@@ -41,18 +41,11 @@ regression algorithm into the \code{mapAI} workflow.
 
 demo_data <- create_demo_data()
 
-# fit a linear model (two independent univariate models)
-lm_model <- train_pai_model(gcp_data = demo_data$gcp, method = "lm")
-print(lm_model)
-
 # fit a bivariate GAM model
 gam_model <- train_pai_model(gcp_data = demo_data$gcp, method = "gam_biv")
 
-# print method
-print(gam_model)
-
 # plot the residuals of the GAM model
-residuals.pai_model(gam_model)
+residuals(gam_model)
 
 # plot the learned correction surfaces for dx and dy for the model
 surface(gam_model)

@@ -4,12 +4,12 @@
 \alias{print.distortion}
 \title{Print Method for distortion Objects}
 \usage{
-\method{print}{distortion}(object, ...)
+\method{print}{distortion}(x, ...)
 }
 \arguments{
-\item{...}{Additional arguments (not used).}
-
 \item{x}{An object of class \code{distortion}.}
+
+\item{...}{Additional arguments (not used).}
 }
 \description{
 Custom print method for \code{distortion} objects to provide a concise

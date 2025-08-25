@@ -147,10 +147,10 @@ analyze_distortion <- function(pai_model,
 #' @examples
 #' # See ?analyze_distortion for a runnable example that creates a
 #' # distortion object.
-print.distortion <- function(object, ...) {
+print.distortion <- function(x, ...) {
   cat("Distortion Analysis Results\n")
   cat("---------------------------\n")
-  cat("Number of Points Analyzed:", nrow(object), "\n")
+  cat("Number of Points Analyzed:", nrow(x), "\n")
   cat("Metrics Included:\n")
   cat(" - a: Major axis length of Tissot's indicatrix\n")
   cat(" - b: Minor axis length of Tissot's indicatrix\n")
@@ -161,13 +161,13 @@ print.distortion <- function(object, ...) {
   cat(" - airy_kavrayskiy: Airy-Kavrayskiy distortion measure\n")
   cat(" - theta_a: Orientation of maximum distortion (degrees)\n")
 
-  n <- nrow(object)
+  n <- nrow(x)
   if (n > 10) {
     cat("Displaying first 10 points:\n")
-    object <- object[1:10, ]
+    x <- x[1:10, ]
   }
-  print.data.frame(object)
-  invisible(object)
+  print.data.frame(x)
+  invisible(x)
 }
 
 
@@ -177,7 +177,7 @@ print.distortion <- function(object, ...) {
 #' @param object An object of class `distortion`.
 #' @param ... Additional arguments (not used).
 #' @return A data frame summarizing key statistics for each distortion metric.
-#' @importFrom stats sd, median
+#' @importFrom stats sd median
 #' @export
 #' @examples
 #' # See ?analyze_distortion for a runnable example.
@@ -227,7 +227,8 @@ summary.distortion <- function(object, ...) {
 #' @param value_range A numeric vector of length 2 specifying color scale limits.
 #' @param add_points If `TRUE`, the original analysis points are overlaid.
 #' @param n_grid The resolution of the interpolation grid (e.g., 200x200).
-#'
+#' @param ... Additional arguments (not used).
+
 #' @return A `ggplot` object.
 #'
 #' @import ggplot2
@@ -243,7 +244,8 @@ plot.distortion <- function(x,
                             diverging = FALSE,
                             value_range = NULL,
                             add_points = TRUE,
-                            n_grid = 200) {
+                            n_grid = 200,
+                            ...) {
 
   # --- 1. Input Validation ---
   plot_input_validation(x, metric, palette, diverging, value_range, add_points)
@@ -322,15 +324,23 @@ plot.distortion <- function(x,
 #' @title Generate Tissot's Indicatrices from Distortion Analysis
 #' @description Creates a spatial object of ellipses (Tissot's indicatrices)
 #'  representing local distortion at each analysis point.
-#' @param object A `distortion` object returned by `analyze_distortion()`.
-#' @param ... Additional arguments passed to specific methods.
+#' @param object A `distortion` object from `analyze_distortion()`.
+#' @param scale_factor A numeric value to control the visual size of the
+#'   plotted ellipses. If `NULL` (the default), a reasonable scale factor is
+#'   automatically calculated based on the spatial extent of the data.
+#' @param fill_color A character string specifying the fill color of the ellipses.
+#' @param border_color A character string specifying the border color.
+#' @param alpha A numeric value (0-1) for the transparency of the ellipses.
 #' @return A `ggplot` object containing the distortion ellipses plotted in the
 #'   source coordinate space.
 #' @export
 #' @examples
 #' # See ?analyze_distortion for a complete, runnable example.
 
-indicatrices <- function(object, ...) {
+indicatrices <- function(object, scale_factor,
+                         fill_color,
+                         border_color,
+                         alpha) {
   UseMethod("indicatrices")
 }
 

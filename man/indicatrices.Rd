@@ -4,12 +4,20 @@
 \alias{indicatrices}
 \title{Generate Tissot's Indicatrices from Distortion Analysis}
 \usage{
-indicatrices(object, ...)
+indicatrices(object, scale_factor, fill_color, border_color, alpha)
 }
 \arguments{
-\item{object}{A \code{distortion} object returned by \code{analyze_distortion()}.}
+\item{object}{A \code{distortion} object from \code{analyze_distortion()}.}
 
-\item{...}{Additional arguments passed to specific methods.}
+\item{scale_factor}{A numeric value to control the visual size of the
+plotted ellipses. If \code{NULL} (the default), a reasonable scale factor is
+automatically calculated based on the spatial extent of the data.}
+
+\item{fill_color}{A character string specifying the fill color of the ellipses.}
+
+\item{border_color}{A character string specifying the border color.}
+
+\item{alpha}{A numeric value (0-1) for the transparency of the ellipses.}
 }
 \value{
 A \code{ggplot} object containing the distortion ellipses plotted in the

@@ -4,12 +4,24 @@
 \alias{surface}
 \title{Create distortion surfaces from a PAI Model}
 \usage{
-surface(object, ...)
+surface(object, n_grid, plot_gcp, dx_range, dy_range)
 }
 \arguments{
-\item{object}{The fitted model object.}
+\item{object}{A trained \code{pai_model} object returned by \code{train_pai_model()}.}
 
-\item{...}{Additional arguments passed to specific methods.}
+\item{n_grid}{The resolution of the interpolation grid used to create the
+smooth surface. Higher values create a more detailed plot but take longer to
+compute. Defaults to 100.}
+
+\item{plot_gcp}{A logical value indicating whether to plot the GCP
+locations on the correction surfaces. Defaults to \code{TRUE}.}
+
+\item{dx_range}{A numeric vector of length 2 specifying the limits for the
+\code{dx} color scale (e.g., \code{c(-10, 10)}). Defaults to \code{NULL}, which uses the
+data's range.}
+
+\item{dy_range}{A numeric vector of length 2 specifying the limits for the
+\code{dy} color scale. Defaults to \code{NULL}.}
 }
 \value{
 A surface representation (e.g. a list with two ggplots).

@@ -38,14 +38,15 @@
 #'
 #' # Inspect results
 #' library(ggplot2)
-#' For easy plotting, add a 'status' column and combine the maps
+#'
+#' # For easy plotting, add a 'status' column and combine the maps
 #' map_to_correct$status <- "Original (Distorted)"
 #' corrected_map$status <- "Corrected"
 #' comparison_data <- rbind(map_to_correct[, "status"], corrected_map[, "status"])
 #'
-#' # Create the final comparison plotggplot(comparison_data) +
-#' geom_sf(aes(color = status, linetype = status),
-#'         fill = NA, linewidth = 0.7) +
+#' # Create the final comparison plot
+#' ggplot(comparison_data) +
+#' geom_sf(aes(color = status, linetype = status), fill = NA, linewidth = 0.7) +
 #'   scale_color_manual(
 #'     name = "Map Status",
 #'     values = c("Original (Distorted)" = "grey50", "Corrected" = "#e41a1c")) +

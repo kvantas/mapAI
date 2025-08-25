@@ -11,7 +11,8 @@
   diverging = FALSE,
   value_range = NULL,
   add_points = TRUE,
-  n_grid = 200
+  n_grid = 200,
+  ...
 )
 }
 \arguments{
@@ -28,6 +29,8 @@
 \item{add_points}{If \code{TRUE}, the original analysis points are overlaid.}
 
 \item{n_grid}{The resolution of the interpolation grid (e.g., 200x200).}
+
+\item{...}{Additional arguments (not used).}
 }
 \value{
 A \code{ggplot} object.

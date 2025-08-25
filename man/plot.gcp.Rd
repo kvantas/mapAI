@@ -10,7 +10,8 @@
   subtitle = "Arrows point from distorted to true locations",
   arrow_color = "darkred",
   point_color = "red",
-  exaggeration_factor = 1
+  exaggeration_factor = 1,
+  ...
 )
 }
 \arguments{
@@ -30,6 +31,8 @@ marking the source locations.}
 displacement vectors. A value of 2, for instance, will double their
 plotted length, making subtle displacements more visible. Defaults to 1
 (no exaggeration).}
+
+\item{...}{Additional arguments (not used).}
 }
 \value{
 A \code{ggplot} object, which can be further customized using standard
