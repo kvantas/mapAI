@@ -80,7 +80,7 @@ plot_input_validation <- function(x, metric, palette, diverging, value_range, ad
         value_range[1] >= value_range[2]) {
       stop(
         "`value_range` must be an increasing numeric vector of length 2.",
-           call. = FALSE)
+        call. = FALSE)
     }
   }
   if (!is.logical(add_points) || length(add_points) != 1) {
@@ -261,4 +261,39 @@ validate_demo_data_inputs <- function(type, noise_sd, n_points, seed,
 
   # If all checks pass, return invisibly
   invisible(NULL)
+}
+
+
+#' Validate Inputs for the map_transform function
+#'
+#' This is an internal helper function that checks the validity of all arguments
+#' passed to `map_transform`. It stops execution with an informative error
+#' message if any check fails.
+#'
+#' @keywords internal
+#' @noRd
+validate_map_transform <- function(pai_model, map, aoi){
+
+  if (!inherits(pai_model, "pai_model")) {
+    stop("`pai_model` must be an object of class 'pai_model'.", call. = FALSE)
+  }
+
+  if (!inherits(map, "sf")) {
+    stop("`map` must be a valid `sf` object.", call. = FALSE)
+  }
+
+  if (!is.null(aoi)) {
+    if (!inherits(aoi, "sf") || !any(sf::st_geometry_type(aoi) %in% c("POLYGON", "MULTIPOLYGON"))) {
+      stop("`aoi` must be a valid `sf` object with POLYGON or MULTIPOLYGON geometry.", call. = FALSE)
+    }
+    # Ensure AOI has the same CRS as the map
+    if (sf::st_crs(aoi) != sf::st_crs(map)) {
+      aoi <- sf::st_transform(aoi, sf::st_crs(map))
+      message("Transformed `aoi` CRS to match `map` CRS.")
+    }
+  }
+
+  # If all checks pass, return invisibly
+  invisible(NULL)
+
 }

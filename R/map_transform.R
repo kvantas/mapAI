@@ -23,44 +23,39 @@
 #' @return A new `sf` object with the corrected geometry.
 #'
 #' @import sf
-#' @import dplyr
 #' @importFrom stats predict
 #' @export
 #' @examples
 #' # This example demonstrates a full workflow with POINT geometry.
 #'
-#' # --- 1. Load Data and Train Model ---
+#' # Load Data and Train Model
 #' demo_data <- create_demo_data()
+#' map_to_correct <- demo_data$map
 #' gam_model <- train_pai_model(demo_data$gcp, method = "gam_biv")
 #'
-#' # --- 2. Apply the Model to Correct the Points ---
-#' corrected_points <- apply_pai_model(gam_model, demo_data$gcp)
+#' # Apply the Model to the demo map ---
+#'  corrected_map <- map_transform(gam_model, demo_data$map)
 #'
-#' # --- 3. Inspect  ---
-#' # The coordinates of the corrected points should be different.
-#' head(sf::st_coordinates(gcps))
-#' head(sf::st_coordinates(corrected_points))
+#' # Inspect results
+#' library(ggplot2)
+#' For easy plotting, add a 'status' column and combine the maps
+#' map_to_correct$status <- "Original (Distorted)"
+#' corrected_map$status <- "Corrected"
+#' comparison_data <- rbind(map_to_correct[, "status"], corrected_map[, "status"])
 #'
-apply_pai_model <- function(pai_model, map, aoi = NULL) {
+# Create the final comparison plot
+#' ggplot(comparison_data) +
+#'  geom_sf(aes(color = status, linetype = status), fill = NA, linewidth = 0.7) +
+#'  scale_color_manual(name = "Map Status", values = c("Original (Distorted)" = "grey50", "Corrected" = "#e41a1c")) +
+#'  scale_linetype_manual(name = "Map Status", values = c("Original (Distorted)" = "dashed", "Corrected" = "solid")) +
+#'  labs(title = "Positional Correction of a Distorted Grid",
+#'       subtitle = "Overlay of original (dashed) and mapAI-corrected (solid) geometries") +
+#'  theme_minimal()
+
+map_transform <- function(pai_model, map, aoi = NULL) {
+
   # --- 1. Input Validation ---
-  if (!inherits(pai_model, "pai_model")) {
-    stop("`pai_model` must be an object of class 'pai_model'.", call. = FALSE)
-  }
-
-  if (!inherits(map, "sf")) {
-    stop("`map` must be a valid `sf` object.", call. = FALSE)
-  }
-
-  if (!is.null(aoi)) {
-    if (!inherits(aoi, "sf") || !any(sf::st_geometry_type(aoi) %in% c("POLYGON", "MULTIPOLYGON"))) {
-      stop("`aoi` must be a valid `sf` object with POLYGON or MULTIPOLYGON geometry.", call. = FALSE)
-    }
-    # Ensure AOI has the same CRS as the map
-    if (sf::st_crs(aoi) != sf::st_crs(map)) {
-      aoi <- sf::st_transform(aoi, sf::st_crs(map))
-      message("Transformed `aoi` CRS to match `map` CRS.")
-    }
-  }
+  validate_map_transform(pai_model, map, aoi)
 
   message("Applying PAI model to map features...")
 
@@ -161,7 +156,8 @@ apply_pai_model <- function(pai_model, map, aoi = NULL) {
   # --- 5. Calculate new area for polygons ---
   if (any(grepl("POLYGON", sf::st_geometry_type(map)))) {
     message("Calculating area of corrected polygons...")
-    # Check if the area column from the original map exists, if so, remove it to avoid conflicts
+    # Check if the area column from the original map exists, if so, remove it
+    # to avoid conflicts
     if ("area_new" %in% names(corrected_map)) {
       corrected_map$area_new <- NULL
     }
