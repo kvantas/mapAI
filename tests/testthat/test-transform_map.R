@@ -1,4 +1,4 @@
-# Tests for apply_pai_model()
+# Tests for map_transform()
 
 test_that("apply_pai_model() returns valid sf with correct number of rows", {
   withr::with_tempdir({

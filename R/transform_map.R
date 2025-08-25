@@ -26,7 +26,7 @@
 #' @importFrom stats predict
 #' @export
 #' @examples
-#' # This example demonstrates a full workflow with POINT geometry.
+#' # This example demonstrates a full workflow
 #'
 #' # Load Data and Train Model
 #' demo_data <- create_demo_data()
@@ -52,7 +52,7 @@
 #'       subtitle = "Overlay of original (dashed) and mapAI-corrected (solid) geometries") +
 #'  theme_minimal()
 
-map_transform <- function(pai_model, map, aoi = NULL) {
+transform_map <- function(pai_model, map, aoi = NULL) {
 
   # --- 1. Input Validation ---
   validate_map_transform(pai_model, map, aoi)
