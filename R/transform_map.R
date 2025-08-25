@@ -34,7 +34,7 @@
 #' gam_model <- train_pai_model(demo_data$gcp, method = "gam_biv")
 #'
 #' # Apply the Model to the demo map ---
-#'  corrected_map <- map_transform(gam_model, demo_data$map)
+#'  corrected_map <- transform_map(gam_model, demo_data$map)
 #'
 #' # Inspect results
 #' library(ggplot2)
@@ -80,6 +80,7 @@ transform_map <- function(pai_model, map, aoi = NULL) {
       geom_type <- as.character(sf::st_geometry_type(feature))
       original_coords <- sf::st_coordinates(feature)
 
+      # Skip empty geometries
       if (nrow(original_coords) == 0) {
         new_geom_list[[i]] <- feature
         next
@@ -88,7 +89,7 @@ transform_map <- function(pai_model, map, aoi = NULL) {
       source_coords_df <- as.data.frame(original_coords[, 1:2, drop = FALSE])
       names(source_coords_df) <- c("source_x", "source_y")
 
-      displacements <- predict(pai_model, newdata = source_coords_df)
+      displacements <- predict(pai_model, source_coords_df)
       corrected_coords <- original_coords
       corrected_coords[, 1] <- corrected_coords[, 1] + displacements$dx
       corrected_coords[, 2] <- corrected_coords[, 2] + displacements$dy

@@ -63,6 +63,7 @@ create_dummy_gcp_data <- function(n = 200) {
 
 }
 
+
 # Function to create a simple square polygon for area tests
 create_test_polygon <- function(path) {
   poly_coords <- matrix(c(0,0, 0,10, 10,10, 10,0, 0,0), ncol = 2, byrow = TRUE)

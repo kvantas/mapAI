@@ -39,6 +39,7 @@ test_that("all models can fit and predict with simulated data", {
     # Skip if required library is not available
     if (!is.null(model$library)) {
       if (!requireNamespace(model$library, quietly = TRUE)) {
+        print(paste("Skipping", model_name, "model: required package", model$library, "not installed."))
         next
       }
     }
