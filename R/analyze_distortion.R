@@ -177,6 +177,7 @@ print.distortion <- function(object, ...) {
 #' @param object An object of class `distortion`.
 #' @param ... Additional arguments (not used).
 #' @return A data frame summarizing key statistics for each distortion metric.
+#' @importFrom stats sd, median
 #' @export
 #' @examples
 #' # See ?analyze_distortion for a runnable example.

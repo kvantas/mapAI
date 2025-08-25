@@ -27,7 +27,6 @@ Config/testthat/edition: 3
 Imports: 
     akima,
     dplyr,
-    magrittr,
     rlang,
     sf,
     units,

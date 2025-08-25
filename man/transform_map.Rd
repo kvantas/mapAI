@@ -43,7 +43,7 @@ map_to_correct <- demo_data$map
 gam_model <- train_pai_model(demo_data$gcp, method = "gam_biv")
 
 # Apply the Model to the demo map ---
- corrected_map <- transform_map(gam_model, demo_data$map)
+corrected_map <- transform_map(gam_model, demo_data$map)
 
 # Inspect results
 library(ggplot2)
@@ -52,11 +52,17 @@ map_to_correct$status <- "Original (Distorted)"
 corrected_map$status <- "Corrected"
 comparison_data <- rbind(map_to_correct[, "status"], corrected_map[, "status"])
 
-ggplot(comparison_data) +
- geom_sf(aes(color = status, linetype = status), fill = NA, linewidth = 0.7) +
- scale_color_manual(name = "Map Status", values = c("Original (Distorted)" = "grey50", "Corrected" = "#e41a1c")) +
- scale_linetype_manual(name = "Map Status", values = c("Original (Distorted)" = "dashed", "Corrected" = "solid")) +
- labs(title = "Positional Correction of a Distorted Grid",
-      subtitle = "Overlay of original (dashed) and mapAI-corrected (solid) geometries") +
- theme_minimal()
+# Create the final comparison plotggplot(comparison_data) +
+geom_sf(aes(color = status, linetype = status),
+        fill = NA, linewidth = 0.7) +
+  scale_color_manual(
+    name = "Map Status",
+    values = c("Original (Distorted)" = "grey50", "Corrected" = "#e41a1c")) +
+  scale_linetype_manual(
+    name = "Map Status",
+    values = c("Original (Distorted)" = "dashed", "Corrected" = "solid")) +
+  labs(
+   title = "Positional Correction of a Distorted Grid",
+    subtitle = "Overlay of original (dashed) and corrected (solid) geometries") +
+  theme_minimal()
 }
