@@ -43,7 +43,7 @@ map_to_correct <- demo_data$map
 gam_model <- train_pai_model(demo_data$gcp, method = "gam_biv")
 
 # Apply the Model to the demo map ---
- corrected_map <- map_transform(gam_model, demo_data$map)
+ corrected_map <- transform_map(gam_model, demo_data$map)
 
 # Inspect results
 library(ggplot2)
