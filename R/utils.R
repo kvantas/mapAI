@@ -176,3 +176,89 @@ validate_assessment_inputs <- function(gcp_data, pai_method, validation_type,
   # If all checks pass, return invisibly
   invisible(NULL)
 }
+
+
+#' Validate Inputs for the create_demo_data function
+#'
+#' This is an internal helper function that checks the validity of all arguments
+#' passed to `create_demo_data`. It stops execution with an informative error
+#' message if any check fails.
+#'
+#' @keywords internal
+#' @noRd
+validate_demo_data_inputs <- function(type, noise_sd, n_points, seed,
+                                      grid_limits, helmert_params,
+                                      poly_params, gauss_params) {
+
+  # --- Nested Helper for Validating Parameter Lists ---
+  check_param_list <- function(param_list, required_names, param_name) {
+    if (!is.list(param_list)) {
+      stop(paste0("`", param_name, "` must be a list."), call. = FALSE)
+    }
+
+    missing <- setdiff(required_names, names(param_list))
+    if (length(missing) > 0) {
+      stop(paste0("`", param_name, "` is missing required elements: ",
+                  paste(missing, collapse = ", ")), call. = FALSE)
+    }
+
+    all_numeric_scalar <- all(vapply(param_list[required_names], function(x) {
+      is.numeric(x) && length(x) == 1
+    }, logical(1)))
+
+    if (!all_numeric_scalar) {
+      stop(paste0("All elements in `", param_name, "` must be single numeric values."), call. = FALSE)
+    }
+  }
+
+  # --- 1. Main Argument Validation ---
+
+  # Validate `type`
+  supported_types <- c("helmert", "nonlinear", "complex")
+  if (!is.character(type) || length(type) != 1 || !type %in% supported_types) {
+    stop("`type` must be one of 'helmert', 'nonlinear', or 'complex'.", call. = FALSE)
+  }
+
+  # Validate `noise_sd`
+  if (!is.numeric(noise_sd) || length(noise_sd) != 1 || noise_sd < 0) {
+    stop("`noise_sd` must be a single, non-negative numeric value.", call. = FALSE)
+  }
+
+  # Validate `n_points`
+  if (!is.numeric(n_points) || length(n_points) != 1 || n_points %% 1 != 0 || n_points < 2) {
+    stop("`n_points` must be a single integer greater than or equal to 2.", call. = FALSE)
+  }
+
+  # Validate `seed`
+  if (!is.null(seed) && (!is.numeric(seed) || length(seed) != 1)) {
+    stop("`seed` must be NULL or a single numeric value.", call. = FALSE)
+  }
+
+  # Validate `grid_limits`
+  if (!is.numeric(grid_limits) || length(grid_limits) != 4) {
+    stop("`grid_limits` must be a numeric vector of 4 elements (xmin, xmax, ymin, ymax).", call. = FALSE)
+  }
+  if (grid_limits[1] >= grid_limits[2] || grid_limits[3] >= grid_limits[4]) {
+    stop("In `grid_limits`, xmin must be less than xmax, and ymin must be less than ymax.", call. = FALSE)
+  }
+
+  # --- 2. Parameter List Validation using the Helper ---
+
+  # Validate `helmert_params`
+  check_param_list(helmert_params, c("s", "angle_deg", "tx", "ty"), "helmert_params")
+  if (helmert_params$s <= 0) {
+    stop("The scale factor `s` in `helmert_params` must be positive.", call. = FALSE)
+  }
+
+  # Validate `poly_params`
+  check_param_list(poly_params, c("cE1", "cE2", "cN1", "cN2"), "poly_params")
+
+  # Validate `gauss_params`
+  check_param_list(gauss_params, c("A", "Ec", "Nc", "sigma2"), "gauss_params")
+  if (gauss_params$sigma2 <= 0) {
+    stop("The variance `sigma2` in `gauss_params` must be positive.", call. = FALSE)
+  }
+
+  # If all checks pass, return invisibly
+  invisible(NULL)
+}

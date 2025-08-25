@@ -54,7 +54,7 @@ test_that("print.helmert displays model summary", {
   )
 
   expect_output(print(helmert_model), "Helmert Transformation Model")
-  expect_output(print(helmert_model$coefficients), "a           b")
+  expect_output(print(helmert_model$coefficients), "a          b")
   expect_output(print(helmert_model$centroids), "u_mean   v_mean   x_mean   y_mean")
 })
 

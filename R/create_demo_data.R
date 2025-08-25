@@ -72,9 +72,17 @@ create_demo_data <- function(type = "complex",
                                                 cN1 = 0.0002, cN2 = 0.0015),
                              gauss_params = list(A = 4, Ec = 50, Nc = 0,
                                                  sigma2 = 20)) {
-  set.seed(seed)
+
+  # --- Parameter validation
+  validate_demo_data_inputs(
+    type, noise_sd, n_points, seed, grid_limits,
+    helmert_params, poly_params, gauss_params
+  )
 
   # --- Internal Helper Functions ---
+  set.seed(seed)
+
+
 
   # 1. Base grid generation
   generate_true_grid <- function(n_pts, limits) {

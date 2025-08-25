@@ -27,14 +27,12 @@ add it.
 }
 \examples{
 \dontrun{
-# First, create a demo shapefile
-demo_files <- create_demo_data()
 
 # Read the map that needs correction
-map_to_correct <- read_map(shp_path = demo_files$shp_path, quiet = TRUE)
+# map_to_correct <- read_map(shp_path = "/my_path", quiet = TRUE)
 
 # The output is now ready to be used in the `correct_map()` function
 # after a model has been trained.
-plot(sf::st_geometry(map_to_correct))
+
 }
 }

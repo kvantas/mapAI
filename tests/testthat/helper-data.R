@@ -28,7 +28,7 @@ create_dummy_shp <- function(file_path,
 
   df <- data.frame(id = 1)
   if (has_area_old) {
-    df$area_old <- set_units(100, "m^2")
+    df$area_old <- set_units(1, "m^2")
   }
 
   sf_obj <- st_sf(df, geometry = sfc)
@@ -41,7 +41,7 @@ create_dummy_shp <- function(file_path,
 }
 
 
-# Helper function to create dummy gcp_data *** Refactored package function
+# Helper function to create dummy gcp_data
 create_dummy_gcp_data <- function(n = 200) {
   set.seed(123) # for reproducibility of dummy data
   df <- data.frame(
