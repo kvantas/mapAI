@@ -38,7 +38,8 @@ arguments directly to \code{sf::st_write} via the \code{...} parameter.
 }
 \examples{
 \dontrun{
-# This example shows how to save data and ensure all created files are removed.
+# This example shows how to save data and ensure all created files are
+# removed.
 
 # Create a sample sf object to write ---
 library(sf)
