@@ -1,1 +1,1 @@
-# options(usethis.quiet = TRUE)
+options(usethis.quiet = TRUE)

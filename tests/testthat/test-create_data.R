@@ -1,6 +1,3 @@
-# This test suite assumes that the 'create_demo_data' function is loaded
-# into the environment, and the 'testthat', 'sf', and 'dplyr' packages are installed.
-
 test_that("Function executes with default parameters and creates files", {
 
   demo_data <- create_demo_data()

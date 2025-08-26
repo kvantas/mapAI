@@ -4,6 +4,10 @@
 library(testthat)
 library(sf)
 library(utils)
+library(ranger)
+library(mgcv)
+library(withr)
+library(fields)
 
 # Helper function to create a dummy shapefile for testing
 create_dummy_shp <- function(file_path,
@@ -61,14 +65,4 @@ create_dummy_gcp_data <- function(n = 200) {
 
   return(df)
 
-}
-
-
-# Function to create a simple square polygon for area tests
-create_test_polygon <- function(path) {
-  poly_coords <- matrix(c(0,0, 0,10, 10,10, 10,0, 0,0), ncol = 2, byrow = TRUE)
-  poly <- sf::st_polygon(list(poly_coords))
-  poly_sf <- sf::st_sf(id = 1, geometry = sf::st_sfc(poly, crs = 3857))
-  sf::st_write(poly_sf, path, delete_layer = TRUE, quiet = TRUE)
-  return(path)
 }
