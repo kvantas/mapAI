@@ -216,7 +216,7 @@ summary.distortion <- function(object, ...) {
 #'
 #' @details This function visualizes the distortion field as it exists on the
 #'   **source map's coordinate space**. It uses linear interpolation via the
-#'   `akima` package to create a continuous raster surface, even from scattered,
+#'   `interp` package to create a continuous raster surface, even from scattered,
 #'   irregular input points (like the original GCPs). This provides a true
 #'   surface plot in all cases.
 #'
@@ -233,7 +233,7 @@ summary.distortion <- function(object, ...) {
 #'
 #' @import ggplot2
 #' @importFrom rlang .data sym
-#' @importFrom akima interp
+#' @importFrom interp interp
 #' @importFrom viridis scale_fill_viridis
 #' @export
 #' @examples
@@ -254,7 +254,7 @@ plot.distortion <- function(x,
   # --- 2. Interpolate Data for a Smooth Surface ---
   message("Interpolating data to create a smooth surface...")
   interp_result <- tryCatch({
-    akima::interp(
+    interp::interp(
       x = x$source_x,
       y = x$source_y,
       z = x[[metric]],

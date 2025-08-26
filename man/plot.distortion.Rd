@@ -42,7 +42,7 @@ distortion metric from the output of \code{analyze_distortion()}.
 \details{
 This function visualizes the distortion field as it exists on the
 \strong{source map's coordinate space}. It uses linear interpolation via the
-\code{akima} package to create a continuous raster surface, even from scattered,
+\code{interp} package to create a continuous raster surface, even from scattered,
 irregular input points (like the original GCPs). This provides a true
 surface plot in all cases.
 }
