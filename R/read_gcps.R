@@ -12,7 +12,6 @@
 #' @return An `gcp` object of the homologous points and calculated `dx` and `dy`
 #'   displacement columns.
 #'
-#' @import dplyr
 #' @importFrom utils read.csv
 #' @importFrom rlang .data
 #' @export

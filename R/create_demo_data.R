@@ -46,13 +46,20 @@
 #'   \item{gcp}{The homologous data }
 #'   \item{map}{The distorted map grid lines as an `sf` object}
 #'
-#' @import sf
-#' @importFrom dplyr mutate .data
+#' @importFrom sf st_linestring st_sfc st_as_sf
 #' @importFrom stats predict rnorm
 #' @importFrom utils write.csv
 #' @export
 #' @examples
 #' \dontrun{
+#' # Assuming `validate_demo_data_inputs` and `read_gcp` are defined elsewhere
+#' # For demonstration, let's mock them if they are not available
+#' # validate_demo_data_inputs <- function(...) invisible(TRUE)
+#' # read_gcp <- function(source_x, source_y, target_x, target_y) {
+#' #   data.frame(source_x = source_x, source_y = source_y,
+#' #              target_x = target_x, target_y = target_y)
+#' # }
+#'
 #' # Generate the demonstration data with default complex distortion
 #' demo_data <- create_demo_data(type = "complex", noise_sd = 0.5)
 #' # plot homologous points
@@ -73,7 +80,7 @@ create_demo_data <- function(type = "complex",
                              gauss_params = list(A = 4, Ec = 50, Nc = 0,
                                                  sigma2 = 20)) {
 
-  # --- Parameter validation
+  # --- Parameter validation (assuming this function is defined externally)
   validate_demo_data_inputs(
     type, noise_sd, n_points, seed, grid_limits,
     helmert_params, poly_params, gauss_params
@@ -81,8 +88,6 @@ create_demo_data <- function(type = "complex",
 
   # --- Internal Helper Functions ---
   set.seed(seed)
-
-
 
   # 1. Base grid generation
   generate_true_grid <- function(n_pts, limits) {
@@ -99,22 +104,18 @@ create_demo_data <- function(type = "complex",
     tx <- params$tx
     ty <- params$ty
 
-    data %>%
-      dplyr::mutate(
-        x_distorted = tx + s * (.data$x_true * cos(angle_rad) - .data$y_true * sin(angle_rad)),
-        y_distorted = ty + s * (.data$x_true * sin(angle_rad) + .data$y_true * cos(angle_rad))
-      )
+    data$x_distorted <- tx + s * (data$x_true * cos(angle_rad) - data$y_true * sin(angle_rad))
+    data$y_distorted <- ty + s * (data$x_true * sin(angle_rad) + data$y_true * cos(angle_rad))
+    return(data)
   }
 
   apply_poly_warp <- function(data, params) {
     cE1 <- params$cE1; cE2 <- params$cE2
     cN1 <- params$cN1; cN2 <- params$cN2
 
-    data %>%
-      dplyr::mutate(
-        x_distorted = .data$x_distorted + (cE1 * .data$x_distorted^2 + cE2 * .data$x_distorted * .data$y_distorted),
-        y_distorted = .data$y_distorted + (cN1 * .data$y_distorted^2 + cN2 * .data$x_distorted * .data$y_distorted)
-      )
+    data$x_distorted <- data$x_distorted + (cE1 * data$x_distorted^2 + cE2 * data$x_distorted * data$y_distorted)
+    data$y_distorted <- data$y_distorted + (cN1 * data$y_distorted^2 + cN2 * data$x_distorted * data$y_distorted)
+    return(data)
   }
 
   apply_gauss_warp <- function(data, params) {
@@ -124,25 +125,24 @@ create_demo_data <- function(type = "complex",
     dy <- data$y_distorted - Nc
     dist_sq <- dx^2 + dy^2
     dist <- sqrt(dist_sq)
+
     gauss_factor <- A * exp(-dist_sq / (2 * sigma2))
 
     # Avoid division by zero at the center of the warp
     delta_x <- ifelse(dist == 0, 0, gauss_factor * (dx / dist))
     delta_y <- ifelse(dist == 0, 0, gauss_factor * (dy / dist))
 
-    data %>% dplyr::mutate(
-      x_distorted = .data$x_distorted + delta_x,
-      y_distorted = .data$y_distorted + delta_y
-    )
+    data$x_distorted <- data$x_distorted + delta_x
+    data$y_distorted <- data$y_distorted + delta_y
+    return(data)
   }
 
   # 3. Noise function
   add_noise <- function(data, sd) {
-    data %>%
-      dplyr::mutate(
-        x_distorted = .data$x_distorted + rnorm(dplyr::n(), 0, sd),
-        y_distorted = .data$y_distorted + rnorm(dplyr::n(), 0, sd)
-      )
+    n_rows <- nrow(data)
+    data$x_distorted <- data$x_distorted + rnorm(n_rows, 0, sd)
+    data$y_distorted <- data$y_distorted + rnorm(n_rows, 0, sd)
+    return(data)
   }
 
   # --- Main Data Generation Logic ---
@@ -174,12 +174,13 @@ create_demo_data <- function(type = "complex",
   # --- Create Output Files ---
 
   # 4. Create and save the homologous points (GCPs) CSV
+  # Assuming read_gcp is an existing function that takes vectors
   gcp <- read_gcp(
-      source_x = final_data$x_distorted,
-      source_y = final_data$y_distorted,
-      target_x = final_data$x_true,
-      target_y = final_data$y_true
-    )
+    source_x = final_data$x_distorted,
+    source_y = final_data$y_distorted,
+    target_x = final_data$x_true,
+    target_y = final_data$y_true
+  )
 
   # 5. Create and save the "old map" shapefile (as a distorted grid)
   distorted_pts_matrix <- as.matrix(final_data[, c("x_distorted", "y_distorted")])
@@ -200,7 +201,6 @@ create_demo_data <- function(type = "complex",
   # specify their known CRS upon reading
   grid_sfc <- sf::st_sfc(c(horiz_lines, vert_lines), crs = 3857)
   map_sf <- sf::st_as_sf(data.frame(id = seq_along(grid_sfc)), geom = grid_sfc)
-
 
   # --- Return Results ---
   return(list(gcp = gcp, map = map_sf))
