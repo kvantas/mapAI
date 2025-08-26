@@ -23,12 +23,13 @@
 #' @return Invisibly returns the input `map` object, allowing it to be used in a
 #'   pipe chain.
 #'
-#' @import sf
+#' @importFrom sf st_write
 #' @importFrom tools file_ext
 #' @export
 #' @examples
 #' \dontrun{
-#' # This example shows how to save data and ensure all created files are removed.
+#' # This example shows how to save data and ensure all created files are
+#' # removed.
 #'
 #' # Create a sample sf object to write ---
 #' library(sf)
@@ -54,12 +55,14 @@
 write_map <- function(map, file_path, overwrite = FALSE, ...) {
 
   # --- Input Validation ---
-  if (!inherits(map, "sf")) stop("`map` must be a valid `sf` object.", call. = FALSE)
+  if (!inherits(map, "sf")) stop("`map` must be a valid `sf` object.",
+                                 call. = FALSE)
   if (!is.character(file_path) || length(file_path) != 1) {
     stop("`file_path` must be a single character string.", call. = FALSE)
   }
   if (!is.logical(overwrite) || length(overwrite) != 1) {
-    stop("`overwrite` must be a single logical value (TRUE or FALSE).", call. = FALSE)
+    stop("`overwrite` must be a single logical value (TRUE or FALSE).",
+         call. = FALSE)
   }
 
   # --- Robust Driver Detection ---
@@ -72,7 +75,10 @@ write_map <- function(map, file_path, overwrite = FALSE, ...) {
                    NULL # Let sf::st_write handle other cases or throw an error
   )
   if (is.null(driver)) {
-    warning(paste("Could not automatically determine driver for extension '.", ext, "'. Letting sf::st_write attempt to guess.", sep=""), call. = FALSE)
+    warning(paste("Could not automatically determine driver for extension '.",
+                  ext,
+                  "'. Letting sf::st_write attempt to guess.", sep=""),
+            call. = FALSE)
   }
 
   message(paste("Writing map to:", file_path))
