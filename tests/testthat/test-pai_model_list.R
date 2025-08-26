@@ -20,6 +20,8 @@ test_that("all models can fit and predict with simulated data", {
   # Load internal data
   pai_model_list <- mapAI:::pai_model_list
 
+  testthat::expect_true(!is.null(pai_model_list))
+
   # Create simple test data
   test_data <- create_dummy_gcp_data(100)
 
@@ -30,12 +32,18 @@ test_that("all models can fit and predict with simulated data", {
     # Skip if required library is not available
     if (!is.null(model$library)) {
       if (!requireNamespace(model$library, quietly = TRUE)) {
-        print(paste("Skipping", model_name, "model: required package", model$library, "not installed."))
+        msg <- paste("Skipping", model_name, "model: required package",
+                     model$library,
+                     "not installed.")
+        print(msg)
         next
       }
     }
 
     test_that(sprintf("%s model can fit and predict", model_name), {
+
+      print(paste("Testing model:", model_name))
+
       # Fit model based on type
       if (model$modelType == "univariate") {
         # For univariate models, fit x and y separately
