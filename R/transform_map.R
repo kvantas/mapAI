@@ -22,7 +22,7 @@
 #'
 #' @return A new `sf` object with the corrected geometry.
 #'
-#' @import sf
+#' @importFrom sf st_geometry st_geometry_type st_coordinates st_sfc
 #' @importFrom stats predict
 #' @export
 #' @examples

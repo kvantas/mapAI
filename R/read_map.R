@@ -12,7 +12,7 @@
 #'
 #' @return An `sf` object of the map to be corrected.
 #'
-#' @import sf
+#' @importFrom sf st_read st_area st_geometry_type
 #' @importFrom units set_units
 #' @export
 #' @examples
