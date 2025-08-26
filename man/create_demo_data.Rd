@@ -76,6 +76,14 @@ lines) and a CSV file of homologous points ready for use with
 }
 \examples{
 \dontrun{
+# Assuming `validate_demo_data_inputs` and `read_gcp` are defined elsewhere
+# For demonstration, let's mock them if they are not available
+# validate_demo_data_inputs <- function(...) invisible(TRUE)
+# read_gcp <- function(source_x, source_y, target_x, target_y) {
+#   data.frame(source_x = source_x, source_y = source_y,
+#              target_x = target_x, target_y = target_y)
+# }
+
 # Generate the demonstration data with default complex distortion
 demo_data <- create_demo_data(type = "complex", noise_sd = 0.5)
 # plot homologous points

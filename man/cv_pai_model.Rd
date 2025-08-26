@@ -62,13 +62,13 @@ gcp_data <-demo_data$gcp
 
 # --- 2. Assess with RANDOM k-fold CV ---
 random_assessment <- cv_pai_model(
-  gcp_data, pai_method = "rf", validation_type = "random", k_folds = 5
+  gcp_data, pai_method = "lm", validation_type = "random", k_folds = 5
 )
 print(random_assessment)
 
 # --- 3. Assess with SPATIAL k-fold CV ---
 spatial_assessment <- cv_pai_model(
-  gcp_data, pai_method = "rf",
+  gcp_data, pai_method = "lm",
   validation_type = "spatial",
   k_folds = 5
 )
@@ -76,7 +76,7 @@ print(spatial_assessment)
 
 # --- 4. Assess with PROBABILITY (simple random) sampling ---
 prob_assessment <- cv_pai_model(
-  gcp_data, pai_method = "rf",
+  gcp_data, pai_method = "lm",
   validation_type = "probability",
   train_split_ratio = 0.75
 )
@@ -85,7 +85,7 @@ print(prob_assessment)
 # --- 5. Assess with STRATIFIED probability sampling ---
 stratified_assessment <- cv_pai_model(
   gcp_data,
-  pai_method = "rf",
+  pai_method = "lm",
   validation_type = "stratified",
   train_split_ratio = 0.75,
   n_strata = 4 # Use quartiles for stratification

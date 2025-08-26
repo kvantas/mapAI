@@ -4,7 +4,7 @@
   "identifier": "mapAI",
   "description": "An R package for Positional Accuracy Improvement of Vector Maps that uses supervised learning algorithms. It uses as input a csv file with homologous points and a vector map of the area of interest in order to correct it.",
   "name": "mapAI: An R Package for Positional Accuracy Improvement of Vector Maps",
-  "codeRepository": "https://github.com/kvantas/mapAI",
+  "codeRepository": "https://kvantas.github.io/mapAI/",
   "issueTracker": "https://github.com/kvantas/mapAI/issues",
   "license": "https://spdx.org/licenses/MIT",
   "version": "0.4.0",
@@ -13,7 +13,7 @@
     "name": "R",
     "url": "https://r-project.org"
   },
-  "runtimePlatform": "R version 4.5.0 (2025-04-11)",
+  "runtimePlatform": "R version 4.5.1 (2025-06-13 ucrt)",
   "author": [
     {
       "@type": "Person",
@@ -59,27 +59,27 @@
     },
     {
       "@type": "SoftwareApplication",
-      "identifier": "mockery",
-      "name": "mockery",
+      "identifier": "ranger",
+      "name": "ranger",
       "provider": {
         "@id": "https://cran.r-project.org",
         "@type": "Organization",
         "name": "Comprehensive R Archive Network (CRAN)",
         "url": "https://cran.r-project.org"
       },
-      "sameAs": "https://CRAN.R-project.org/package=mockery"
+      "sameAs": "https://CRAN.R-project.org/package=ranger"
     },
     {
       "@type": "SoftwareApplication",
-      "identifier": "withr",
-      "name": "withr",
+      "identifier": "mgcv",
+      "name": "mgcv",
       "provider": {
         "@id": "https://cran.r-project.org",
         "@type": "Organization",
         "name": "Comprehensive R Archive Network (CRAN)",
         "url": "https://cran.r-project.org"
       },
-      "sameAs": "https://CRAN.R-project.org/package=withr"
+      "sameAs": "https://CRAN.R-project.org/package=mgcv"
     },
     {
       "@type": "SoftwareApplication",
@@ -98,41 +98,17 @@
   "softwareRequirements": {
     "1": {
       "@type": "SoftwareApplication",
-      "identifier": "dplyr",
-      "name": "dplyr",
+      "identifier": "interp",
+      "name": "interp",
       "provider": {
         "@id": "https://cran.r-project.org",
         "@type": "Organization",
         "name": "Comprehensive R Archive Network (CRAN)",
         "url": "https://cran.r-project.org"
       },
-      "sameAs": "https://CRAN.R-project.org/package=dplyr"
+      "sameAs": "https://CRAN.R-project.org/package=interp"
     },
     "2": {
-      "@type": "SoftwareApplication",
-      "identifier": "magrittr",
-      "name": "magrittr",
-      "provider": {
-        "@id": "https://cran.r-project.org",
-        "@type": "Organization",
-        "name": "Comprehensive R Archive Network (CRAN)",
-        "url": "https://cran.r-project.org"
-      },
-      "sameAs": "https://CRAN.R-project.org/package=magrittr"
-    },
-    "3": {
-      "@type": "SoftwareApplication",
-      "identifier": "mgcv",
-      "name": "mgcv",
-      "provider": {
-        "@id": "https://cran.r-project.org",
-        "@type": "Organization",
-        "name": "Comprehensive R Archive Network (CRAN)",
-        "url": "https://cran.r-project.org"
-      },
-      "sameAs": "https://CRAN.R-project.org/package=mgcv"
-    },
-    "4": {
       "@type": "SoftwareApplication",
       "identifier": "rlang",
       "name": "rlang",
@@ -144,7 +120,7 @@
       },
       "sameAs": "https://CRAN.R-project.org/package=rlang"
     },
-    "5": {
+    "3": {
       "@type": "SoftwareApplication",
       "identifier": "sf",
       "name": "sf",
@@ -156,31 +132,7 @@
       },
       "sameAs": "https://CRAN.R-project.org/package=sf"
     },
-    "6": {
-      "@type": "SoftwareApplication",
-      "identifier": "ranger",
-      "name": "ranger",
-      "provider": {
-        "@id": "https://cran.r-project.org",
-        "@type": "Organization",
-        "name": "Comprehensive R Archive Network (CRAN)",
-        "url": "https://cran.r-project.org"
-      },
-      "sameAs": "https://CRAN.R-project.org/package=ranger"
-    },
-    "7": {
-      "@type": "SoftwareApplication",
-      "identifier": "fields",
-      "name": "fields",
-      "provider": {
-        "@id": "https://cran.r-project.org",
-        "@type": "Organization",
-        "name": "Comprehensive R Archive Network (CRAN)",
-        "url": "https://cran.r-project.org"
-      },
-      "sameAs": "https://CRAN.R-project.org/package=fields"
-    },
-    "8": {
+    "4": {
       "@type": "SoftwareApplication",
       "identifier": "units",
       "name": "units",
@@ -192,7 +144,7 @@
       },
       "sameAs": "https://CRAN.R-project.org/package=units"
     },
-    "9": {
+    "5": {
       "@type": "SoftwareApplication",
       "identifier": "ggplot2",
       "name": "ggplot2",
@@ -204,7 +156,19 @@
       },
       "sameAs": "https://CRAN.R-project.org/package=ggplot2"
     },
-    "10": {
+    "6": {
+      "@type": "SoftwareApplication",
+      "identifier": "ggforce",
+      "name": "ggforce",
+      "provider": {
+        "@id": "https://cran.r-project.org",
+        "@type": "Organization",
+        "name": "Comprehensive R Archive Network (CRAN)",
+        "url": "https://cran.r-project.org"
+      },
+      "sameAs": "https://CRAN.R-project.org/package=ggforce"
+    },
+    "7": {
       "@type": "SoftwareApplication",
       "identifier": "viridis",
       "name": "viridis",
@@ -216,19 +180,7 @@
       },
       "sameAs": "https://CRAN.R-project.org/package=viridis"
     },
-    "11": {
-      "@type": "SoftwareApplication",
-      "identifier": "e1071",
-      "name": "e1071",
-      "provider": {
-        "@id": "https://cran.r-project.org",
-        "@type": "Organization",
-        "name": "Comprehensive R Archive Network (CRAN)",
-        "url": "https://cran.r-project.org"
-      },
-      "sameAs": "https://CRAN.R-project.org/package=e1071"
-    },
-    "12": {
+    "8": {
       "@type": "SoftwareApplication",
       "identifier": "R",
       "name": "R",
@@ -236,7 +188,7 @@
     },
     "SystemRequirements": null
   },
-  "fileSize": "613.38KB",
+  "fileSize": "506.72KB",
   "citation": [
     {
       "@type": "CreativeWork",
@@ -253,8 +205,5 @@
       "@id": "https://doi.org/10.5281/zenodo.15767080",
       "sameAs": "https://doi.org/10.5281/zenodo.15767080"
     }
-  ],
-  "readme": "https://github.com/kvantas/mapAI/blob/master/README.md",
-  "contIntegration": ["https://codecov.io/gh/kvantas/mapAI", "https://github.com/kvantas/mapAI/actions/workflows/R-CMD-check.yaml"],
-  "developmentStatus": "https://lifecycle.r-lib.org/articles/stages.html#stable"
+  ]
 }
