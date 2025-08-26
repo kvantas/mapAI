@@ -21,16 +21,7 @@ test_that("all models can fit and predict with simulated data", {
   pai_model_list <- mapAI:::pai_model_list
 
   # Create simple test data
-  set.seed(123)
-  n_points <- 100
-  test_data <- data.frame(
-    source_x = runif(n_points),
-    source_y = runif(n_points),
-    target_x = runif(n_points),
-    target_y = runif(n_points)
-  )
-  test_data$dx <- test_data$target_x - test_data$source_x
-  test_data$dy <- test_data$target_y - test_data$source_y
+  test_data <- create_dummy_gcp_data(100)
 
   # Test each model
   for (model_name in names(pai_model_list)) {
