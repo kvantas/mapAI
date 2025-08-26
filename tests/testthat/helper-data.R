@@ -2,12 +2,9 @@
 # It will be sourced automatically by testthat.
 
 library(testthat)
-library(sf)
 library(utils)
-library(ranger)
-library(mgcv)
 library(withr)
-library(fields)
+library(sf)
 
 # Helper function to create a dummy shapefile for testing
 create_dummy_shp <- function(file_path,
