@@ -77,65 +77,88 @@ transform_map <- function(pai_model, map, aoi = NULL) {
 
   # --- Transform the part of the map inside the AOI ---
   if (nrow(map_inside_aoi) > 0) {
-    original_geom_col <- sf::st_geometry(map_inside_aoi)
-    new_geom_list <- vector("list", length = length(original_geom_col))
+    original_geom <- sf::st_geometry(map_inside_aoi)
+    geom_types <- sf::st_geometry_type(original_geom)
+    n_features <- length(original_geom)
+    coords_list <- vector("list", n_features)
+    n_points <- integer(n_features)
 
-    for (i in seq_along(original_geom_col)) {
-      feature <- original_geom_col[[i]]
-      geom_type <- as.character(sf::st_geometry_type(feature))
-      original_coords <- sf::st_coordinates(feature)
+    for (i in seq_len(n_features)) {
+      crd <- sf::st_coordinates(original_geom[[i]])
+      coords_list[[i]] <- crd
+      n_points[i] <- nrow(crd)
+    }
 
-      # Skip empty geometries
-      if (nrow(original_coords) == 0) {
-        new_geom_list[[i]] <- feature
-        next
-      }
+    total_points <- sum(n_points)
+    new_geom_list <- vector("list", n_features)
 
-      source_coords_df <- as.data.frame(original_coords[, 1:2, drop = FALSE])
-      names(source_coords_df) <- c("source_x", "source_y")
+    if (total_points > 0) {
+      all_source_df <- data.frame(
+        source_x = do.call(c, lapply(coords_list, function(crd) if (nrow(crd) > 0) crd[, 1] else numeric(0))),
+        source_y = do.call(c, lapply(coords_list, function(crd) if (nrow(crd) > 0) crd[, 2] else numeric(0)))
+      )
 
-      displacements <- predict(pai_model, source_coords_df)
-      corrected_coords <- original_coords
-      corrected_coords[, 1] <- corrected_coords[, 1] + displacements$dx
-      corrected_coords[, 2] <- corrected_coords[, 2] + displacements$dy
+      displacements <- stats::predict(pai_model, all_source_df)
 
-      new_sfg <- switch(
-        geom_type,
-        "POINT" = sf::st_point(corrected_coords[1, 1:2]),
-        "LINESTRING" = sf::st_linestring(corrected_coords[, 1:2]),
-        "POLYGON" = {
-          rings <- split.data.frame(corrected_coords[, 1:2], f = corrected_coords[, "L1"])
-          closed_rings <- lapply(rings, function(ring) {
-            ring_mat <- as.matrix(ring)
-            ring_mat[nrow(ring_mat), ] <- ring_mat[1, ]
-            ring_mat
-          })
-          sf::st_polygon(closed_rings)
-        },
-        "MULTIPOINT" = sf::st_multipoint(corrected_coords[, 1:2]),
-        "MULTILINESTRING" = {
-          lines <- split.data.frame(corrected_coords[, 1:2], f = corrected_coords[, "L1"])
-          sf::st_multilinestring(lapply(lines, as.matrix))
-        },
-        "MULTIPOLYGON" = {
-          polys <- split.data.frame(corrected_coords, f = corrected_coords[, "L2"])
-          rebuilt_polys <- lapply(polys, function(p) {
-            rings <- split.data.frame(p[, 1:2], f = p[, "L1"])
+      # Apply displacements back to coords_list
+      idx <- 1
+      for (i in seq_len(n_features)) {
+        if (n_points[i] == 0) {
+          new_geom_list[[i]] <- original_geom[[i]]
+          next
+        }
+        end <- idx + n_points[i] - 1
+        coords_list[[i]][, 1] <- coords_list[[i]][, 1] + displacements$dx[idx:end]
+        coords_list[[i]][, 2] <- coords_list[[i]][, 2] + displacements$dy[idx:end]
+        idx <- end + 1
+
+        # Rebuild geometry
+        corrected_coords <- coords_list[[i]]
+        geom_type <- as.character(geom_types[i])
+
+        new_sfg <- switch(
+          geom_type,
+          "POINT" = sf::st_point(corrected_coords[1, 1:2]),
+          "LINESTRING" = sf::st_linestring(corrected_coords[, 1:2]),
+          "POLYGON" = {
+            rings <- split.data.frame(corrected_coords[, 1:2], f = corrected_coords[, "L1"])
             closed_rings <- lapply(rings, function(ring) {
               ring_mat <- as.matrix(ring)
+              # Since sf coordinates are already closed, overwrite is redundant but harmless
               ring_mat[nrow(ring_mat), ] <- ring_mat[1, ]
               ring_mat
             })
             sf::st_polygon(closed_rings)
-          })
-          sf::st_multipolygon(rebuilt_polys)
-        },
-        {
-          warning(paste("Unsupported geometry type:", geom_type, "at feature", i, ". Keeping original."), call. = FALSE)
-          feature
-        }
-      )
-      new_geom_list[[i]] <- new_sfg
+          },
+          "MULTIPOINT" = sf::st_multipoint(corrected_coords[, 1:2]),
+          "MULTILINESTRING" = {
+            lines <- split.data.frame(corrected_coords[, 1:2], f = corrected_coords[, "L1"])
+            sf::st_multilinestring(lapply(lines, as.matrix))
+          },
+          "MULTIPOLYGON" = {
+            polys <- split.data.frame(corrected_coords, f = corrected_coords[, "L2"])
+            rebuilt_polys <- lapply(polys, function(p) {
+              rings <- split.data.frame(p[, 1:2], f = p[, "L1"])
+              closed_rings <- lapply(rings, function(ring) {
+                ring_mat <- as.matrix(ring)
+                # Since sf coordinates are already closed, overwrite is redundant but harmless
+                ring_mat[nrow(ring_mat), ] <- ring_mat[1, ]
+                ring_mat
+              })
+              sf::st_polygon(closed_rings)
+            })
+            sf::st_multipolygon(rebuilt_polys)
+          },
+          {
+            warning(paste("Unsupported geometry type:", geom_type, "at feature", i, ". Keeping original."), call. = FALSE)
+            original_geom[[i]]
+          }
+        )
+        new_geom_list[[i]] <- new_sfg
+      }
+    } else {
+      # If no points, keep all original
+      new_geom_list <- as.list(original_geom)
     }
 
     new_sfc <- sf::st_sfc(new_geom_list, crs = sf::st_crs(map_inside_aoi))
@@ -158,9 +181,8 @@ transform_map <- function(pai_model, map, aoi = NULL) {
     corrected_map <- map
   }
 
-
   # --- 5. Calculate new area for polygons ---
-  if (any(grepl("POLYGON", sf::st_geometry_type(map)))) {
+  if (any(grepl("POLYGON", sf::st_geometry_type(corrected_map)))) {
     message("Calculating area of corrected polygons...")
     # Check if the area column from the original map exists, if so, remove it
     # to avoid conflicts
