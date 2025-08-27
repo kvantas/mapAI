@@ -56,3 +56,17 @@ learned.
 especially at the edges of the data where the model is extrapolating.
 }
 }
+\examples{
+
+# create demo data and fit a bivariate GAM model
+demo_data <- create_demo_data()
+gam_model <- train_pai_model(demo_data$gcp, method = "gam_biv")
+surface_plots <- surface(gam_model, n_grid = 100)
+
+# Plot the dx surface
+surface_plots$dx_plot
+
+# Plot the dy surface
+surface_plots$dy_plot
+
+}

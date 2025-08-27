@@ -333,22 +333,21 @@ residuals.pai_model <- function(
 
 }
 
-#' @title Create distortion surfaces from a PAI Model
+#' @title Plot Surface Method for the package's Objects
 #'
 #' @description This is a generic function that generates a surface
-#'  representation for both `dx` and `dy`  from a fitted model object. T
+#'  from the package's objects
 #'
-#' @param object A trained `pai_model` object returned by `train_pai_model()`.
+#' @param object An object from the `mapAI` package.
 #' @param n_grid The resolution of the interpolation grid used to create the
 #'  smooth surface. Higher values create a more detailed plot but take longer to
-#'   compute. Defaults to 100.
+#'   compute.
 #' @param plot_gcp A logical value indicating whether to plot the GCP
-#' locations on the correction surfaces. Defaults to `TRUE`.
+#' locations on the correction surfaces.
 #' @param dx_range A numeric vector of length 2 specifying the limits for the
-#'  `dx` color scale (e.g., `c(-10, 10)`). Defaults to `NULL`, which uses the
-#'  data's range.
+#'  `dx` color scale.
 #' @param dy_range A numeric vector of length 2 specifying the limits for the
-#'  `dy` color scale. Defaults to `NULL`.
+#'  `dy` color scale.
 #'
 #' @return A surface representation (e.g. a list with two ggplots).
 #' @import ggplot2
@@ -408,6 +407,19 @@ surface <- function(object,
 #' @importFrom viridis scale_fill_viridis
 #' @importFrom rlang .data
 #' @export
+#' @examples
+#'
+#' # create demo data and fit a bivariate GAM model
+#' demo_data <- create_demo_data()
+#' gam_model <- train_pai_model(demo_data$gcp, method = "gam_biv")
+#' surface_plots <- surface(gam_model, n_grid = 100)
+#'
+#' # Plot the dx surface
+#' surface_plots$dx_plot
+#'
+#' # Plot the dy surface
+#' surface_plots$dy_plot
+#'
 surface.pai_model <- function(object,
                               n_grid = 100,
                               plot_gcp = TRUE,
@@ -427,32 +439,49 @@ surface.pai_model <- function(object,
 
   # --- Create dx plot ---
   p_dx <- ggplot(plot_data,
-                 aes(x = .data$source_x, y = .data$source_y, fill = .data$dx)) +
-    geom_raster() +
+                 aes(x = .data$source_x, y = .data$source_y)) +
+    geom_raster(aes(fill = .data$dx)) +
     geom_contour(aes(z = .data$dx), color = "white", alpha = 0.4, bins = 12) +
     labs(title = "Correction Surface (dx)", x = "X", y = "Y") +
     coord_equal() + theme_minimal()
 
   # Apply custom dx range if provided
   if (!is.null(dx_range) && is.numeric(dx_range) && length(dx_range) == 2) {
-    p_dx <- p_dx + scale_fill_viridis(option = "viridis", name = "dx", limits = dx_range)
+    p_dx <- p_dx +
+      scale_fill_viridis(
+        option = "viridis",
+        name = "dx",
+        limits = dx_range,
+        na.value = "transparent")
   } else {
-    p_dx <- p_dx + scale_fill_viridis(option = "viridis", name = "dx")
+    p_dx <- p_dx +
+      scale_fill_viridis(
+        option = "viridis",
+        name = "dx")
   }
 
   # --- Create dy plot ---
   p_dy <- ggplot(plot_data,
-                 aes(x = .data$source_x, y = .data$source_y, fill = .data$dy)) +
-    geom_raster() +
+                 aes(x = .data$source_x, y = .data$source_y)) +
+    geom_raster(aes(fill = .data$dy)) +
     geom_contour(aes(z = .data$dy), color = "white", alpha = 0.4, bins = 12) +
     labs(title = "Correction Surface (dy)", x = "X", y = "Y") +
     coord_equal() + theme_minimal()
 
   # Apply custom dy range if provided
   if (!is.null(dy_range) && is.numeric(dy_range) && length(dy_range) == 2) {
-    p_dy <- p_dy + scale_fill_viridis(option = "viridis", name = "dy", limits = dy_range)
+    p_dy <- p_dy +
+      scale_fill_viridis(
+        option = "viridis",
+        name = "dy",
+        limits = dy_range,
+        na.value = "transparent")
   } else {
-    p_dy <- p_dy + scale_fill_viridis(option = "viridis", name = "dy")
+    p_dy <- p_dy +
+      scale_fill_viridis(
+        option = "viridis",
+        name = "dy",
+        na.value = "transparent")
   }
 
   # Add GCPs if requested

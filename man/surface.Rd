@@ -2,33 +2,32 @@
 % Please edit documentation in R/train_pai_model.R
 \name{surface}
 \alias{surface}
-\title{Create distortion surfaces from a PAI Model}
+\title{Plot Surface Method for the package's Objects}
 \usage{
 surface(object, n_grid, plot_gcp, dx_range, dy_range)
 }
 \arguments{
-\item{object}{A trained \code{pai_model} object returned by \code{train_pai_model()}.}
+\item{object}{An object from the \code{mapAI} package.}
 
 \item{n_grid}{The resolution of the interpolation grid used to create the
 smooth surface. Higher values create a more detailed plot but take longer to
-compute. Defaults to 100.}
+compute.}
 
 \item{plot_gcp}{A logical value indicating whether to plot the GCP
-locations on the correction surfaces. Defaults to \code{TRUE}.}
+locations on the correction surfaces.}
 
 \item{dx_range}{A numeric vector of length 2 specifying the limits for the
-\code{dx} color scale (e.g., \code{c(-10, 10)}). Defaults to \code{NULL}, which uses the
-data's range.}
+\code{dx} color scale.}
 
 \item{dy_range}{A numeric vector of length 2 specifying the limits for the
-\code{dy} color scale. Defaults to \code{NULL}.}
+\code{dy} color scale.}
 }
 \value{
 A surface representation (e.g. a list with two ggplots).
 }
 \description{
 This is a generic function that generates a surface
-representation for both \code{dx} and \code{dy}  from a fitted model object. T
+from the package's objects
 }
 \examples{
 # See ?train_pai_model for a complete, runnable example.
