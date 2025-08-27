@@ -3,5 +3,5 @@
   title    = "mapAI: An R Package for Positional Accuracy Improvement of Vector Geospatial Data",
   author   = "Vantas Konstantinos",
   year     = "2025",
-  doi      = "https://zenodo.org/records/15767080"
+  doi      = "https://doi.org/10.5281/zenodo.15767080"
 )
