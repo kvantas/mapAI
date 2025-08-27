@@ -4,7 +4,7 @@
 \name{mapAI}
 \alias{mapAI}
 \alias{mapAI-package}
-\title{mapAI: Positional Accuracy Improvement for Historical Maps}
+\title{mapAI: Positional Accuracy Improvement for Vector Maps}
 \description{
 The \code{mapAI} package provides a cohesive, end-to-end toolkit in R
 for the Positional Accuracy Improvement (PAI) and distortion analysis of
@@ -12,45 +12,44 @@ vector maps.
 }
 \details{
 The package is designed for researchers and practitioners in
-geomatics and GIS, It provides a complete, modular
-workflow that guides the user from importing data to final analysis and
-visualization.
+geomatics and GIS, It provides a complete, modular workflow that guides the
+user from importing data to final analysis and visualization.
 \subsection{The Core Workflow}{
 
 The main workflow follows a logical sequence:
 \enumerate{
 \item \strong{Data Handling:} Imports spatial data and control points using
-\code{read_map()} and \code{read_gcps()}. The package also includes functions to
+\code{read_map()} and \code{read_gcp()}. The package also includes functions to
 generate synthetic data (\code{create_demo_data()}) and save results
 (\code{write_map()}).
 \item \strong{Model Training & Validation:} Train a correction model using
 \code{train_pai_model()} with a choice of methods \code{helmert},\code{tps}, \code{gam}, \code{lm},
-\code{rf}, \code{svmRadial} and \code{svmLinear}. Robustly evaluate model performance
-using spatial cross-validation with \code{assess_pai_model()}.
+\code{rf},  or a completely custom model on the fly.
+\item Robustly evaluate model performance using spatial cross-validation with
+\code{cv_pai_model()}.
 \item \strong{Geometric Correction:} Apply the trained model to the full vector map
-to get a geometrically corrected version using \code{apply_pai_model()}.
+to get a geometrically corrected version using \code{transform_map()}.
 \item \strong{Distortion Analysis & Visualization:} Go beyond correction to quantify
 and understand the distortion that learns a PAI model itself.
 \itemize{
 \item Use \code{analyze_distortion()} to compute detailed metrics based on
 Tissot's indicatrix theory (e.g., areal scale, angular distortion).
-\item Use the dedicated plotting functions (\code{plot_displacement()},
-\code{plot_residuals()}, \code{plot_distortion_surface()},
-\code{plot_indicatrices()}) to create compelling, publication-quality
+\item Use  \code{plot} to create publication-quality
 visualizations of the error and distortion patterns.
 }
 }
-}
-}
-\seealso{
-To get started with a practical example, see the introductory
-vignette: \code{vignette("getting-started", package = "mapAI")}
-
-For a more in-depth look at comparing models and validation strategies, see
-the advanced vignette: \code{vignette("swiss-analysis", package = "mapAI")}
 
 The project's source code and issue tracker can be found on GitHub:
 \url{https://github.com/kvantas/mapAI}
+}
+}
+\seealso{
+Useful links:
+\itemize{
+  \item \url{https://kvantas.github.io/mapAI/}
+  \item Report bugs at \url{https://github.com/kvantas/mapAI/issues}
+}
+
 }
 \author{
 \strong{Maintainer}: Konstantinos Vantas \email{kon.vantas@gmail.com} (\href{https://orcid.org/0000-0001-6387-8791}{ORCID})
