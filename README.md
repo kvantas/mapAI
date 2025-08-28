@@ -5,7 +5,7 @@
 
 <!-- badges: start -->
 
-[![packageversion](https://img.shields.io/badge/Package%20version-0.4.0-orange.svg?style=flat-square)](https://github.com/kvantas/mapAI)
+[![packageversion](https://img.shields.io/badge/Package%20version-1.0.0-orange.svg?style=flat-square)](https://github.com/kvantas/mapAI)
 [![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.15767080.svg)](https://doi.org/10.5281/zenodo.15767080)
 [![Lifecycle:
 stable](https://img.shields.io/badge/lifecycle-stable-brightgreen.svg)](https://lifecycle.r-lib.org/articles/stages.html#stable)
@@ -27,7 +27,7 @@ This package’s main contributions are:
     engineered to modify the geometry of spatial features;
 
 2)  the application of modern best practices regarding predictive
-    accuracy assessment using;
+    accuracy assessment using various validation methods, and;
 
 3)  the integration of distortion analysis into the PAI workflow,
     providing powerful diagnostics.
@@ -62,41 +62,13 @@ library(ggplot2)
 # Generate a shapefile and a GCPs CSV with complex noisy distortions
 # The function returns a list containing the paths to these new files.
 demo_data <- create_demo_data(type = "complex", seed = 1)
-demo_data
-#> $gcp
-#> GCP Object with 225 points
-#> Displaying first 10 points:
-#>     source_x  source_y  target_x target_y         dx       dy
-#> 1   1.691653 -2.105651  0.000000        0 -1.6916531 2.105651
-#> 2   9.292090 -3.078302  7.142857        0 -2.1492333 3.078302
-#> 3  15.978465 -3.618299 14.285714        0 -1.6927508 3.618299
-#> 4  24.390552 -2.617043 21.428571        0 -2.9619808 2.617043
-#> 5  30.954591 -2.481485 28.571429        0 -2.3831625 2.481485
-#> 6  37.487039 -3.019571 35.714286        0 -1.7727530 3.019571
-#> 7  43.693338 -4.710053 42.857143        0 -0.8361952 4.710053
-#> 8  54.951007 -4.716323 50.000000        0 -4.9510072 4.716323
-#> 9  60.221787 -1.969328 57.142857        0 -3.0789297 1.969328
-#> 10 66.636189 -2.089572 64.285714        0 -2.3504744 2.089572
-#> 
-#> $map
-#> Simple feature collection with 30 features and 1 field
-#> Geometry type: LINESTRING
-#> Dimension:     XY
-#> Bounding box:  xmin: -0.179499 ymin: -4.716323 xmax: 103.3594 ymax: 114.0282
-#> Projected CRS: WGS 84 / Pseudo-Mercator
-#> First 10 features:
-#>    id                           geom
-#> 1   1 LINESTRING (1.691653 -2.105...
-#> 2   2 LINESTRING (9.29209 -3.0783...
-#> 3   3 LINESTRING (15.97847 -3.618...
-#> 4   4 LINESTRING (24.39055 -2.617...
-#> 5   5 LINESTRING (30.95459 -2.481...
-#> 6   6 LINESTRING (37.48704 -3.019...
-#> 7   7 LINESTRING (43.69334 -4.710...
-#> 8   8 LINESTRING (54.95101 -4.716...
-#> 9   9 LINESTRING (60.22179 -1.969...
-#> 10 10 LINESTRING (66.63619 -2.089...
+
+
+# plot the distortion data
+plot(demo_data$gcp, main = "Homologous Points (GCPs)")
 ```
+
+<img src="man/figures/README-data-creation-1.png" width="100%" />
 
 ### 2. Read Data and Train a Model
 
@@ -156,7 +128,8 @@ transformation.
 
 The `analyze_distortion()` function computes local distortion metrics
 across the map space. This allows us to move from a simple visual
-assessment to a quantitative map of the distortion.
+assessment to a quantitative map of the distortions that the model
+learns.
 
 ``` r
 # 1. Analyze the distortion using our trained GAM model
@@ -164,10 +137,9 @@ distortion_results <- analyze_distortion(gam_model, gcp_data)
 
 # 2. Plot the distortion surfaces
 plot(distortion_results,
-                  metric = "log2_area_scale",
-                  diverging = TRUE
-) +
-  labs(title = "Areal Distortion (log2σ)")
+     metric = "area_scale",
+     diverging = TRUE) +
+  labs(title = "Areal Distortion")
 ```
 
 <img src="man/figures/README-advanced-analysis-1.png" width="100%" />
