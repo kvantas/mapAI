@@ -16,7 +16,7 @@ knitr::opts_chunk$set(
 # mapAI
 
 <!-- badges: start -->
-[![packageversion](https://img.shields.io/badge/Package%20version-0.4.0-orange.svg?style=flat-square)](https://github.com/kvantas/mapAI)
+[![packageversion](https://img.shields.io/badge/Package%20version-1.0.0-orange.svg?style=flat-square)](https://github.com/kvantas/mapAI)
 [![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.15767080.svg)](https://doi.org/10.5281/zenodo.15767080)
 [![Lifecycle: stable](https://img.shields.io/badge/lifecycle-stable-brightgreen.svg)](https://lifecycle.r-lib.org/articles/stages.html#stable)
 [![R-CMD-check](https://github.com/kvantas/mapAI/actions/workflows/R-CMD-check.yaml/badge.svg)](https://github.com/kvantas/mapAI/actions/workflows/R-CMD-check.yaml)
@@ -26,21 +26,13 @@ The `mapAI` package is designed to provide a comprehensive and accessible PAI (p
 
 ## Overview
 
-The `mapAI` package provides a comprehensive and accessible framework
-for Positional Accuracy Improvement (PAI) of vector geospatial data.
-This package’s main contributions  are: 
+The `mapAI` package provides a comprehensive and accessible framework for Positional Accuracy Improvement (PAI) of vector geospatial data. This package’s main contributions  are: 
 
-(a) the unification
-of a set of PAI methods from classical adjustments to statistical and machine
-learning algorithms,
-within a framework engineered to modify the geometry of spatial
-features; 
+(a) the unification of a set of PAI methods from classical adjustments to statistical and machine learning algorithms, within a framework engineered to modify the geometry of spatial features; 
 
-(b) the application of modern best practices regarding
-predictive accuracy assessment using;
+(b) the application of modern best practices regarding predictive accuracy assessment using various validation methods, and;
 
-(c) the integration of distortion analysis into the PAI workflow, providing
-powerful diagnostics.
+(c) the integration of distortion analysis into the PAI workflow, providing powerful diagnostics.
 
 ## Installation
 
@@ -59,7 +51,7 @@ This example demonstrates the primary workflow. We will first generate a synthet
 
 We begin by using `create_demo_data()` to generate a test case with complex, noisy distortions.
 
-```{r setup}
+```{r data-creation}
 library(mapAI)
 library(sf)
 library(ggplot2)
@@ -67,7 +59,11 @@ library(ggplot2)
 # Generate a shapefile and a GCPs CSV with complex noisy distortions
 # The function returns a list containing the paths to these new files.
 demo_data <- create_demo_data(type = "complex", seed = 1)
-demo_data
+
+
+# plot the distortion data
+plot(demo_data$gcp, main = "Homologous Points (GCPs)")
+
 ```
 
 ### 2. Read Data and Train a Model
@@ -114,7 +110,7 @@ A key challenge with data-driven models is understanding *what* they have learne
 
 ### 4. Quantify and Visualize the Distortion Field
 
-The `analyze_distortion()` function computes local distortion metrics across the map space. This allows us to move from a simple visual assessment to a quantitative map of the distortion.
+The `analyze_distortion()` function computes local distortion metrics across the map space. This allows us to move from a simple visual assessment to a quantitative map of the distortions that the model learns.
 
 ```{r advanced-analysis, message=FALSE, warning=FALSE}
 # 1. Analyze the distortion using our trained GAM model
@@ -122,10 +118,9 @@ distortion_results <- analyze_distortion(gam_model, gcp_data)
 
 # 2. Plot the distortion surfaces
 plot(distortion_results,
-                  metric = "log2_area_scale",
-                  diverging = TRUE
-) +
-  labs(title = "Areal Distortion (log2σ)")
+     metric = "area_scale",
+     diverging = TRUE) +
+  labs(title = "Areal Distortion")
 
 plot(
   distortion_results, metric = "max_shear"
