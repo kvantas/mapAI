@@ -12,7 +12,8 @@
 \item{...}{Additional arguments (not used).}
 }
 \description{
-Provides a concise and formatted summary of the model assessment results.
+Provides a concise and formatted summary of the model assessment
+results.
 }
 \examples{
 # Assuming `assessment_results` is an object from assess_pai_model()

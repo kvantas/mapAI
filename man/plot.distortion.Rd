@@ -24,7 +24,8 @@
 
 \item{diverging}{If \code{TRUE}, uses a red-white-blue diverging color scale.}
 
-\item{value_range}{A numeric vector of length 2 specifying color scale limits.}
+\item{value_range}{A numeric vector of length 2 specifying color scale
+limits.}
 
 \item{add_points}{If \code{TRUE}, the original analysis points are overlaid.}
 
@@ -42,9 +43,9 @@ distortion metric from the output of \code{analyze_distortion()}.
 \details{
 This function visualizes the distortion field as it exists on the
 \strong{source map's coordinate space}. It uses linear interpolation via the
-\code{interp} package to create a continuous raster surface, even from scattered,
-irregular input points (like the original GCPs). This provides a true
-surface plot in all cases.
+\code{interp} package to create a continuous raster surface, even from s
+cattered, irregular input points (like the original GCPs). This provides
+a true surface plot in all cases.
 }
 \examples{
 # See ?analyze_distortion for a runnable example.

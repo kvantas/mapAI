@@ -216,15 +216,16 @@ summary.distortion <- function(object, ...) {
 #'
 #' @details This function visualizes the distortion field as it exists on the
 #'   **source map's coordinate space**. It uses linear interpolation via the
-#'   `interp` package to create a continuous raster surface, even from scattered,
-#'   irregular input points (like the original GCPs). This provides a true
-#'   surface plot in all cases.
+#'   `interp` package to create a continuous raster surface, even from s
+#'    cattered, irregular input points (like the original GCPs). This provides
+#'    a true surface plot in all cases.
 #'
 #' @param x A `distortion` object returned by `analyze_distortion()`.
 #' @param metric A character string specifying the metric to plot.
 #' @param palette A viridis color palette name (e.g., "viridis", "magma").
 #' @param diverging If `TRUE`, uses a red-white-blue diverging color scale.
-#' @param value_range A numeric vector of length 2 specifying color scale limits.
+#' @param value_range A numeric vector of length 2 specifying color scale
+#'  limits.
 #' @param add_points If `TRUE`, the original analysis points are overlaid.
 #' @param n_grid The resolution of the interpolation grid (e.g., 200x200).
 #' @param ... Additional arguments (not used).
@@ -259,14 +260,16 @@ plot.distortion <- function(x,
       y = x$source_y,
       z = x[[metric]],
       nx = n_grid,
-      ny = n_grid
+      ny = n_grid,
+      duplicate = "strip"
     )
   }, error = function(e) {
-    stop("Interpolation failed. Ensure you have at least 5 non-collinear points.",
-         call. = FALSE)
+    stop(
+      "Interpolation failed. Ensure you have at least 5 non-collinear points.",
+      call. = FALSE)
   })
 
-  # Convert interpolation result to a plottable data frame
+  # Convert interpolation result to a plotable data frame
   interp_df <- data.frame(
     source_x = rep(interp_result$x, times = length(interp_result$y)),
     source_y = rep(interp_result$y, each = length(interp_result$x)),
@@ -321,28 +324,8 @@ plot.distortion <- function(x,
   return(p)
 }
 
-#' @title Generate Tissot's Indicatrices from Distortion Analysis
-#' @description Creates a spatial object of ellipses (Tissot's indicatrices)
-#'  representing local distortion at each analysis point.
-#' @param object A `distortion` object from `analyze_distortion()`.
-#' @param scale_factor A numeric value to control the visual size of the
-#'   plotted ellipses. If `NULL` (the default), a reasonable scale factor is
-#'   automatically calculated based on the spatial extent of the data.
-#' @param fill_color A character string specifying the fill color of the ellipses.
-#' @param border_color A character string specifying the border color.
-#' @param alpha A numeric value (0-1) for the transparency of the ellipses.
-#' @return A `ggplot` object containing the distortion ellipses plotted in the
-#'   source coordinate space.
-#' @export
-#' @examples
-#' # See ?analyze_distortion for a complete, runnable example.
 
-indicatrices <- function(object, scale_factor,
-                         fill_color,
-                         border_color,
-                         alpha) {
-  UseMethod("indicatrices")
-}
+
 
 #' @title Plot Tissot's Indicatrices of Distortion
 #' @description Visualizes distortion by drawing Tissot's indicatrices
@@ -356,7 +339,8 @@ indicatrices <- function(object, scale_factor,
 #' @param scale_factor A numeric value to control the visual size of the
 #'   plotted ellipses. If `NULL` (the default), a reasonable scale factor is
 #'   automatically calculated based on the spatial extent of the data.
-#' @param fill_color A character string specifying the fill color of the ellipses.
+#' @param fill_color A character string specifying the fill color of the
+#'  ellipses.
 #' @param border_color A character string specifying the border color.
 #' @param alpha A numeric value (0-1) for the transparency of the ellipses.
 #'
@@ -367,11 +351,11 @@ indicatrices <- function(object, scale_factor,
 #' @export
 #' @examples
 #' # See ?analyze_distortion for a complete, runnable example.
-indicatrices.distortion <- function(object,
-                                    scale_factor = NULL,
-                                    fill_color = "lightblue",
-                                    border_color = "black",
-                                    alpha = 0.7) {
+indicatrices <- function(object,
+                         scale_factor = NULL,
+                         fill_color = "lightblue",
+                         border_color = "black",
+                         alpha = 0.7) {
 
   # --- 1. Input Validation ---
   # Note: validation for scale_factor now allows NULL
@@ -384,13 +368,17 @@ indicatrices.distortion <- function(object,
     y_range <- diff(range(object$source_y, na.rm = TRUE))
     max_extent <- max(x_range, y_range)
 
-    # Calculate a scale factor that makes the average ellipse ~1/40th of the extent
+    # Calculate a scale factor that makes the average ellipse ~1/40th of the
+    # extent
     avg_axis <- mean(object$a, na.rm = TRUE)
     if (avg_axis > 0 && max_extent > 0) {
       scale_factor <- (max_extent / 40) / avg_axis
-      message(paste("`scale_factor` is NULL. Automatically chosen value:", round(scale_factor, 2)))
+      message(paste("`scale_factor` is NULL. Automatically chosen value:",
+                    round(scale_factor, 2)))
     } else {
-      warning("Could not automatically determine scale_factor. Defaulting to 1.", call. = FALSE)
+      warning(
+        "Could not automatically determine scale_factor. Defaulting to 1.",
+        call. = FALSE)
       scale_factor <- 1 # Fallback for edge cases
     }
   }
@@ -422,3 +410,100 @@ indicatrices.distortion <- function(object,
 
   return(p)
 }
+
+
+
+#' #' @title Plot the Distortion Surface Learned by a PAI Model
+#' #'
+#' #' @description Visualizes the distortion surface learned by a
+#' #'   PAI model.
+#' #'
+#' #' @details This function generates a plot showing the distortion metric as a
+#' #'  surface
+#' #'
+#' #' The color intensity on the plots reveals the magnitude of the correction at
+#' #' any given location. Contour lines show the gradient of the change, and black
+#' #' crosses mark the location of the original Ground Control Points (GCPs),
+#' #' showing where the model had direct information to learn from.
+#' #'
+#' #' By examining these surfaces, users can:
+#' #' \itemize{
+#' #'   \item Understand the spatial nature of the distortion their model has
+#' #'   learned.
+#' #'   \item Identify areas of high vs. low correction.
+#' #'   \item Spot potential issues like extreme corrections or unusual artifacts,
+#' #'     especially at the edges of the data where the model is extrapolating.
+#' #' }
+#' #'
+#' #' @param object A  `pai_model` object returned by `train_pai_model()` function.
+#' #' @param n_grid The resolution of the interpolation grid used to create the
+#' #'  smooth surface. Higher values create a more detailed plot but take longer to
+#' #'   compute. Defaults to 100.
+#' #' @param metric The distortion metric to visualize.
+#' #' @param col_range A numeric vector of length 2 specifying the limits for the
+#' #'   color scale (e.g., `c(-10, 10)`). Defaults to `NULL`, which uses the
+#' #'  data's range.
+#' #' @param ... Additional arguments (not used).
+#' #'
+#' #' @return A `ggplot` object representing the distortion surface.
+#' #'
+#' #' @import ggplot2
+#' #' @importFrom viridis scale_fill_viridis
+#' #' @importFrom rlang .data
+#' #' @export
+#' #' @examples
+#' #'
+#' #' # create demo data and fit a bivariate GAM model
+#' #' demo_data <- create_demo_data()
+#' #' gam_model <- train_pai_model(demo_data$gcp, method = "gam_biv")
+#' #'
+#' #' # Analyze distortion on a grid of points
+#' #' surface(gam_model)
+#' surface.distortion <- function(object,
+#'                               n_grid = 100,
+#'                               metric = "area_scale",
+#'                               col_range = NULL,
+#'                               ...) {
+#'
+#'   # TODO input validation
+#'
+#'   x_range <- range(object$gcp$source_x)
+#'   y_range <- range(object$gcp$source_y)
+#'
+#'   grid_to_predict <- expand.grid(
+#'     source_x = seq(x_range[1], x_range[2], length.out = n_grid),
+#'     source_y = seq(y_range[1], y_range[2], length.out = n_grid)
+#'   )
+#'
+#'   # Use the new S3 predict method
+#'   plot_data <- predict(object, newdata = grid_to_predict)
+#'
+#'   # compute distortions
+#'   plot_data <- analyze_distortion(object, newdata = plot_data)
+#'
+#'   # --- Create plot ---
+#'   p <- ggplot(plot_data,
+#'                  aes(x = .data$source_x, y = .data$source_y)) +
+#'     geom_raster(aes(fill = .data$metric)) +
+#'     geom_contour(aes(z = .data$metric), color = "white", alpha = 0.4, bins = 12) +
+#'     labs(title = "Distortion surface", x = "X", y = "Y") +
+#'     coord_equal() + theme_minimal()
+#'
+#'   # Apply custom range if provided
+#'   if (!is.null(col_range) && is.numeric(col_range) && length(col_range) == 2) {
+#'     p <- p +
+#'       scale_fill_viridis(
+#'         option = "viridis",
+#'         name = metric,
+#'         limits = col_range,
+#'         na.value = "transparent")
+#'   } else {
+#'     p <- p +
+#'       scale_fill_viridis(
+#'         option = "viridis",
+#'         name = metric)
+#'   }
+#'
+#'   # Return the plot
+#'   return(p)
+#' }

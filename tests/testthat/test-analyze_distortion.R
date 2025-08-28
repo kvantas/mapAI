@@ -184,7 +184,7 @@ test_that("plot.distortion handles invalid inputs", {
 })
 
 
-# --- Tests for indicatrices.distortion ---
+# --- Tests for indicatrices  ---
 
 test_that("input validation works correctly with new scale_factor logic", {
 
@@ -192,11 +192,11 @@ test_that("input validation works correctly with new scale_factor logic", {
   test_dist <-analyze_distortion(model, create_dummy_gcp_data(20))
 
   # Test that NULL is now a valid value for scale_factor
-  expect_no_error(indicatrices.distortion(test_dist, scale_factor = NULL))
+  expect_no_error(indicatrices(test_dist, scale_factor = NULL))
 
   # Test for invalid scale_factor
   expect_error(
-    indicatrices.distortion(test_dist, scale_factor = -1),
+    indicatrices(test_dist, scale_factor = -1),
     "`scale_factor` must be NULL or a single positive numeric value."
   )
 })
@@ -208,12 +208,12 @@ test_that("automatic scaling calculates a factor and issues a message", {
 
   # Check that a message is printed when scale_factor is NULL
   expect_message(
-    indicatrices.distortion(test_dist, scale_factor = NULL),
+    indicatrices(test_dist, scale_factor = NULL),
     "`scale_factor` is NULL. Automatically chosen value"
   )
 
   # Check that it runs without error
-  p <- suppressMessages(indicatrices.distortion(test_dist))
+  p <- suppressMessages(indicatrices(test_dist))
   expect_s3_class(p, "ggplot")
 
   # Check that the resulting scale factor is a reasonable positive number
@@ -233,10 +233,10 @@ test_that("manual scale_factor override works as expected", {
 
   # When we provide a value, there should be NO message
   expect_no_message(
-    indicatrices.distortion(test_dist, scale_factor = scale),
+    indicatrices(test_dist, scale_factor = scale),
   )
 
-  p <- indicatrices.distortion(test_dist, scale_factor = scale)
+  p <- indicatrices(test_dist, scale_factor = scale)
   p_build <- ggplot_build(p)
   built_data <- p_build$data[[1]]
 
@@ -251,7 +251,7 @@ test_that("output is a ggplot object with a GeomEllipse layer", {
   model <- train_pai_model(create_dummy_gcp_data(20), method = "lm")
   test_dist <-analyze_distortion(model, create_dummy_gcp_data(20))
 
-  p <- suppressMessages(indicatrices.distortion(test_dist))
+  p <- suppressMessages(indicatrices(test_dist))
   expect_s3_class(p, "ggplot")
   expect_s3_class(p$layers[[1]]$geom, "GeomShape")
 })
@@ -264,7 +264,7 @@ test_that("static aesthetics (colors) are mapped correctly", {
   fill <- "#FF5733"
   border <- "darkgrey"
 
-  p <- suppressMessages(indicatrices.distortion(
+  p <- suppressMessages(indicatrices(
     test_dist, fill_color = fill, border_color = border)
     )
 

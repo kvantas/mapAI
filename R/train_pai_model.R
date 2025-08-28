@@ -342,13 +342,7 @@ residuals.pai_model <- function(
 #' @param n_grid The resolution of the interpolation grid used to create the
 #'  smooth surface. Higher values create a more detailed plot but take longer to
 #'   compute.
-#' @param plot_gcp A logical value indicating whether to plot the GCP
-#' locations on the correction surfaces.
-#' @param dx_range A numeric vector of length 2 specifying the limits for the
-#'  `dx` color scale.
-#' @param dy_range A numeric vector of length 2 specifying the limits for the
-#'  `dy` color scale.
-#'
+#' @param ... Additional arguments.
 #' @return A surface representation (e.g. a list with two ggplots).
 #' @import ggplot2
 #' @importFrom viridis scale_fill_viridis
@@ -359,9 +353,7 @@ residuals.pai_model <- function(
 
 surface <- function(object,
                     n_grid,
-                    plot_gcp,
-                    dx_range,
-                    dy_range) {
+                    ...) {
   UseMethod("surface")
 }
 
@@ -399,6 +391,7 @@ surface <- function(object,
 #'  data's range.
 #' @param dy_range A numeric vector of length 2 specifying the limits for the
 #'  `dy` color scale. Defaults to `NULL`.
+#' @param ... Additional arguments (not used).
 #'
 #' @return A list containing two `ggplot` objects: `dx_plot` and `dy_plot`.
 #' You can plot them individually.
@@ -424,7 +417,10 @@ surface.pai_model <- function(object,
                               n_grid = 100,
                               plot_gcp = TRUE,
                               dx_range = NULL,
-                              dy_range = NULL) {
+                              dy_range = NULL,
+                              ...) {
+
+  # TODO validate parameters
 
   x_range <- range(object$gcp$source_x)
   y_range <- range(object$gcp$source_y)

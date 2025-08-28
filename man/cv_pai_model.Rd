@@ -18,13 +18,16 @@ cv_pai_model(
 \arguments{
 \item{gcp_data}{An \code{gcp} object of homologous points.}
 
-\item{pai_method}{A character string or a custom model list for \code{train_pai_model}.}
+\item{pai_method}{A character string or a custom model list for
+\code{train_pai_model}.}
 
-\item{validation_type}{The validation strategy: "random", "spatial", "probability", or "stratified".}
+\item{validation_type}{The validation strategy: "random", "spatial",
+"probability", or "stratified".}
 
 \item{k_folds}{Number of folds for CV. Defaults to 5.}
 
-\item{train_split_ratio}{Proportion of data for training (for "probability" and "stratified"). Defaults to 0.8.}
+\item{train_split_ratio}{Proportion of data for training (for "probability"
+and "stratified"). Defaults to 0.8.}
 
 \item{n_strata}{Number of strata for stratified sampling. Defaults to 4.}
 
@@ -48,8 +51,10 @@ generalize to new data. This function automates this process.
 \strong{Validation Types}:
 \itemize{
 \item \strong{\code{random}}: Standard k-fold cross-validation.
-\item \strong{\code{spatial}}: Spatial k-fold cross-validation using k-means clustering.
-\item \strong{\code{probability}}: A single train/test split using simple random sampling.
+\item \strong{\code{spatial}}: Spatial k-fold cross-validation using k-means
+clustering.
+\item \strong{\code{probability}}: A single train/test split using simple
+random sampling.
 \item \strong{\code{stratified}}: A single train/test split using stratified
 random sampling based on the magnitude of distortion vectors.
 }

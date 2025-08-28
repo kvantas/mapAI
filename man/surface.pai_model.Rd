@@ -9,7 +9,8 @@
   n_grid = 100,
   plot_gcp = TRUE,
   dx_range = NULL,
-  dy_range = NULL
+  dy_range = NULL,
+  ...
 )
 }
 \arguments{
@@ -28,6 +29,8 @@ data's range.}
 
 \item{dy_range}{A numeric vector of length 2 specifying the limits for the
 \code{dy} color scale. Defaults to \code{NULL}.}
+
+\item{...}{Additional arguments (not used).}
 }
 \value{
 A list containing two \code{ggplot} objects: \code{dx_plot} and \code{dy_plot}.

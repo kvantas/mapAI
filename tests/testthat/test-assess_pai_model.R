@@ -106,7 +106,7 @@ test_that("print method for CV results is correct", {
   expect_true(any(grepl("--- PAI Model Assessment Results ---", output)))
   expect_true(any(grepl("Validation Type:    random", output)))
   expect_true(any(grepl("Folds:              5", output)))
-  expect_true(any(grepl("Mean 2D RMSE:", output)))
+  expect_true(any(grepl("Model CV 2D RMSE:", output)))
   expect_true(any(grepl("Std Dev of RMSE:", output))) # Check for SD line
 })
 

@@ -2,9 +2,15 @@
 % Please edit documentation in R/analyze_distortion.R
 \name{indicatrices}
 \alias{indicatrices}
-\title{Generate Tissot's Indicatrices from Distortion Analysis}
+\title{Plot Tissot's Indicatrices of Distortion}
 \usage{
-indicatrices(object, scale_factor, fill_color, border_color, alpha)
+indicatrices(
+  object,
+  scale_factor = NULL,
+  fill_color = "lightblue",
+  border_color = "black",
+  alpha = 0.7
+)
 }
 \arguments{
 \item{object}{A \code{distortion} object from \code{analyze_distortion()}.}
@@ -13,19 +19,25 @@ indicatrices(object, scale_factor, fill_color, border_color, alpha)
 plotted ellipses. If \code{NULL} (the default), a reasonable scale factor is
 automatically calculated based on the spatial extent of the data.}
 
-\item{fill_color}{A character string specifying the fill color of the ellipses.}
+\item{fill_color}{A character string specifying the fill color of the
+ellipses.}
 
 \item{border_color}{A character string specifying the border color.}
 
 \item{alpha}{A numeric value (0-1) for the transparency of the ellipses.}
 }
 \value{
-A \code{ggplot} object containing the distortion ellipses plotted in the
-source coordinate space.
+A \code{ggplot} object.
 }
 \description{
-Creates a spatial object of ellipses (Tissot's indicatrices)
-representing local distortion at each analysis point.
+Visualizes distortion by drawing Tissot's indicatrices
+(ellipses) at their original source locations.
+}
+\details{
+This function creates a powerful visual representation of
+distortion. It draws an ellipse at each analyzed point, centered on its
+\strong{source coordinate}. The size, shape, and orientation of the ellipse
+graphically represent the distortion at that location.
 }
 \examples{
 # See ?analyze_distortion for a complete, runnable example.

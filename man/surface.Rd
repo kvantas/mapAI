@@ -4,7 +4,7 @@
 \alias{surface}
 \title{Plot Surface Method for the package's Objects}
 \usage{
-surface(object, n_grid, plot_gcp, dx_range, dy_range)
+surface(object, n_grid, ...)
 }
 \arguments{
 \item{object}{An object from the \code{mapAI} package.}
@@ -13,14 +13,7 @@ surface(object, n_grid, plot_gcp, dx_range, dy_range)
 smooth surface. Higher values create a more detailed plot but take longer to
 compute.}
 
-\item{plot_gcp}{A logical value indicating whether to plot the GCP
-locations on the correction surfaces.}
-
-\item{dx_range}{A numeric vector of length 2 specifying the limits for the
-\code{dx} color scale.}
-
-\item{dy_range}{A numeric vector of length 2 specifying the limits for the
-\code{dy} color scale.}
+\item{...}{Additional arguments.}
 }
 \value{
 A surface representation (e.g. a list with two ggplots).
