@@ -1,0 +1,85 @@
+---
+title: "Custom Model Training with mapAI"
+author: "Generated Vignette"
+date: "`r Sys.Date()`"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+library(knitr)
+opts_chunk$set(
+  collapse = TRUE,
+  comment = "#>"
+)
+```
+
+## Introduction
+
+This vignette demonstrates how to create and evaluate a custom model using the `mapAI` package. We will use the `create_demo_data` function to generate sample data, train a bivariate GAM model, and define a custom model for comparison.
+
+## Generating Demo Data
+
+First, we generate demo data using the `create_demo_data` function:
+
+```{r generate-demo-data}
+library(mapAI)
+
+demo_data <- create_demo_data()
+```
+
+## Training a Bivariate GAM Model
+
+We train a bivariate GAM model using the `train_pai_model` function:
+
+```{r train-gam-model}
+# fit a bivariate GAM model
+gam_model <- train_pai_model(gcp_data = demo_data$gcp, method = "gam_biv")
+```
+
+## Defining a Custom Model
+
+Next, we define a custom model. This model uses the `mgcv` package to fit a generalized additive model (GAM) with restricted maximum likelihood (REML):
+
+```{r define-custom-model}
+# create a custom model
+custom_model <- list(
+  label = "GAM Model using REML",
+  library = "mgcv",
+  modelType = "univariate",
+  fit = function(x, y, ...) {
+    dat <- cbind(y, x)
+    names(dat)[1] <- "outcome"
+
+    mgcv::gam(outcome ~ s(source_x) + s(source_y),
+            method = "REML",
+            data = dat,
+            ...)
+  },
+  predict = function(modelFit, newdata, ...) {
+    stats::predict(modelFit, newdata = newdata, ...)
+  }
+)
+```
+
+## Training the Custom Model
+
+We use the `train_pai_model` function to train the custom model:
+
+```{r train-custom-model}
+# fit the custom model
+custom_fitted <- train_pai_model(gcp_data = demo_data$gcp, method = custom_model)
+```
+
+## Comparing Results
+
+Finally, we compare the results of the bivariate GAM model and the custom model using cross-validation:
+
+```{r compare-results}
+# compare results
+cv_gam <- cv_pai_model(demo_data$gcp, "gam_biv", seed = 1, k = 5)
+cv_custom <- cv_pai_model(demo_data$gcp, custom_model, seed = 1, k = 5)
+print(cv_gam)
+print(cv_custom)
+```
+
+This vignette demonstrates the flexibility of the `mapAI` package in training and evaluating custom models.
