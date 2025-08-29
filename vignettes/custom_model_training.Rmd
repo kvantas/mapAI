@@ -1,8 +1,11 @@
 ---
 title: "Custom Model Training with mapAI"
-author: "Generated Vignette"
-date: "`r Sys.Date()`"
-output: html_document
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{Custom Model Training with mapAI}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+
 ---
 
 ```{r setup, include=FALSE}
