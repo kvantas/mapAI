@@ -49,10 +49,7 @@ analyze_distortion <- function(pai_model,
                                reference_scale = 1) {
 
   # --- Input validation ---
-
-  if (!inherits(pai_model, "pai_model")) {
-    stop("`pai_model` must be an object of class 'pai_model'.", call. = FALSE)
-  }
+  an_dist_validation(pai_model, reference_scale)
 
   if (!is.null(newdata)) {
     new_data_validation(newdata)
@@ -60,13 +57,10 @@ analyze_distortion <- function(pai_model,
     newdata <- pai_model$gcp
   }
 
-  if (!is.numeric(reference_scale) || length(reference_scale) != 1 || reference_scale <= 0) {
-    stop("`reference_scale` must be a single positive numeric value.", call. = FALSE)
-  }
+  message(paste("Calculating distortion metrics for",
+                pai_model$model_info$label, "model..."))
 
-  message(paste("Calculating distortion metrics for", pai_model$model_info$label, "model..."))
-
-  # --- Efficient Numerical Derivatives Calculation ---
+  # ---  Numerical Derivatives Calculation ---
 
   # Determine a small step size h
   coord_range <- max(c(diff(range(newdata$source_x)),
@@ -75,6 +69,7 @@ analyze_distortion <- function(pai_model,
   h <- coord_range * 1e-6
 
   # --- Step 1: Compute partial derivatives with respect to x ---
+
   # Create minimal data frames for prediction
   coords_x_plus_h <- data.frame(source_x = newdata$source_x + h,
                                 source_y = newdata$source_y)
@@ -97,12 +92,14 @@ analyze_distortion <- function(pai_model,
   coords_y_minus_h <- data.frame(source_x = newdata$source_x,
                                  source_y = newdata$source_y - h)
 
+  # Predict transformed coordinates
   T_y_plus <- predict(pai_model, newdata = coords_y_plus_h)
   T_y_minus <- predict(pai_model, newdata = coords_y_minus_h)
 
   dfx_dy <- (T_y_plus$target_x - T_y_minus$target_x) / (2 * h)
   dfy_dy <- (T_y_plus$target_y - T_y_minus$target_y) / (2 * h)
 
+  # remove large intermediate objects to free memory
   rm(coords_y_plus_h, coords_y_minus_h, T_y_plus, T_y_minus)
 
   # --- Finalizing metrics from derivatives (vectorized and efficient) ---

@@ -32,6 +32,7 @@ input_validation <- function(source_x, source_y,
 #' @noRd
 new_data_validation <- function(newdata) {
 
+
   if (!all(c("source_x", "source_y") %in% names(newdata))) {
     stop("`newdata` must contain 'source_x' and 'source_y' columns.",
          call. = FALSE)
@@ -47,6 +48,28 @@ new_data_validation <- function(newdata) {
 
 }
 
+#' Validate analyze_distortion function
+#' @keywords internal
+#' @noRd
+an_dist_validation <- function(pai_model, reference_scale){
+
+
+  if (!inherits(pai_model, "pai_model")) {
+    stop("`pai_model` must be an object of class 'pai_model'.", call. = FALSE)
+  }
+
+
+  if (!is.numeric(reference_scale) ||
+      length(reference_scale) != 1 ||
+      reference_scale <= 0) {
+    stop("`reference_scale` must be a single positive numeric value.",
+         call. = FALSE)
+  }
+
+  # If all checks pass, return invisibly
+  invisible(NULL)
+
+}
 
 #' Validate input for plot.distortion function
 #' @keywords internal

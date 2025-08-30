@@ -8,7 +8,7 @@ test_that("input validation works correctly", {
   expect_error(analyze_distortion(pai_model = "not a model"),
                "`pai_model` must be an object of class 'pai_model'.")
 
-  expect_error(analyze_distortion(model, 1:3),
+  expect_error(analyze_distortion(pai_model = model, newdata = 1:3),
                "`newdata` must contain 'source_x' and 'source_y' columns.")
 
   expect_error(analyze_distortion(pai_model = model, reference_scale = 0),
@@ -37,7 +37,7 @@ test_that("function defaults to model's gcp data when input is NULL", {
   gcp <- create_dummy_gcp_data(50)
   model <- train_pai_model(gcp, "lm")
 
-  res_default <- analyze_distortion(model, newdata = NULL)
+  res_default <- analyze_distortion(model)
   expect_equal(nrow(res_default), nrow(model$gcp))
 })
 
