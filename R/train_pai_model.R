@@ -34,12 +34,12 @@
 #' surface(gam_model)
 #'
 train_pai_model <- function(gcp_data, method, seed = 123, ...) {
-
   set.seed(seed)
 
   # Input validation
   if (missing(gcp_data) || missing(method)) {
-    stop("Both 'gcp_data' and 'method' arguments are required.", call. = FALSE)
+    stop("Both 'gcp_data' and 'method' arguments are required.",
+         call. = FALSE)
   }
   # the get_model_info function handles validation of the method argument
   model_info <- get_model_info(method)
@@ -69,20 +69,26 @@ train_pai_model <- function(gcp_data, method, seed = 123, ...) {
       model_info$fit(x = source_coords, y = gcp_data$dx, ...)
     }, error = function(e) {
       # This function executes if an error occurs in the 'try' block
-      stop(sprintf(
-        "Failed to train the model for the dx component.\n  Underlying error: %s",
-        e$message
-      ), call. = FALSE)
+      stop(
+        sprintf(
+          "Failed to train the model for the dx component.\n  Underlying error: %s",
+          e$message
+        ),
+        call. = FALSE
+      )
     })
 
     # --- Robust fitting for model_dy ---
     model_dy <- tryCatch({
       model_info$fit(x = source_coords, y = gcp_data$dy, ...)
     }, error = function(e) {
-      stop(sprintf(
-        "Failed to train the model for the dy component.\n  Underlying error: %s",
-        e$message
-      ), call. = FALSE)
+      stop(
+        sprintf(
+          "Failed to train the model for the dy component.\n  Underlying error: %s",
+          e$message
+        ),
+        call. = FALSE
+      )
     })
 
     model_fit <- list(model_dx = model_dx, model_dy = model_dy)
@@ -92,19 +98,25 @@ train_pai_model <- function(gcp_data, method, seed = 123, ...) {
     model_fit <- tryCatch({
       model_info$fit(gcp_data, ...)
     }, error = function(e) {
-      stop(sprintf(
-        "Failed to train the bivariate model '%s'.\n  Underlying error: %s",
-        model_info$label, e$message
-      ), call. = FALSE)
+      stop(
+        sprintf(
+          "Failed to train the bivariate model '%s'.\n  Underlying error: %s",
+          model_info$label,
+          e$message
+        ),
+        call. = FALSE
+      )
     })
   }
 
 
   # Prepare output
-  output <- list("model" = model_fit,
-                 "method" = method,
-                 "model_info" = model_info,
-                 "gcp" = gcp_data)
+  output <- list(
+    "model" = model_fit,
+    "method" = method,
+    "model_info" = model_info,
+    "gcp" = gcp_data
+  )
 
   class(output) <- c("pai_model", "list")
   return(output)
@@ -140,7 +152,6 @@ train_pai_model <- function(gcp_data, method, seed = 123, ...) {
 #' pred_gcp <- predict(lm_model, test_set)
 #' pred_gcp
 predict.pai_model <- function(object, newdata, ...) {
-
   # validate newdata
   new_data_validation(newdata)
 
@@ -158,10 +169,13 @@ predict.pai_model <- function(object, newdata, ...) {
     dx <- tryCatch({
       model_info$predict(model_fit$model_dx, newdata = source_coords, ...)
     }, error = function(e) {
-      stop(sprintf(
-        "Prediction for the dx component failed.\n  Underlying error: %s",
-        e$message
-      ), call. = FALSE)
+      stop(
+        sprintf(
+          "Prediction for the dx component failed.\n  Underlying error: %s",
+          e$message
+        ),
+        call. = FALSE
+      )
     })
 
 
@@ -170,10 +184,13 @@ predict.pai_model <- function(object, newdata, ...) {
     dy <- tryCatch({
       model_info$predict(model_fit$model_dy, newdata = source_coords, ...)
     }, error = function(e) {
-      stop(sprintf(
-        "Prediction for the dy component failed.\n  Underlying error: %s",
-        e$message
-      ), call. = FALSE)
+      stop(
+        sprintf(
+          "Prediction for the dy component failed.\n  Underlying error: %s",
+          e$message
+        ),
+        call. = FALSE
+      )
     })
 
     df <- data.frame(dx = dx, dy = dy)
@@ -183,14 +200,19 @@ predict.pai_model <- function(object, newdata, ...) {
     predictions <- tryCatch({
       model_info$predict(model_fit, newdata = source_coords, ...)
     }, error = function(e) {
-      stop(sprintf(
-        "Prediction for the bivariate model '%s' failed.\n  Underlying error: %s",
-        model_info$label, e$message
-      ), call. = FALSE)
+      stop(
+        sprintf(
+          "Prediction for the bivariate model '%s' failed.\n  Underlying error: %s",
+          model_info$label,
+          e$message
+        ),
+        call. = FALSE
+      )
     })
 
     if (is.null(dim(predictions)) || dim(predictions)[2] != 2) {
-      stop("The predict function for a bivariate model must return a 2-column object.", call. = FALSE)
+      stop("The predict function for a bivariate model must return a 2-column object.",
+           call. = FALSE)
     }
 
     df <- (data.frame(dx = predictions[, 1], dy = predictions[, 2]))
@@ -283,15 +305,13 @@ plot.pai_model <- function(x, ...) {
 #' @export
 #' @examples
 #' # See ?train_pai_model for a complete, runnable example.
-residuals.pai_model <- function(
-    object,
-    title = "Model Residual Error Vectors",
-    subtitle = "Arrows point from predicted to true target locations",
-    arrow_color = "darkblue",
-    point_color = "blue",
-    exaggeration_factor = 1,
-    ...) {
-
+residuals.pai_model <- function(object,
+                                title = "Model Residual Error Vectors",
+                                subtitle = "Arrows point from predicted to true target locations",
+                                arrow_color = "darkblue",
+                                point_color = "blue",
+                                exaggeration_factor = 1,
+                                ...) {
   # Predict the displacements
   pred <- predict(object, object$gcp)
 
@@ -310,13 +330,15 @@ residuals.pai_model <- function(
         yend = .data$target_y + exaggeration_factor * (.data$actual_target_y - .data$target_y)
       ),
       arrow = grid::arrow(length = grid::unit(0.1, "cm")),
-      color = arrow_color, # Use the parameter
+      color = arrow_color,
+      # Use the parameter
       alpha = 0.7
     ) +
     # Add a point at the start of each arrow (the predicted location)
     ggplot2::geom_point(
       ggplot2::aes(x = .data$target_x, y = .data$target_y),
-      color = point_color, # Use the parameter
+      color = point_color,
+      # Use the parameter
       size = 0.5,
       shape = 1
     ) +
@@ -351,9 +373,7 @@ residuals.pai_model <- function(
 #' @examples
 #' # See ?train_pai_model for a complete, runnable example.
 
-surface <- function(object,
-                    n_grid,
-                    ...) {
+surface <- function(object, n_grid, ...) {
   UseMethod("surface")
 }
 
@@ -419,9 +439,10 @@ surface.pai_model <- function(object,
                               dx_range = NULL,
                               dy_range = NULL,
                               ...) {
+  # --- Input validation ---
+  sur_pai_model_val(object, n_grid, plot_gcp, dx_range, dy_range)
 
-  # TODO validate parameters
-
+  # create grid for predictions
   x_range <- range(object$gcp$source_x)
   y_range <- range(object$gcp$source_y)
 
@@ -434,59 +455,72 @@ surface.pai_model <- function(object,
   plot_data <- predict(object, newdata = grid_to_predict)
 
   # --- Create dx plot ---
-  p_dx <- ggplot(plot_data,
-                 aes(x = .data$source_x, y = .data$source_y)) +
+  p_dx <- ggplot(plot_data, aes(x = .data$source_x, y = .data$source_y)) +
     geom_raster(aes(fill = .data$dx)) +
-    geom_contour(aes(z = .data$dx), color = "white", alpha = 0.4, bins = 12) +
+    geom_contour(
+      aes(z = .data$dx),
+      color = "white",
+      alpha = 0.4,
+      bins = 12
+    ) +
     labs(title = "Correction Surface (dx)", x = "X", y = "Y") +
     coord_equal() + theme_minimal()
 
   # Apply custom dx range if provided
-  if (!is.null(dx_range) && is.numeric(dx_range) && length(dx_range) == 2) {
+  if (!is.null(dx_range) &&
+      is.numeric(dx_range) && length(dx_range) == 2) {
     p_dx <- p_dx +
       scale_fill_viridis(
         option = "viridis",
         name = "dx",
         limits = dx_range,
-        na.value = "transparent")
+        na.value = "transparent"
+      )
   } else {
     p_dx <- p_dx +
-      scale_fill_viridis(
-        option = "viridis",
-        name = "dx")
+      scale_fill_viridis(option = "viridis", name = "dx")
   }
 
   # --- Create dy plot ---
-  p_dy <- ggplot(plot_data,
-                 aes(x = .data$source_x, y = .data$source_y)) +
+  p_dy <- ggplot(plot_data, aes(x = .data$source_x, y = .data$source_y)) +
     geom_raster(aes(fill = .data$dy)) +
-    geom_contour(aes(z = .data$dy), color = "white", alpha = 0.4, bins = 12) +
+    geom_contour(
+      aes(z = .data$dy),
+      color = "white",
+      alpha = 0.4,
+      bins = 12
+    ) +
     labs(title = "Correction Surface (dy)", x = "X", y = "Y") +
     coord_equal() + theme_minimal()
 
   # Apply custom dy range if provided
-  if (!is.null(dy_range) && is.numeric(dy_range) && length(dy_range) == 2) {
+  if (!is.null(dy_range) &&
+      is.numeric(dy_range) && length(dy_range) == 2) {
     p_dy <- p_dy +
       scale_fill_viridis(
         option = "viridis",
         name = "dy",
         limits = dy_range,
-        na.value = "transparent")
+        na.value = "transparent"
+      )
   } else {
     p_dy <- p_dy +
-      scale_fill_viridis(
-        option = "viridis",
-        name = "dy",
-        na.value = "transparent")
+      scale_fill_viridis(option = "viridis",
+                         name = "dy",
+                         na.value = "transparent")
   }
 
   # Add GCPs if requested
   if (plot_gcp) {
-    gcp_layer <- geom_point(data = object$gcp, inherit.aes = FALSE,
-                            mapping = aes(x = .data$source_x,
-                                          y = .data$source_y),
-                            shape = 3, color = "black", size = 0.8,
-                            alpha = 0.7)
+    gcp_layer <- geom_point(
+      data = object$gcp,
+      inherit.aes = FALSE,
+      mapping = aes(x = .data$source_x, y = .data$source_y),
+      shape = 3,
+      color = "black",
+      size = 0.8,
+      alpha = 0.7
+    )
     p_dx <- p_dx + gcp_layer
     p_dy <- p_dy + gcp_layer
   }

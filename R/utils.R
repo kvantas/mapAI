@@ -1,3 +1,32 @@
+#' Description: Internal utility functions for input validation and error
+#' handling
+#' @keywords internal
+#' @noRd
+sur_pai_model_val <- function(object,
+                              n_grid,
+                              plot_gcp,
+                              dx_range,
+                              dy_range) {
+  if (!inherits(object, "pai_model")) {
+    stop("The 'object' must be of class 'pai_model'.", call. = FALSE)
+  }
+  if (!is.numeric(n_grid) || n_grid <= 0 || n_grid != round(n_grid)) {
+    stop("n_grid must be a positive integer.", call. = FALSE)
+  }
+  if (!is.logical(plot_gcp) || length(plot_gcp) != 1) {
+    stop("plot_gcp must be a single logical value (TRUE or FALSE).", call. = FALSE)
+  }
+  if (!is.null(dx_range) && (!is.numeric(dx_range) || length(dx_range) != 2)) {
+    stop("dx_range must be a numeric vector of length 2 or NULL.", call. = FALSE)
+  }
+  if (!is.null(dy_range) && (!is.numeric(dy_range) || length(dy_range) != 2)) {
+    stop("dy_range must be a numeric vector of length 2 or NULL.", call. = FALSE)
+  }
+
+  invisible(NULL)
+
+}
+
 #' Validate Input for Helmert  and create_gcps function
 #' @keywords internal
 #' @noRd
