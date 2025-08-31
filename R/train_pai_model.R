@@ -448,7 +448,7 @@ surface.pai_model <- function(object,
     source_y = seq(y_range[1], y_range[2], length.out = n_grid)
   )
 
-  # Use the new S3 predict method
+  # Use the S3 predict method
   plot_data <- predict(object, newdata = grid_to_predict)
 
   # --- Create dx plot ---
