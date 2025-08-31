@@ -361,11 +361,8 @@ residuals.pai_model <- function(object,
 #'  from the package's objects
 #'
 #' @param object An object from the `mapAI` package.
-#' @param n_grid The resolution of the interpolation grid used to create the
-#'  smooth surface. Higher values create a more detailed plot but take longer to
-#'   compute.
 #' @param ... Additional arguments.
-#' @return A surface representation (e.g. a list with two ggplots).
+#' @return A surface representation of the object.
 #' @import ggplot2
 #' @importFrom viridis scale_fill_viridis
 #' @importFrom rlang .data
