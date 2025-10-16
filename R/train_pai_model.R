@@ -361,6 +361,7 @@ residuals.pai_model <- function(object,
 #'  from the package's objects
 #'
 #' @param object An object from the `mapAI` package.
+#' @param n_grid The resolution of the interpolation grid used to create the
 #' @param ... Additional arguments.
 #' @return A surface representation of the object.
 #' @import ggplot2

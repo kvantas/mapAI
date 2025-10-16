@@ -9,6 +9,8 @@ surface(object, n_grid, ...)
 \arguments{
 \item{object}{An object from the \code{mapAI} package.}
 
+\item{n_grid}{The resolution of the interpolation grid used to create the}
+
 \item{...}{Additional arguments.}
 }
 \value{
