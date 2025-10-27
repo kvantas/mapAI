@@ -9,14 +9,12 @@ surface(object, n_grid, ...)
 \arguments{
 \item{object}{An object from the \code{mapAI} package.}
 
-\item{n_grid}{The resolution of the interpolation grid used to create the
-smooth surface. Higher values create a more detailed plot but take longer to
-compute.}
+\item{n_grid}{The resolution of the interpolation grid used to create the}
 
 \item{...}{Additional arguments.}
 }
 \value{
-A surface representation (e.g. a list with two ggplots).
+A surface representation of the object.
 }
 \description{
 This is a generic function that generates a surface

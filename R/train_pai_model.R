@@ -362,10 +362,8 @@ residuals.pai_model <- function(object,
 #'
 #' @param object An object from the `mapAI` package.
 #' @param n_grid The resolution of the interpolation grid used to create the
-#'  smooth surface. Higher values create a more detailed plot but take longer to
-#'   compute.
 #' @param ... Additional arguments.
-#' @return A surface representation (e.g. a list with two ggplots).
+#' @return A surface representation of the object.
 #' @import ggplot2
 #' @importFrom viridis scale_fill_viridis
 #' @importFrom rlang .data
@@ -451,7 +449,7 @@ surface.pai_model <- function(object,
     source_y = seq(y_range[1], y_range[2], length.out = n_grid)
   )
 
-  # Use the new S3 predict method
+  # Use the S3 predict method
   plot_data <- predict(object, newdata = grid_to_predict)
 
   # --- Create dx plot ---
