@@ -186,7 +186,7 @@ test_that("print, plot, residuals, surface methods run without error", {
   expect_invisible(print(model))
 
   # plot method
-  expect_no_failure({
+  expect_no_error({
     # Suppress plotting to console during tests
     pdf(NULL)
     plot(model)
