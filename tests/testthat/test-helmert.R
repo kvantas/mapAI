@@ -81,7 +81,29 @@ test_that("predict.helmert handles invalid input gracefully", {
   # Non-finite values
   expect_error(
     predict(helmert_model, data.frame(source_x = c(1, NA), source_y = c(2, 3))),
-    "All 'source_x' and 'source_y' values in 'newdata' must be finite numbers."
+    "All 'source_x' and 'source_y' values in 'newdata' must be finite"
   )
 })
 
+test_that("helmert model returns error for co-located points", {
+
+  # exactly the same points
+  expect_error(
+    helmert_model <- helmert(
+      source_x = rep(1, 0, 10),
+      source_y = rep(1, 0, 10),
+      target_x = rep(1, 0, 10),
+      target_y = rep(1, 0, 10)
+    )
+  )
+  # very close points
+  expect_error(
+    helmert_model <- helmert(
+      source_x = rep(1, 0, 10),
+      source_y = rep(1, 0, 10) + rnorm(10, 0, 1e-10),
+      target_x = rep(1, 0, 10),
+      target_y = rep(1, 0, 10) + rnorm(10, 0, 1e-10)
+    )
+  )
+
+})

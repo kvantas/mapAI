@@ -65,6 +65,17 @@ test_that("print.gcp displays correct output", {
   )
 
   expect_output(print(gcps), "GCP Object with 10 points")
+
+  gcp_data <- create_dummy_gcp_data(12)
+  gcps <- read_gcp(
+    source_x = gcp_data$source_x,
+    source_y = gcp_data$source_y,
+    target_x = gcp_data$source_x + gcp_data$dx,
+    target_y = gcp_data$source_y + gcp_data$dy
+  )
+
+  expect_output(print(gcps), "GCP Object with 12 points")
+
 })
 
 test_that("summary.gcp displays correct summary", {

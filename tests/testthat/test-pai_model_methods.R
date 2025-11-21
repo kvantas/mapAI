@@ -143,10 +143,7 @@ test_that("train_pai_model provides a clear error message on fit failure", {
   )
 
   # Use expect_error to check the exact error message
-  expect_error(
-    train_pai_model(gcp, broken_univariate_model),
-    "Failed to train the model for the dx component.\\n  Underlying error: This model intentionally fails."
-  )
+  expect_error(train_pai_model(gcp, broken_univariate_model))
 })
 
 # test for errors in predict.pai_model

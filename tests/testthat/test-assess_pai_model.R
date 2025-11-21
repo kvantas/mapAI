@@ -43,7 +43,7 @@ test_that("random k-fold CV works as expected", {
 })
 
 test_that("spatial k-fold CV works as expected", {
-  k = 4
+  k <- 4
   test_gcp <- create_dummy_gcp_data(50)
   res <- cv_pai_model(test_gcp, "lm", validation_type = "spatial", k_folds = k)
 
@@ -78,9 +78,11 @@ test_that("probability (single split) works as expected", {
 test_that("stratified works as expected", {
   test_gcp <- create_dummy_gcp_data(60)
   n_strata <- 4
+  k_folds <- 5
   res <- cv_pai_model(test_gcp, "lm",
                       validation_type = "stratified",
-                      n_strata = n_strata)
+                      n_strata = n_strata,
+                      k_folds = k_folds)
 
   expect_equal(res$summary$ValidationType, "stratified")
 
@@ -89,12 +91,24 @@ test_that("stratified works as expected", {
 
   expect_equal(res$details$n_strata, n_strata)
   expect_equal(nrow(res$predictions), nrow(test_gcp))
-  expect_length(unique(res$predictions$fold), n_strata)
+  expect_length(unique(res$predictions$fold), k_folds)
 
   expect_false(is.na(res$summary$SD_RMSE_2D))
 })
 
-# --- Tests for print.pai_assessment ---
+test_that("falling back to simple random sampling...", {
+  test_gcp <- create_dummy_gcp_data(10)
+  test_gcp$dx <- 1
+  test_gcp$dy <- 1
+
+  expect_error(
+    res <- cv_pai_model(test_gcp, "lm",
+                        validation_type = "stratified",
+                        train_split_ratio = 0.25),
+    regexp = "Could not create sufficient strata from 'dx' and 'dy'"
+  )
+
+})
 
 test_that("print method for CV results is correct", {
 

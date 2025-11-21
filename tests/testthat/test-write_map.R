@@ -64,8 +64,12 @@ test_that("write_map handles invalid inputs gracefully", {
 
   temp_dir <- withr::local_tempdir()
   temp_path <- file.path(temp_dir, "parcels.gpkg")
-  expect_error(write_map(as.data.frame(sample_map), temp_path), "`map` must be a valid `sf` object.")
-  expect_error(write_map(sample_map, file_path = 12345), "`file_path` must be a single character string.")
+  expect_error(write_map(as.data.frame(sample_map), temp_path, overwrite = "a"),
+               "`map` must be a valid `sf` object.")
+  expect_error(write_map(as.data.frame(sample_map), temp_path),
+               "`map` must be a valid `sf` object.")
+  expect_error(write_map(sample_map, file_path = 12345),
+               "`file_path` must be a single character string.")
   temp_path_xxx <- file.path(temp_dir, "parcels.xxx")
   expect_error(suppressWarnings( write_map(sample_map, temp_path_xxx)) )
 })

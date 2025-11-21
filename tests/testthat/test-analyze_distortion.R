@@ -98,7 +98,7 @@ test_that("numerical derivatives match analytical derivatives", {
 
   # Compare the function's numerical results to the analytical solution.
   # We use a tolerance for floating-point inaccuracies.
-  n = nrow(res)
+  n <- nrow(res)
   expect_equal(res$a, rep(a_analytical, n), tolerance = 1e-6)
   expect_equal(res$b, rep(b_analytical, n), tolerance = 1e-6)
   expect_equal(res$area_scale, rep(area_scale_analytical, n), tolerance = 1e-6)
@@ -118,7 +118,7 @@ test_that("Correctly identifies an identity transformation (no distortion)", {
     },
 
     predict = function(model, newdata, ...) {
-      n = nrow(newdata)
+      n <- nrow(newdata)
       # Identity transformation: target coordinates are the same as source
 
       # Calculate the displacements (the difference from the source)
@@ -132,8 +132,8 @@ test_that("Correctly identifies an identity transformation (no distortion)", {
   model <- train_pai_model(create_dummy_gcp_data(10), method = identity_model)
   res <-analyze_distortion(model, create_dummy_gcp_data(10))
 
-  TOLERANCE  = 10^-6
-  n = nrow(res)
+  TOLERANCE  <- 10^-6
+  n <- nrow(res)
 
   expect_equal(res$a, rep(1, n), tolerance = TOLERANCE)
   expect_equal(res$b, rep(1, n), tolerance = TOLERANCE)
@@ -179,6 +179,11 @@ test_that("plot.distortion handles invalid inputs", {
   expect_error(plot(res, metric = "invalid_metric"), "must be one of")
 
   p <- plot(res, metric = "a", add_points = FALSE)
+  expect_s3_class(p, "ggplot")
+
+  p <- plot(res, metric = "a",
+            diverging = TRUE,
+            add_points = TRUE)
   expect_s3_class(p, "ggplot")
 
 })
