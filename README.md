@@ -56,7 +56,7 @@ complex, noisy distortions.
 ``` r
 library(mapAI)
 library(sf)
-#> Linking to GEOS 3.13.1, GDAL 3.10.2, PROJ 9.5.1; sf_use_s2() is TRUE
+#> Linking to GEOS 3.13.1, GDAL 3.11.4, PROJ 9.7.0; sf_use_s2() is TRUE
 library(ggplot2)
 
 # Generate a shapefile and a GCPs CSV with complex noisy distortions
