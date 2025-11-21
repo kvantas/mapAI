@@ -90,7 +90,8 @@ cv_pai_model <- function(gcp_data, pai_method,
                                      validation_type,
                                      k_folds,
                                      train_split_ratio,
-                                     n_strata)
+                                     n_strata,
+                                     seed)
 
   # --- 3. Run Validation Across All Splits ---
   message(paste("Starting", validation_type, "validation..."))
@@ -186,7 +187,10 @@ cv_pai_model <- function(gcp_data, pai_method,
 #' Internal helper to create resampling splits
 #' @noRd
 #' @importFrom stats sd complete.cases quantile kmeans
-create_resampling_splits <- function(gcp_data, type, k, ratio, n_strata) {
+create_resampling_splits <- function(gcp_data, type, k, ratio, n_strata, seed) {
+
+  # set seed for reproducibility
+  set.seed(seed)
 
   n_pts <- nrow(gcp_data)
   indices <- seq_len(n_pts)
@@ -211,29 +215,49 @@ create_resampling_splits <- function(gcp_data, type, k, ratio, n_strata) {
                      test = setdiff(indices, train_indices)))
          },
          "stratified" = {
+           # Calculate distortion magnitudes
            dist <- sqrt(gcp_data$dx^2 + gcp_data$dy^2)
-           breaks <- stats::quantile(
-             dist, probs = seq(0, 1, by = 1/n_strata),
-             na.rm = TRUE, names = FALSE)
-           breaks <- unique(breaks)
 
+            # Create unique break points
+           breaks <- unique(stats::quantile(
+             dist,
+             probs = seq(0, 1, by = 1/n_strata),
+             na.rm = TRUE, names = FALSE
+           ))
+
+           # Handle low cardinality in breaks
            if (length(breaks) < 2) {
-             warning(
-               "Could not create strata; falling back to simple random sampling.",
-               call. = FALSE)
-             return(
-               create_resampling_splits(gcp_data, "probability",
-                                        k, ratio, n_strata))
+             stop("Could not create sufficient strata from 'dx' and 'dy'.")
            }
 
-           strata_ids <- cut(dist, breaks = breaks,
-                             include.lowest = TRUE, labels = FALSE)
+           # Assign each point to a stratum bin
+           strata_ids <- cut(dist,
+                             breaks = breaks,
+                             include.lowest = TRUE,
+                             labels = FALSE)
 
-           lapply(1:n_strata, function(i) {
-             list(train = which(strata_ids != i),
-                  test = which(strata_ids == i))
-             })
-         }
+           # Initialize a vector to hold the final fold assignment
+           final_fold_ids <- vector("integer", n_pts)
+
+           # Loop through each stratum and assign its members to k folds
+           for(s in unique(strata_ids)) {
+             idx_in_stratum <- which(strata_ids == s)
+             n_in_stratum <- length(idx_in_stratum)
+
+             # Assign 1..k randomly within this stratum
+             if (n_in_stratum > 0) {
+               folds_for_stratum <- sample(rep(1:k, length.out = n_in_stratum))
+               final_fold_ids[idx_in_stratum] <- folds_for_stratum
+             }
+           }
+
+           lapply(1:k, function(i) {
+             list(
+               train = which(final_fold_ids != i),
+               test  = which(final_fold_ids == i)
+             )
+           })
+}
   )
 }
 
