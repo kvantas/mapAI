@@ -54,16 +54,8 @@
 #' }
 write_map <- function(map, file_path, overwrite = FALSE, ...) {
 
-  # --- Input Validation ---
-  if (!inherits(map, "sf")) stop("`map` must be a valid `sf` object.",
-                                 call. = FALSE)
-  if (!is.character(file_path) || length(file_path) != 1) {
-    stop("`file_path` must be a single character string.", call. = FALSE)
-  }
-  if (!is.logical(overwrite) || length(overwrite) != 1) {
-    stop("`overwrite` must be a single logical value (TRUE or FALSE).",
-         call. = FALSE)
-  }
+  # validate input values
+  validate_write_map(map, file_path, overwrite)
 
   # --- Robust Driver Detection ---
   ext <- tolower(tools::file_ext(file_path))
