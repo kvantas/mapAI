@@ -36,8 +36,8 @@ The nature of the output is highly dependent on the model used.
 \itemize{
 \item \strong{\code{gam} & \code{tps}}: Produce a smooth, differentiable surface,
 leading to spatially variable and meaningful distortion metrics.
-\item \strong{\code{helmert} & \code{lm}}: Represent global transformations, resulting
-in distortion metrics that are constant for every point.
+\item \strong{\code{helmert} & \code{lm}}: Represent global transformations,
+resulting in distortion metrics that are constant for every point.
 \item \strong{\code{rf}}: Creates a step-like surface where local derivatives
 may be zero, potentially showing no local distortion.
 }

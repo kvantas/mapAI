@@ -39,8 +39,8 @@ A plot with the residual as arrows using a \code{ggplot} object, which
 can be further customized.
 }
 \description{
-Visualizes the residual errors of a trained \code{pai_model} as arrows
-pointing from predicted to actual target locations.
+Visualizes the residual errors of a trained \code{pai_model}
+as arrows pointing from predicted to actual target locations.
 }
 \examples{
 # See ?train_pai_model for a complete, runnable example.

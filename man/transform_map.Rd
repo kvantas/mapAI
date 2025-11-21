@@ -2,7 +2,7 @@
 % Please edit documentation in R/transform_map.R
 \name{transform_map}
 \alias{transform_map}
-\title{Apply a Trained PAI Model to Correct a Vector Map}
+\title{Apply a Trained PAI Model to Correct a Vector Map (Optimized)}
 \usage{
 transform_map(pai_model, map, aoi = NULL)
 }
@@ -12,8 +12,7 @@ transform_map(pai_model, map, aoi = NULL)
 
 \item{map}{An \code{sf} object representing the vector map to be corrected.}
 
-\item{aoi}{An optional \code{sf} polygon object representing the Area of Interest.
-If provided, the transformation is only applied within this area.}
+\item{aoi}{An optional \code{sf} polygon object representing the Area of Interest.}
 }
 \value{
 A new \code{sf} object with the corrected geometry.
@@ -22,17 +21,6 @@ A new \code{sf} object with the corrected geometry.
 Applies a trained \code{pai_model} object to an \code{sf} vector map,
 correcting the position of all its vertices based on the learned
 transformation.
-}
-\details{
-This function is the final step in the PAI workflow, applying the learned
-spatial correction to a target map. It uses a robust feature-by-feature
-iteration that correctly handles all standard simple and multi-part geometry
-types (\code{POINT}, \code{LINESTRING}, \code{POLYGON}, etc.).
-
-If an Area of Interest (\code{aoi}) is provided, the transformation is only
-applied to the parts of the map features that fall within the \code{aoi} polygon.
-The features outside the \code{aoi} are kept in their original, untransformed
-state.
 }
 \examples{
 # This example demonstrates a full workflow
@@ -54,16 +42,4 @@ corrected_map$status <- "Corrected"
 comparison_data <- rbind(map_to_correct[, "status"], corrected_map[, "status"])
 
 # Create the final comparison plot
-ggplot(comparison_data) +
-geom_sf(aes(color = status, linetype = status), fill = NA, linewidth = 0.7) +
-  scale_color_manual(
-    name = "Map Status",
-    values = c("Original (Distorted)" = "grey50", "Corrected" = "#e41a1c")) +
-  scale_linetype_manual(
-    name = "Map Status",
-    values = c("Original (Distorted)" = "dashed", "Corrected" = "solid")) +
-  labs(
-   title = "Positional Correction of a Distorted Grid",
-    subtitle = "Overlay of original (dashed) and corrected (solid) geometries") +
-  theme_minimal()
 }

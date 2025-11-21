@@ -12,8 +12,8 @@
 \item{...}{Additional arguments (not used).}
 }
 \description{
-Custom print method for \code{distortion} objects to provide a concise
-summary of the distortion analysis results.
+Custom print method for \code{distortion} objects to provide a
+concise summary of the distortion analysis results.
 }
 \examples{
 # See ?analyze_distortion for a runnable example that creates a

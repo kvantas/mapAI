@@ -9,8 +9,10 @@ An list with one \code{gcp} object (gcp) and one \code{sf} object (grid):
 \describe{
 \item{gcp}{An \code{sf} object with 343 features and 6 variables:
 \describe{
-\item{source_x}{Numeric. The X-coordinate on the source map (already globally aligned).}
-\item{source_y}{Numeric. The Y-coordinate on the source map (already globally aligned).}
+\item{source_x}{Numeric. The X-coordinate on the source map
+(already globally aligned).}
+\item{source_y}{Numeric. The Y-coordinate on the source map
+(already globally aligned).}
 \item{target_x}{Numeric. The X-coordinate on the reference map.}
 \item{target_y}{Numeric. The Y-coordinate on the reference map.}
 \item{dx}{Numeric. The residual difference in X (target_x - source_x).}
@@ -30,9 +32,9 @@ https://github.com/mclaeysb/distortionAnalysis/tree/master/data_sample.
 basel_frickthal
 }
 \description{
-A dataset of 343 Control Points (CPs) based on the sample dataset
-from the MapAnalyst distortion analysis software. It's ideal for analyzing
-complex, non-linear distortions.
+A dataset of 343 Control Points (CPs) based on the sample
+datasetfrom the MapAnalyst distortion analysis software. It's ideal for
+analyzing complex, non-linear distortions.
 }
 \details{
 This dataset is derived from the sample data provided with the MapAnalyst
