@@ -167,8 +167,10 @@ plot.gcp <- function(x,
       ggplot2::aes(
         x = .data$source_x,
         y = .data$source_y,
-        xend = .data$source_x + exaggeration_factor * (.data$target_x - .data$source_x),
-        yend = .data$source_y + exaggeration_factor * (.data$target_y - .data$source_y)
+        xend = .data$source_x +
+          exaggeration_factor * (.data$target_x - .data$source_x),
+        yend = .data$source_y +
+          exaggeration_factor * (.data$target_y - .data$source_y)
       ),
       arrow = grid::arrow(length = grid::unit(0.1, "cm")),
       color = arrow_color,

@@ -96,8 +96,10 @@ create_demo_data <- function(type = "complex",
     tx <- params$tx
     ty <- params$ty
 
-    data$x_distorted <- tx + s * (data$x_true * cos(angle_rad) - data$y_true * sin(angle_rad))
-    data$y_distorted <- ty + s * (data$x_true * sin(angle_rad) + data$y_true * cos(angle_rad))
+    data$x_distorted <- tx +
+      s * (data$x_true * cos(angle_rad) - data$y_true * sin(angle_rad))
+    data$y_distorted <- ty +
+      s * (data$x_true * sin(angle_rad) + data$y_true * cos(angle_rad))
     return(data)
   }
 
@@ -105,8 +107,10 @@ create_demo_data <- function(type = "complex",
     cE1 <- params$cE1; cE2 <- params$cE2
     cN1 <- params$cN1; cN2 <- params$cN2
 
-    data$x_distorted <- data$x_distorted + (cE1 * data$x_distorted^2 + cE2 * data$x_distorted * data$y_distorted)
-    data$y_distorted <- data$y_distorted + (cN1 * data$y_distorted^2 + cN2 * data$x_distorted * data$y_distorted)
+    data$x_distorted <- data$x_distorted +
+      (cE1 * data$x_distorted^2 + cE2 * data$x_distorted * data$y_distorted)
+    data$y_distorted <- data$y_distorted +
+      (cN1 * data$y_distorted^2 + cN2 * data$x_distorted * data$y_distorted)
     return(data)
   }
 
@@ -175,7 +179,8 @@ create_demo_data <- function(type = "complex",
   )
 
   # 5. Create and save the "old map" shapefile (as a distorted grid)
-  distorted_pts_matrix <- as.matrix(final_data[, c("x_distorted", "y_distorted")])
+  distorted_pts_matrix <-
+    as.matrix(final_data[, c("x_distorted", "y_distorted")])
 
   # Create horizontal lines
   horiz_lines <- lapply(1:n_points, function(i) {

@@ -12,8 +12,8 @@
 #' \itemize{
 #'   \item \strong{`gam` & `tps`}: Produce a smooth, differentiable surface,
 #'     leading to spatially variable and meaningful distortion metrics.
-#'   \item \strong{`helmert` & `lm`}: Represent global transformations, resulting
-#'     in distortion metrics that are constant for every point.
+#'   \item \strong{`helmert` & `lm`}: Represent global transformations,
+#'    resulting in distortion metrics that are constant for every point.
 #'   \item \strong{`rf`}: Creates a step-like surface where local derivatives
 #'     may be zero, potentially showing no local distortion.
 #' }
@@ -136,8 +136,8 @@ analyze_distortion <- function(pai_model,
 
 
 #' @title Print Method for distortion Objects
-#' @description Custom print method for `distortion` objects to provide a concise
-#'  summary of the distortion analysis results.
+#' @description Custom print method for `distortion` objects to provide a
+#' concise summary of the distortion analysis results.
 #' @param x An object of class `distortion`.
 #' @param ... Additional arguments (not used).
 #' @export

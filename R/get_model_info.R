@@ -5,8 +5,12 @@ get_model_info <- function(method) {
     # Path 1: User provided a string
     model_info <- pai_model_list[[method]]
     if (is.null(model_info)) {
-      stop(paste("Built-in model '", method, "' not found. Available methods are: ",
-                 paste(names(pai_model_list), collapse = ", ")), call. = FALSE)
+      stop(
+        paste("Built-in model '",
+              method,
+              "' not found. Available methods are: ",
+              paste(names(pai_model_list), collapse = ", ")),
+        call. = FALSE)
     }
   } else if (is.list(method)) {
     # Path 2: User provided a custom list
@@ -19,7 +23,9 @@ get_model_info <- function(method) {
       stop("The 'fit' and 'predict' elements must be functions.", call. = FALSE)
     }
     if (!method$modelType %in% c("univariate", "bivariate")) {
-      stop("The 'modelType' element must be 'univariate' or 'bivariate'.", call. = FALSE)
+      stop(
+        "The 'modelType' element must be 'univariate' or 'bivariate'.",
+        call. = FALSE)
     }
     model_info <- method
   } else {

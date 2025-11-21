@@ -145,11 +145,13 @@ predict.helmert <- function(object, newdata, ...) {
   }
   required_cols <- c("source_x", "source_y")
   if (!is.data.frame(newdata) || !all(required_cols %in% names(newdata))) {
-    stop("'newdata' must be a data frame with columns 'source_x' and 'source_y'.",
-         call. = FALSE)
+    stop(
+      "'newdata' must be a data frame with columns 'source_x' and 'source_y'.",
+      call. = FALSE)
   }
   if (any(!is.finite(newdata$source_x)) || any(!is.finite(newdata$source_y))) {
-    stop("All 'source_x' and 'source_y' values in 'newdata' must be finite numbers.",
+    stop(
+      "All 'source_x' and 'source_y' values in 'newdata' must be finite.",
          call. = FALSE)
   }
 
@@ -170,15 +172,9 @@ predict.helmert <- function(object, newdata, ...) {
   # --- Apply Transformation ---
   # The transformation is applied relative to the centroids for numerical
   # stability.
-  # The formula re-arranged to solve for the predicted coordinates is:
-  # x_predicted = x_mean + a * (u_new - u_mean) - b * (v_new - v_mean)
-  # y_predicted = y_mean + b * (u_new - u_mean) + a * (v_new - v_mean)
-
   pred_x <- x_mean + a * (u_new - u_mean) - b * (v_new - v_mean)
   pred_y <- y_mean + b * (u_new - u_mean) + a * (v_new - v_mean)
 
   # --- Return Results ---
-
-  # Return the predicted coordinates in a clean data frame format
   return(data.frame(target_x = pred_x, target_y = pred_y))
 }

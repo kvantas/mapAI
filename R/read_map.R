@@ -37,8 +37,9 @@ read_map <- function(shp_path, ...) {
   # --- Add Area for Polygons ---
   # Check if the map has polygon geometries and lacks an 'area_old' column
   if (
-    any(sf::st_geometry_type(map_to_correct) %in% c("POLYGON", "MULTIPOLYGON")) &&
-      !("area_old" %in% names(map_to_correct))) {
+    any(sf::st_geometry_type(map_to_correct) %in%
+        c("POLYGON", "MULTIPOLYGON")) &&
+    !("area_old" %in% names(map_to_correct))) {
     message("Calculating area for polygon features...")
     map_to_correct$area_old <- sf::st_area(map_to_correct)
   }

@@ -71,7 +71,7 @@ train_pai_model <- function(gcp_data, method, seed = 123, ...) {
       # This function executes if an error occurs in the 'try' block
       stop(
         sprintf(
-          "Failed to train the model for the dx component.\n  Underlying error: %s",
+          "Failed to train the model for the dx component.\n  Error: %s",
           e$message
         ),
         call. = FALSE
@@ -84,7 +84,7 @@ train_pai_model <- function(gcp_data, method, seed = 123, ...) {
     }, error = function(e) {
       stop(
         sprintf(
-          "Failed to train the model for the dy component.\n  Underlying error: %s",
+          "Failed to train the model for the dy component.\n  Error: %s",
           e$message
         ),
         call. = FALSE
@@ -202,7 +202,7 @@ predict.pai_model <- function(object, newdata, ...) {
     }, error = function(e) {
       stop(
         sprintf(
-          "Prediction for the bivariate model '%s' failed.\n  Underlying error: %s",
+          "Prediction for the bivariate model '%s' failed.\n  Error: %s",
           model_info$label,
           e$message
         ),
@@ -211,7 +211,8 @@ predict.pai_model <- function(object, newdata, ...) {
     })
 
     if (is.null(dim(predictions)) || dim(predictions)[2] != 2) {
-      stop("The predict function for a bivariate model must return a 2-column object.",
+      stop(
+        "The predict function for a bivariate model must return a 2-col object.",
            call. = FALSE)
     }
 
@@ -247,7 +248,7 @@ print.pai_model <- function(x, ...) {
     cat("Components:\n")
     # Using cat() for more controlled output of model summaries
     cat("Model for dx:\n")
-    print(summary(x$model$model_dx)) # Example: print a summary instead of the whole object
+    print(summary(x$model$model_dx))
     cat("\nModel for dy:\n")
     print(summary(x$model$model_dy))
   } else if (x$model_info$modelType == "bivariate") {
@@ -282,8 +283,8 @@ plot.pai_model <- function(x, ...) {
 
 
 #' @title Residuals Method for pai_model Objects
-#' @description Visualizes the residual errors of a trained `pai_model` as arrows
-#'  pointing from predicted to actual target locations.
+#' @description Visualizes the residual errors of a trained `pai_model`
+#' as arrows pointing from predicted to actual target locations.
 #'
 #' @param object An object of class `pai_model`.
 #' @param title A character string for the plot's main title.
@@ -305,13 +306,14 @@ plot.pai_model <- function(x, ...) {
 #' @export
 #' @examples
 #' # See ?train_pai_model for a complete, runnable example.
-residuals.pai_model <- function(object,
-                                title = "Model Residual Error Vectors",
-                                subtitle = "Arrows point from predicted to true target locations",
-                                arrow_color = "darkblue",
-                                point_color = "blue",
-                                exaggeration_factor = 1,
-                                ...) {
+residuals.pai_model <-
+  function(object,
+           title = "Model Residual Error Vectors",
+           subtitle = "Arrows point from predicted to true target locations",
+           arrow_color = "darkblue",
+           point_color = "blue",
+           exaggeration_factor = 1,
+           ...) {
   # Predict the displacements
   pred <- predict(object, object$gcp)
 
@@ -326,8 +328,10 @@ residuals.pai_model <- function(object,
       ggplot2::aes(
         x = .data$target_x,
         y = .data$target_y,
-        xend = .data$target_x + exaggeration_factor * (.data$actual_target_x - .data$target_x),
-        yend = .data$target_y + exaggeration_factor * (.data$actual_target_y - .data$target_y)
+        xend = .data$target_x +
+          exaggeration_factor * (.data$actual_target_x - .data$target_x),
+        yend = .data$target_y +
+          exaggeration_factor * (.data$actual_target_y - .data$target_y)
       ),
       arrow = grid::arrow(length = grid::unit(0.1, "cm")),
       color = arrow_color,
@@ -438,7 +442,7 @@ surface.pai_model <- function(object,
                               dy_range = NULL,
                               ...) {
   # --- Input validation ---
-  sur_pai_model_val(object, n_grid, plot_gcp, dx_range, dy_range)
+  pai_model_val(object, n_grid, plot_gcp, dx_range, dy_range)
 
   # create grid for predictions
   x_range <- range(object$gcp$source_x)
