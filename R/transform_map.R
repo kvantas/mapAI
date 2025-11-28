@@ -10,8 +10,8 @@
 #'
 #' @return A new `sf` object with the corrected geometry.
 #'
-#' @importFrom sf st_geometry st_geometry_type st_coordinates st_sfc s
-#' t_set_geometry st_intersection st_difference st_bbox st_as_sf st_area
+#' @importFrom sf st_geometry st_geometry_type st_coordinates st_sfc
+#' st_set_geometry st_intersection st_difference st_bbox st_as_sf st_area
 #' st_crs st_point st_linestring st_polygon st_multipoint st_multilinestring
 #' st_multipolygon
 #' @importFrom stats predict
