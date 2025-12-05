@@ -213,7 +213,7 @@ summary.distortion <- function(object, ...) {
 #'   distortion metric from the output of `analyze_distortion()`.
 #'
 #' @details This function visualizes the distortion field as it exists on the
-#'   **target map's coordinate space**. It uses linear interpolation via the
+#'   **source map's coordinate space**. It uses linear interpolation via the
 #'   `interp` package to create a continuous raster surface, even from
 #'    scattered, irregular output points (like the original GCPs). This provides
 #'    a true surface plot in all cases.
@@ -254,8 +254,8 @@ plot.distortion <- function(x,
   message("Interpolating data to create a smooth surface...")
   interp_result <- tryCatch({
     interp::interp(
-      x = x$target_x,
-      y = x$target_y,
+      x = x$source_x,
+      y = x$source_y,
       z = x[[metric]],
       nx = n_grid,
       ny = n_grid,
@@ -269,22 +269,22 @@ plot.distortion <- function(x,
 
   # Convert interpolation result to a plotable data frame
   interp_df <- data.frame(
-    target_x = rep(interp_result$x, times = length(interp_result$y)),
-    target_y = rep(interp_result$y, each = length(interp_result$x)),
+    source_x = rep(interp_result$x, times = length(interp_result$y)),
+    source_y = rep(interp_result$y, each = length(interp_result$x)),
     metric_val = as.vector(interp_result$z)
   )
   # Remove NA values which can occur at the convex hull of the points
   interp_df <- stats::na.omit(interp_df)
 
   # --- 3. Create the Base Plot ---
-  p <- ggplot2::ggplot(interp_df, aes(x = .data$target_x, y = .data$target_y)) +
+  p <- ggplot2::ggplot(interp_df, aes(x = .data$source_x, y = .data$source_y)) +
     geom_raster(aes(fill = .data$metric_val)) +
     coord_equal(expand = FALSE) +
     labs(
       title = paste("Distortion Analysis:", metric),
       subtitle = "Interpolated surface from analysis points",
-      x = "Target X Coordinate",
-      y = "Target Y Coordinate",
+      x = "Source X Coordinate",
+      y = "Source Y Coordinate",
       fill = metric # Legend title
     ) +
     theme_minimal()
@@ -313,7 +313,7 @@ plot.distortion <- function(x,
     p <- p +
       geom_point(
         data = x,
-        aes(x = .data$target_x, y = .data$target_y),
+        aes(x = .data$source_x, y = .data$source_y),
         shape = 3, color = "black", size = 1.5, alpha = 0.7,
         inherit.aes = FALSE # Important!
       )
@@ -330,7 +330,7 @@ plot.distortion <- function(x,
 #'   (ellipses) at their original source locations.
 #' @details This function creates a powerful visual representation of
 #' distortion. It draws an ellipse at each analyzed point, centered on its
-#' **target coordinate**. The size, shape, and orientation of the ellipse
+#' **source coordinate**. The size, shape, and orientation of the ellipse
 #' graphically represent the distortion at that location.
 #'
 #' @param object A `distortion` object from `analyze_distortion()`.
@@ -362,8 +362,8 @@ indicatrices <- function(object,
   # --- 2. Automatic Scale Factor Calculation ---
   if (is.null(scale_factor)) {
     # Calculate the maximum spatial extent (width or height) of the points
-    x_range <- diff(range(object$target_x, na.rm = TRUE))
-    y_range <- diff(range(object$target_y, na.rm = TRUE))
+    x_range <- diff(range(object$source_x, na.rm = TRUE))
+    y_range <- diff(range(object$source_y, na.rm = TRUE))
     max_extent <- max(x_range, y_range)
 
     # Calculate a scale factor that makes the average ellipse ~1/40th of the
@@ -385,8 +385,8 @@ indicatrices <- function(object,
   p <- ggplot(
     data = object,
     aes(
-      x0 = .data$target_x,
-      y0 = .data$target_y,
+      x0 = .data$source_x,
+      y0 = .data$source_y,
       a = .data$a * scale_factor,
       b = .data$b * scale_factor,
       angle = .data$theta_a * pi / 180
@@ -401,8 +401,8 @@ indicatrices <- function(object,
     labs(
       title = "Tissot's Indicatrices of Distortion",
       subtitle = "Ellipses are centered on their source coordinates",
-      x = "Target X Coordinate",
-      y = "Target Y Coordinate"
+      x = "Source X Coordinate",
+      y = "Source Y Coordinate"
     ) +
     theme_minimal()
 

@@ -24,12 +24,13 @@ cv_pai_model(
 \item{validation_type}{The validation strategy: "random", "spatial",
 "probability", or "stratified".}
 
-\item{k_folds}{Number of folds for CV. Defaults to 5.}
+\item{k_folds}{Number of folds for CV (used for "random", "spatial", and
+"stratified"). Defaults to 5.}
 
-\item{train_split_ratio}{Proportion of data for training (for "probability"
-and "stratified"). Defaults to 0.8.}
+\item{train_split_ratio}{Proportion of data for training (used for
+"probability" only). Defaults to 0.8.}
 
-\item{n_strata}{Number of strata for stratified sampling. Defaults to 4.}
+\item{n_strata}{Number of strata for stratified CV. Defaults to 4.}
 
 \item{seed}{An integer for reproducibility.}
 
@@ -55,8 +56,9 @@ generalize to new data. This function automates this process.
 clustering.
 \item \strong{\code{probability}}: A single train/test split using simple
 random sampling.
-\item \strong{\code{stratified}}: A single train/test split using stratified
-random sampling based on the magnitude of distortion vectors.
+\item \strong{\code{stratified}}: Stratified k-fold cross-validation based on
+the magnitude of distortion vectors. Ensures that each fold contains
+a representative distribution of error magnitudes.
 }
 }
 \examples{
@@ -92,7 +94,7 @@ stratified_assessment <- cv_pai_model(
   gcp_data,
   pai_method = "lm",
   validation_type = "stratified",
-  train_split_ratio = 0.75,
+  k_folds = 5,
   n_strata = 4 # Use quartiles for stratification
 )
 print(stratified_assessment)

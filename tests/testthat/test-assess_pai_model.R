@@ -86,10 +86,10 @@ test_that("stratified works as expected", {
 
   expect_equal(res$summary$ValidationType, "stratified")
 
-  expect_true(is.na(res$details$k_folds))
   expect_true(is.na(res$details$train_split_ratio))
 
   expect_equal(res$details$n_strata, n_strata)
+  expect_equal(res$details$k_folds, k_folds)
   expect_equal(nrow(res$predictions), nrow(test_gcp))
   expect_length(unique(res$predictions$fold), k_folds)
 

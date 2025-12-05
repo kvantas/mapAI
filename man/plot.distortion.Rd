@@ -43,8 +43,8 @@ distortion metric from the output of \code{analyze_distortion()}.
 \details{
 This function visualizes the distortion field as it exists on the
 \strong{source map's coordinate space}. It uses linear interpolation via the
-\code{interp} package to create a continuous raster surface, even from s
-cattered, irregular input points (like the original GCPs). This provides
+\code{interp} package to create a continuous raster surface, even from
+scattered, irregular output points (like the original GCPs). This provides
 a true surface plot in all cases.
 }
 \examples{

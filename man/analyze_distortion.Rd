@@ -18,7 +18,8 @@ the GCPs used to train the model will be used.}
 \value{
 An \code{distortion} object (a data frame) with the original points and
 new columns for all calculated distortion metrics (e.g., \code{a}, \code{b},
-\code{area_scale}, \code{max_shear}).
+\code{log2_area_scale}, \code{max_shear}, \code{max_angular_distortion}, \code{airy_kavrayskiy},
+\code{theta_a}).
 }
 \description{
 Computes a comprehensive set of detailed distortion metrics for
@@ -45,10 +46,10 @@ may be zero, potentially showing no local distortion.
 \examples{
   # Create data and train a model
   demo_data <- create_demo_data()
-  gam_model <- train_pai_model(demo_data$gcp, method = "gam_biv")
+  pai_model <- train_pai_model(demo_data$gcp, method = "tps")
 
   # Analyze distortion on the training points
-  distortion_results <- analyze_distortion(gam_model)
+  distortion_results <- analyze_distortion(pai_model)
   print(distortion_results)
   summary(distortion_results)
 

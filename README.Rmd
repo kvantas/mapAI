@@ -116,7 +116,7 @@ The `analyze_distortion()` function computes local distortion metrics across the
 # 1. Analyze the distortion using our trained GAM model
 distortion_results <- analyze_distortion(gam_model, gcp_data)
 
-# 2. Plot the distortion surfaces
+# 2. Plot the distortion surfaces interpolating the values on gcp's location
 plot(distortion_results,
      metric = "area_scale",
      diverging = TRUE) +

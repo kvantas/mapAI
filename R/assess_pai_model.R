@@ -12,8 +12,9 @@
 #'      clustering.
 #'     \item \strong{`probability`}: A single train/test split using simple
 #'      random sampling.
-#'     \item \strong{`stratified`}: A single train/test split using stratified
-#'       random sampling based on the magnitude of distortion vectors.
+#'     \item \strong{`stratified`}: Stratified k-fold cross-validation based on
+#'       the magnitude of distortion vectors. Ensures that each fold contains
+#'       a representative distribution of error magnitudes.
 #'   }
 #'
 #' @param gcp_data An `gcp` object of homologous points.
@@ -21,10 +22,11 @@
 #'  `train_pai_model`.
 #' @param validation_type The validation strategy: "random", "spatial",
 #'  "probability", or "stratified".
-#' @param k_folds Number of folds for CV. Defaults to 5.
-#' @param train_split_ratio Proportion of data for training (for "probability"
-#'  and "stratified"). Defaults to 0.8.
-#' @param n_strata Number of strata for stratified sampling. Defaults to 4.
+#' @param k_folds Number of folds for CV (used for "random", "spatial", and
+#'  "stratified"). Defaults to 5.
+#' @param train_split_ratio Proportion of data for training (used for
+#'  "probability" only). Defaults to 0.8.
+#' @param n_strata Number of strata for stratified CV. Defaults to 4.
 #' @param seed An integer for reproducibility.
 #' @param ... Additional arguments passed to `train_pai_model`.
 #'
@@ -66,7 +68,7 @@
 #'   gcp_data,
 #'   pai_method = "lm",
 #'   validation_type = "stratified",
-#'   train_split_ratio = 0.75,
+#'   k_folds = 5,
 #'   n_strata = 4 # Use quartiles for stratification
 #' )
 #' print(stratified_assessment)
@@ -152,7 +154,8 @@ cv_pai_model <- function(gcp_data, pai_method,
     random      = c("k_folds"),
     spatial     = c("k_folds"),
     probability = c("train_split_ratio"),
-    stratified  = c("n_strata")
+    # Fixed: stratified is a CV method, so it needs k_folds AND n_strata
+    stratified  = c("k_folds", "n_strata")
   )
 
   # 2. Get the list of parameters that are valid for the current type
@@ -218,7 +221,7 @@ create_resampling_splits <- function(gcp_data, type, k, ratio, n_strata, seed) {
            # Calculate distortion magnitudes
            dist <- sqrt(gcp_data$dx^2 + gcp_data$dy^2)
 
-            # Create unique break points
+           # Create unique break points
            breaks <- unique(stats::quantile(
              dist,
              probs = seq(0, 1, by = 1/n_strata),
@@ -257,7 +260,7 @@ create_resampling_splits <- function(gcp_data, type, k, ratio, n_strata, seed) {
                test  = which(final_fold_ids == i)
              )
            })
-}
+         }
   )
 }
 
@@ -280,13 +283,15 @@ print.pai_assessment <- function(x, ...) {
   # compute identity model RMSE for comparison
   rmse <-sqrt(mean(x$predictions$true_dx^2 + x$predictions$true_dy^2))
 
-  if (x$summary$ValidationType %in% c("random", "spatial")) {
+  if (x$summary$ValidationType %in% c("random", "spatial", "stratified")) {
     cat("Folds:             ", x$details$k_folds, "\n")
-  } else if (x$summary$ValidationType == "probability") {
+  }
+
+  if (x$summary$ValidationType == "probability") {
     cat("Train/Test Split:  ",
         paste0(x$details$train_split_ratio * 100, "% / ",
                (1 - x$details$train_split_ratio) * 100, "%\n"))
-  } else {
+  } else if (x$summary$ValidationType == "stratified") {
     cat("Strata:            ", x$details$n_strata, "\n")
   }
 
