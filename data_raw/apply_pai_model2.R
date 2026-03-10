@@ -42,6 +42,7 @@
 #' head(sf::st_coordinates(corrected_points))
 #'
 apply_pai_model <- function(pai_model, map, aoi = NULL) {
+
   # --- 1. Input Validation ---
   if (!inherits(pai_model, "pai_model")) {
     stop("`pai_model` must be an object of class 'pai_model'.", call. = FALSE)
@@ -53,7 +54,7 @@ apply_pai_model <- function(pai_model, map, aoi = NULL) {
 
   if (!is.null(aoi)) {
     if (!inherits(aoi, "sf") ||
-      !any(sf::st_geometry_type(aoi) %in% c("POLYGON", "MULTIPOLYGON"))) {
+        !any(sf::st_geometry_type(aoi) %in% c("POLYGON", "MULTIPOLYGON"))) {
       stop(
         "`aoi` must be a valid `sf` object with POLYGON or MULTIPOLYGON geometry.",
         call. = FALSE
@@ -142,44 +143,120 @@ apply_pai_model <- function(pai_model, map, aoi = NULL) {
         all_coords[, "X"] <- all_coords[, "X"] + displacements$dx
         all_coords[, "Y"] <- all_coords[, "Y"] + displacements$dy
 
-        # Define a highly performant recursive function to substitute coordinates
-        # directly into the underlying R structural lists/matrices of the sfc geometry
-        update_geom <- function(geom, new_coords) {
-          env <- new.env(parent = emptyenv())
-          env$pos <- 1L
-
-          rec <- function(g) {
-            if (is.matrix(g)) {
-              n <- nrow(g)
-              extracted <- new_coords[env$pos:(env$pos + n - 1L), 1:2]
-              env$pos <- env$pos + n
-              g[, 1:2] <- extracted
-              return(g)
-            } else if (is.list(g)) {
-              res <- lapply(g, rec)
-              attributes(res) <- attributes(g)
-              return(res)
-            } else if (is.numeric(g)) {
-              # Point geometry is just a numeric vector
-              extracted <- new_coords[env$pos, 1:2]
-              env$pos <- env$pos + 1L
-              g[1:2] <- extracted
-              return(g)
-            }
-            g
-          }
-
-          res <- lapply(geom, rec)
-          attributes(res) <- attributes(geom)
-          return(res)
+        # Determine the feature index column name based on geometry type
+        # For sfc, st_coordinates uses the highest L column as feature index
+        # For mixed geometry fallback, we use "Lfeat"
+        coord_colnames <- colnames(all_coords)
+        if ("Lfeat" %in% coord_colnames) {
+          # Mixed geometry fallback path
+          feature_idx_col <- "Lfeat"
+        } else {
+          l_cols <- coord_colnames[grepl("^L[0-9]+$", coord_colnames)]
+          feature_idx_col <- if (length(l_cols) > 0) max(l_cols) else NULL
         }
 
-        # Apply the fast substitution directly to the list of geometry features
-        updated_non_empty_geom <- update_geom(non_empty_geom, all_coords)
+        # Rebuild geometries for non-empty features using pre-computed corrected coords
+        for (j in seq_along(non_empty_indices)) {
+          i <- non_empty_indices[j] # Original index in full geometry list
+          feature <- original_geom_col[[i]]
+          geom_type <- as.character(sf::st_geometry_type(feature))
 
-        # Place the updated non-empty geometries back into the original full list
-        # which already contains the empty geometries initialized earlier
-        new_geom_list[non_empty_indices] <- updated_non_empty_geom
+          # Extract this feature's corrected coordinates
+          # j is the index within non_empty_geom, which matches feature index in all_coords
+          if (!is.null(feature_idx_col)) {
+            feature_mask <- all_coords[, feature_idx_col] == j
+            corrected_coords <- all_coords[feature_mask, , drop = FALSE]
+          } else {
+            # Single POINT case - no L columns
+            corrected_coords <- all_coords[j, , drop = FALSE]
+          }
+
+          if (nrow(corrected_coords) == 0) {
+            # Keep original if no coords found (shouldn't happen for non-empty)
+            next
+          }
+
+          new_sfg <- switch(geom_type,
+                            "POINT" = sf::st_point(corrected_coords[1, c("X", "Y")]),
+                            "LINESTRING" = sf::st_linestring(corrected_coords[, c("X", "Y")]),
+                            "POLYGON" = {
+                              if ("L1" %in% colnames(corrected_coords)) {
+                                # Standard path with L1 column
+                                rings <- split.data.frame(corrected_coords[, c("X", "Y")], f = corrected_coords[, "L1"])
+                                closed_rings <- lapply(rings, function(ring) {
+                                  ring_mat <- as.matrix(ring)
+                                  ring_mat[nrow(ring_mat), ] <- ring_mat[1, ]
+                                  ring_mat
+                                })
+                                sf::st_polygon(closed_rings)
+                              } else {
+                                # Mixed geometry fallback: use original structure with new coords
+                                orig_coords <- sf::st_coordinates(feature)
+                                rings <- split.data.frame(
+                                  data.frame(X = corrected_coords[, "X"], Y = corrected_coords[, "Y"]),
+                                  f = orig_coords[, "L1"]
+                                )
+                                closed_rings <- lapply(rings, function(ring) {
+                                  ring_mat <- as.matrix(ring)
+                                  ring_mat[nrow(ring_mat), ] <- ring_mat[1, ]
+                                  ring_mat
+                                })
+                                sf::st_polygon(closed_rings)
+                              }
+                            },
+                            "MULTIPOINT" = sf::st_multipoint(corrected_coords[, c("X", "Y")]),
+                            "MULTILINESTRING" = {
+                              if ("L1" %in% colnames(corrected_coords)) {
+                                lines <- split.data.frame(corrected_coords[, c("X", "Y")], f = corrected_coords[, "L1"])
+                                sf::st_multilinestring(lapply(lines, as.matrix))
+                              } else {
+                                orig_coords <- sf::st_coordinates(feature)
+                                lines <- split.data.frame(
+                                  data.frame(X = corrected_coords[, "X"], Y = corrected_coords[, "Y"]),
+                                  f = orig_coords[, "L1"]
+                                )
+                                sf::st_multilinestring(lapply(lines, as.matrix))
+                              }
+                            },
+                            "MULTIPOLYGON" = {
+                              if ("L2" %in% colnames(corrected_coords)) {
+                                polys <- split.data.frame(corrected_coords, f = corrected_coords[, "L2"])
+                                rebuilt_polys <- lapply(polys, function(p) {
+                                  rings <- split.data.frame(p[, c("X", "Y")], f = p[, "L1"])
+                                  closed_rings <- lapply(rings, function(ring) {
+                                    ring_mat <- as.matrix(ring)
+                                    ring_mat[nrow(ring_mat), ] <- ring_mat[1, ]
+                                    ring_mat
+                                  })
+                                  sf::st_polygon(closed_rings)
+                                })
+                                sf::st_multipolygon(rebuilt_polys)
+                              } else {
+                                # Mixed geometry fallback: use original structure with new coords
+                                orig_coords <- sf::st_coordinates(feature)
+                                corrected_df <- data.frame(X = corrected_coords[, "X"], Y = corrected_coords[, "Y"])
+                                polys <- split(seq_len(nrow(corrected_df)), f = orig_coords[, "L2"])
+                                rebuilt_polys <- lapply(polys, function(idx) {
+                                  p_orig <- orig_coords[idx, , drop = FALSE]
+                                  p_new <- corrected_df[idx, , drop = FALSE]
+                                  rings <- split(seq_len(nrow(p_new)), f = p_orig[, "L1"])
+                                  closed_rings <- lapply(rings, function(ring_idx) {
+                                    ring_mat <- as.matrix(p_new[ring_idx, ])
+                                    ring_mat[nrow(ring_mat), ] <- ring_mat[1, ]
+                                    ring_mat
+                                  })
+                                  sf::st_polygon(closed_rings)
+                                })
+                                sf::st_multipolygon(rebuilt_polys)
+                              }
+                            },
+                            {
+                              warning(paste("Unsupported geometry type:", geom_type, "at feature", i, ". Keeping original."), call. = FALSE)
+                              feature
+                            }
+          )
+          new_geom_list[[i]] <- new_sfg
+        }
       }
     }
 
