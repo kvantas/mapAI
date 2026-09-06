@@ -50,6 +50,7 @@ which a simple \code{helmert} or \code{lm} model would not be able to address.
 
 library(mapAI)
 library(sf)
+library(magrittr)
 
 # Load the dataset
 data(swiss_cps)
