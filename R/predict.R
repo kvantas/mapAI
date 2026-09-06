@@ -106,16 +106,16 @@ predict.pai_model <- function(object, newdata, ...) {
       b <- coefs["b"]
 
       # Calculate centered coordinates for the new data
-      u_i <- newdata$source_x - cents["u_mean"]
-      v_i <- newdata$source_y - cents["v_mean"]
+      u_i <- clean_data$source_x - cents["u_mean"]
+      v_i <- clean_data$source_y - cents["v_mean"]
 
       # Predict the TARGET coordinates using the standard transformation formula
       pred_target_x <- (a * u_i - b * v_i) + cents["x_mean"]
       pred_target_y <- (b * u_i + a * v_i) + cents["y_mean"]
 
       # compute.the correction vectors (dx, dy)
-      pred_dx[complete_rows_idx]  <- pred_target_x - newdata$source_x
-      pred_dy[complete_rows_idx]  <- pred_target_y - newdata$source_y
+      pred_dx[complete_rows_idx]  <- pred_target_x - clean_data$source_x
+      pred_dy[complete_rows_idx]  <- pred_target_y - clean_data$source_y
 
     } else if (object$method == "gam") {
       preds_clean <- stats::predict(object$model, newdata = clean_data, ...)
