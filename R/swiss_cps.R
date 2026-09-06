@@ -39,6 +39,7 @@
 #'
 #' library(mapAI)
 #' library(sf)
+#' library(magrittr)
 #'
 #' # Load the dataset
 #' data(swiss_cps)
