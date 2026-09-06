@@ -49,4 +49,5 @@
 #' @name mapAI
 #' @aliases mapAI-package
 #' @docType package
+#' @export magrittr::%>%
 "_PACKAGE"
