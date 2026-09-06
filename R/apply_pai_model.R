@@ -216,7 +216,7 @@ apply_pai_model <- function(pai_model, map, aoi = NULL) {
             dplyr::where(~ !inherits(.x, "sfc")),
             ~ dplyr::first(.x)
           ),
-          geometry = sf::st_union(geometry),
+          # geometry = sf::st_union(geometry),
           .groups = "drop"
         )
     }
