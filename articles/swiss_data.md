@@ -17,6 +17,7 @@ distortion.
 First, we load all the necessary libraries for our workflow.
 
 ``` r
+
 # Load the necessary libraries
 library(mapAI)
 library(sf)
@@ -41,6 +42,7 @@ We begin by loading the `swiss_cps` dataset. This `sf` object contains
 so we can focus on the residual `dx` and `dy` errors.
 
 ``` r
+
 # Load the built-in Swiss control points dataset
 data(swiss_cps)
 
@@ -87,6 +89,7 @@ understand how the model might perform on new data.
   design or structure.
 
 ``` r
+
 # Run four different validation methods using a GAM
 cvra <- assess_pai_model(swiss_cps, pai_method = "gam", validation_type = "random", k_folds = 10, seed = 1)
 cvsp <- assess_pai_model(swiss_cps, pai_method = "gam", validation_type = "spatial", k_folds = 10, seed = 1)
@@ -107,14 +110,15 @@ validation_df$type <- c("Standard 10-fold cross-validation",
 kable(validation_df, caption = "Table: Validation performance across different assessment methods.")
 ```
 
-| Model_Method | Mean_2D_RMSE_m | Std_Deviation_of_RMSE_m | type                                                     |
-|:-------------|---------------:|------------------------:|:---------------------------------------------------------|
-| gam          |          778.6 |                   176.8 | Standard 10-fold cross-validation                        |
-| gam          |         1254.8 |                   796.7 | Spatial 10-fold cross-validation                         |
-| gam          |          876.7 |                      NA | Design-based validation                                  |
-| gam          |          702.3 |                      NA | Design-based validation using stratified random sampling |
+| Model_Method | Mean_2D_RMSE_m | Std_Deviation_of_RMSE_m | type |
+|:---|---:|---:|:---|
+| gam | 778.6 | 176.8 | Standard 10-fold cross-validation |
+| gam | 1254.8 | 796.7 | Spatial 10-fold cross-validation |
+| gam | 876.7 | NA | Design-based validation |
+| gam | 702.3 | NA | Design-based validation using stratified random sampling |
 
 Table: Validation performance across different assessment methods.
+{.table}
 
 ### Final Correction and Visualization
 
@@ -123,6 +127,7 @@ Additive Model (`gam`)** on the entire dataset. To visualize the effect
 of the correction, we will apply this model to a regular reference grid.
 
 ``` r
+
 # Train the final GAM model on all data points
 final_gam_model <- train_pai_model(swiss_cps, pai_method = "gam")
 #> Training 'gam' model...
@@ -168,6 +173,7 @@ systematic distortion patterns and that the remaining errors are small
 and random.
 
 ``` r
+
 # Plot the residuals after applying the final GAM model
 plot_residuals(final_gam_model, swiss_cps) +
   labs(
@@ -199,6 +205,7 @@ visualize three key metrics:
   angular distortion.
 
 ``` r
+
 # Create a dense grid of points for a high-resolution analysis
 analysis_points <- sf::st_make_grid(swiss_cps, n = c(100, 100)) %>% st_centroid() %>% st_sf()
 distortion_results <- analyze_distortion(final_gam_model, analysis_points)
@@ -220,6 +227,7 @@ plot_distortion_surface(distortion_results, "area_scale", diverging = TRUE) +
 
 ``` r
 
+
 # Plot 2: Maximum angular distortion
 plot_distortion_surface(distortion_results, "max_angular_distortion", palette = "magma") +
   labs(title = "Maximum Angular Distortion", subtitle = "", x = "x (m)", y = "y (m)", fill = "2Ω (rad)")
@@ -233,6 +241,7 @@ plot_distortion_surface(distortion_results, "max_angular_distortion", palette = 
 ![](reference/figures/sw_distortions-2.png)
 
 ``` r
+
 
 # Plot 3: Airy-Kavrayskiy distortion measure
 plot_distortion_surface(distortion_results, "airy_kavrayskiy") +
@@ -249,6 +258,7 @@ plot_distortion_surface(distortion_results, "airy_kavrayskiy") +
 We can also summarize these distortion metrics numerically.
 
 ``` r
+
 # Calculate and print summary statistics for the distortion metrics
 summary_stats <- st_drop_geometry(distortion_results) %>%
   reframe(
@@ -277,6 +287,7 @@ surface is deformed into an ellipse. We can plot these at our control
 point locations to see the local distortion characteristics.
 
 ``` r
+
 # Analyze distortion specifically at the control point locations
 distortion_at_gcps <- analyze_distortion(final_gam_model, points_to_analyze = swiss_cps)
 #> Calculating distortion metrics for gam model...

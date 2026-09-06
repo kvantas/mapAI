@@ -67,3 +67,8 @@ The project's source code and issue tracker can be found on GitHub:
 
 **Maintainer**: Konstantinos Vantas <kon.vantas@gmail.com>
 ([ORCID](https://orcid.org/0000-0001-6387-8791))
+
+Authors:
+
+- Konstantinos Vantas <kon.vantas@gmail.com>
+  ([ORCID](https://orcid.org/0000-0001-6387-8791))

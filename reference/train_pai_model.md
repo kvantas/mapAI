@@ -69,9 +69,9 @@ summary(gam_model$model)
 #> 
 #> Formula:
 #> dx ~ s(source_x, source_y)
-#> <environment: 0x5587c0f411e0>
+#> <environment: 0x55eca531ad40>
 #> dy ~ s(source_x, source_y)
-#> <environment: 0x5587c0f411e0>
+#> <environment: 0x55eca531ad40>
 #> 
 #> Parametric coefficients:
 #>               Estimate Std. Error z value Pr(>|z|)    

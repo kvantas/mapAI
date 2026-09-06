@@ -26,6 +26,7 @@ You can install the development version of `mapAI` from
 [GitHub](https://github.com/) using the `pak` package:
 
 ``` r
+
 # install.packages("pak")
 pak::pak("kvantas/mapAI")
 ```
@@ -43,6 +44,7 @@ We begin by using
 to generate a test case with complex, noisy distortions.
 
 ``` r
+
 library(mapAI)
 library(sf)
 #> Linking to GEOS 3.13.0, GDAL 3.8.5, PROJ 9.5.1; sf_use_s2() is TRUE
@@ -62,6 +64,7 @@ We load the generated files and train a **Generalized Additive Model
 distortions present in the demo data.
 
 ``` r
+
 # Load the homologous points (GCPs) and the distorted vector map
 gcp_data <- read_gcps(gcp_path = demo_files$gcp_path)
 map_to_correct <- read_map(shp_path = demo_files$shp_path)
@@ -86,6 +89,7 @@ which overlays the corrected grid on the original, provides a clear
 visual confirmation of what the model does to the distorted map.
 
 ``` r
+
 # Apply the model to the distorted map
 corrected_map <- apply_pai_model(gam_model, map_to_correct)
 #> Applying PAI model to map features...
@@ -126,6 +130,7 @@ allows us to move from a simple visual assessment to a quantitative map
 of the distortion.
 
 ``` r
+
 # 1. Create a grid of points for analysis using the pipe (%>%)
 library(magrittr)
 analysis_points <- sf::st_make_grid(gcp_data, n = c(25, 25)) %>%
@@ -151,6 +156,7 @@ plot_area
 ![](reference/figures/README-advanced-analysis-1.png)
 
 ``` r
+
 plot_shear
 ```
 

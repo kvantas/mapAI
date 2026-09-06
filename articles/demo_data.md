@@ -15,6 +15,7 @@ improves the map’s accuracy. The workflow consists of two main parts:
     based on Tissot’s indicatrix theory.
 
 ``` r
+
 # Load the necessary libraries
 library(mapAI)
 library(ggplot2)
@@ -43,17 +44,18 @@ it represents a challenging combination of errors. We then load these
 files into R using the package’s reading functions.
 
 ``` r
+
 # Create the shapefile and GCPs CSV in a temporary directory
 demo_files <- create_demo_data(type = "complex", seed = 123)
-#>    -> Homologous points saved to: /tmp/RtmpPi3tZn/demo_gcps.csv
-#>    -> Distorted map saved to: /tmp/RtmpPi3tZn/demo_map.shp
+#>    -> Homologous points saved to: /tmp/RtmpDW4lAB/demo_gcps.csv
+#>    -> Distorted map saved to: /tmp/RtmpDW4lAB/demo_map.shp
 
 # Load the GCPs (homologous points) from the demo file
 gcp_data <- read_gcps(gcp_path = demo_files$gcp_path)
 
 # Load the vector map that needs correction from the demo file
 map_to_correct <- read_map(shp_path = demo_files$shp_path)
-#> Reading layer `demo_map' from data source `/tmp/RtmpPi3tZn/demo_map.shp' using driver `ESRI Shapefile'
+#> Reading layer `demo_map' from data source `/tmp/RtmpDW4lAB/demo_map.shp' using driver `ESRI Shapefile'
 #> Simple feature collection with 30 features and 1 field
 #> Geometry type: LINESTRING
 #> Dimension:     XY
@@ -70,6 +72,7 @@ estimate the out-of-sample error of a **Generalized Additive Model
 distortions in our synthetic data.
 
 ``` r
+
 # Calculate the initial error before correction
 identity_rmse <- sqrt(mean(gcp_data$dx^2 + gcp_data$dy^2))
 print(paste("Initial (Identity) 2D RMSE:", round(identity_rmse, 4)))
@@ -90,6 +93,7 @@ We apply our trained model to the map grid and then visualize the result
 by overlaying the corrected grid on the original.
 
 ``` r
+
 # Apply the trained model to the full map
 corrected_map <- apply_pai_model(pai_model = pai_model_gam, map = map_to_correct)
 #> Applying PAI model to map features...
@@ -134,6 +138,7 @@ function with our trained `gam_model` to calculate the detailed
 distortion metrics at each point.
 
 ``` r
+
 # Create a regular grid of points for the analysis
 analysis_points <- sf::st_make_grid(gcp_data, n = c(25, 25)) %>%
   sf::st_centroid() %>%
@@ -171,6 +176,7 @@ while `max_angular_distortion_rad` shows where angles have been deformed
 (shear).
 
 ``` r
+
 # Plot for log2(sigma) - areal distortion
 plot_area <- plot_distortion_surface(
   distortion_results,
@@ -200,6 +206,7 @@ plot_shear <- plot_distortion_surface(
 ![](reference/figures/gets_plotsurfaces-1.png)
 
 ``` r
+
   plot_area
 #> Warning: Raster pixels are placed at uneven horizontal intervals and will be shifted
 #> ℹ Consider using `geom_tile()` instead.
@@ -216,6 +223,7 @@ angular errors. We can calculate it from the `a` and `b` values produced
 by `analyze_distortion`.
 
 ``` r
+
 # Plot the Airy-Kavrayskiy metric
 plot_distortion_surface(
   distortion_results,
@@ -239,6 +247,7 @@ the distortion ellipses themselves. The shape, size, and orientation of
 each ellipse represent the local distortion pattern.
 
 ``` r
+
 # Plot the indicatrices at the locations of the analysis points
 # We use a large scale_factor to make the ellipses clearly visible.
 plot_indicatrices(

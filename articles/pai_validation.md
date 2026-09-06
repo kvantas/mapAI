@@ -14,6 +14,7 @@ demonstrate the crucial difference between standard random
 cross-validation and spatial cross-validation.
 
 ``` r
+
 # Load the necessary libraries
 library(mapAI)
 library(sf)
@@ -42,6 +43,7 @@ Since this data is already included in the package, we can load it
 directly with the data() function.
 
 ``` r
+
 # Load the built-in datasets
 data(parcels)
 data(gcps)
@@ -97,6 +99,7 @@ Let’s compare the results from these pai_methods for all three models
 (`lm`, `rf`, and `gam`).
 
 ``` r
+
 # Helper function to run validation for all models
 validate_all_pai_methods <- function(gcp_data, validation_type) {
   message(paste("\nRunning", validation_type, "cross-validation..."))
@@ -145,11 +148,12 @@ knitr::kable(all_results, caption = "Comparison of Validation Results", digits =
 | svmLinear | stratified     |         0.51 |         NA |
 | tps       | stratified     |         0.60 |         NA |
 
-Comparison of Validation Results
+Comparison of Validation Results {.table}
 
 Now, let’s visualize these results to make the comparison clear.
 
 ``` r
+
 ggplot(all_results, aes(x = Method, y = Mean_RMSE_2D, fill = ValidationType)) +
   geom_col(position = "dodge") +
   geom_errorbar(
@@ -174,6 +178,7 @@ Based on our validation, we choose `lm` as our final model and train it
 on the **entire** set of GCPs.
 
 ``` r
+
 
 # Train the final model on all available data
 pai_model <- train_pai_model(gcps, pai_method = "lm")
@@ -228,6 +233,7 @@ Finally, we apply our chosen and analyzed gam model to the Kastoria
 parcels data. We will plot the first five parcels to zoom in an area.
 
 ``` r
+
 # Apply the model to the parcel polygons
 corrected_parcels <- apply_pai_model(pai_model = pai_model, map = parcels)
 #> Applying PAI model to map features...
