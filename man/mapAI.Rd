@@ -55,4 +55,9 @@ The project's source code and issue tracker can be found on GitHub:
 \author{
 \strong{Maintainer}: Konstantinos Vantas \email{kon.vantas@gmail.com} (\href{https://orcid.org/0000-0001-6387-8791}{ORCID})
 
+Authors:
+\itemize{
+  \item Konstantinos Vantas \email{kon.vantas@gmail.com} (\href{https://orcid.org/0000-0001-6387-8791}{ORCID})
+}
+
 }
