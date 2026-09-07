@@ -54,18 +54,18 @@ files into R using the package’s reading functions.
 
 # Create the shapefile, raster, and GCPs CSV in a temporary directory
 demo_files <- create_demo_data(type = "complex", seed = 123)
-#>    -> Homologous points saved to: /tmp/RtmpIFp6hV/demo_gcps.csv
-#>    -> Distorted map saved to: /tmp/RtmpIFp6hV/demo_map.shp
-#> Writing map to: /tmp/RtmpIFp6hV/demo_map.tif
+#>    -> Homologous points saved to: /tmp/RtmpjDzuXa/demo_gcps.csv
+#>    -> Distorted map saved to: /tmp/RtmpjDzuXa/demo_map.shp
+#> Writing map to: /tmp/RtmpjDzuXa/demo_map.tif
 #> Map successfully written.
-#>    -> Distorted raster saved to: /tmp/RtmpIFp6hV/demo_map.tif
+#>    -> Distorted raster saved to: /tmp/RtmpjDzuXa/demo_map.tif
 
 # Load the GCPs (homologous points) from the demo file
 gcp_data <- read_gcps(gcp_path = demo_files$gcp_path)
 
 # Load the vector map that needs correction from the demo file
 map_to_correct <- read_map(shp_path = demo_files$shp_path)
-#> Reading layer `demo_map' from data source `/tmp/RtmpIFp6hV/demo_map.shp' using driver `ESRI Shapefile'
+#> Reading layer `demo_map' from data source `/tmp/RtmpjDzuXa/demo_map.shp' using driver `ESRI Shapefile'
 #> Simple feature collection with 30 features and 1 field
 #> Geometry type: LINESTRING
 #> Dimension:     XY
@@ -169,7 +169,7 @@ par(mfrow = c(1, 1))
 # Save the corrected raster to disk using write_map()
 output_raster_path <- file.path(tempdir(), "corrected_demo_map.tif")
 write_map(corrected_raster, output_raster_path, overwrite = TRUE)
-#> Writing map to: /tmp/RtmpIFp6hV/corrected_demo_map.tif
+#> Writing map to: /tmp/RtmpjDzuXa/corrected_demo_map.tif
 #> Map successfully written.
 ```
 
