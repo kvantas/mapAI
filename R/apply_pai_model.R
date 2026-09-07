@@ -19,6 +19,8 @@
 #' @param map An `sf` object representing the vector map to be corrected.
 #' @param aoi An optional `sf` polygon object representing the Area of Interest.
 #'        If provided, the transformation is only applied within this area.
+#' @param ... Additional arguments passed on to the underlying predict methods
+#'   (e.g., `predict.lm`, `predict.gam`, `predict.svm`).
 #'
 #' @return A new `sf` object with the corrected geometry.
 #'
