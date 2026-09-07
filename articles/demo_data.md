@@ -31,6 +31,13 @@ library(dplyr)
 #> 
 #>     intersect, setdiff, setequal, union
 library(magrittr) # For the %>% pipe operator
+library(terra)
+#> terra 1.9.46
+#> 
+#> Attaching package: 'terra'
+#> The following objects are masked from 'package:magrittr':
+#> 
+#>     extract, inset
 ```
 
 ## Positional Correction Workflow
@@ -45,22 +52,28 @@ files into R using the package’s reading functions.
 
 ``` r
 
-# Create the shapefile and GCPs CSV in a temporary directory
+# Create the shapefile, raster, and GCPs CSV in a temporary directory
 demo_files <- create_demo_data(type = "complex", seed = 123)
-#>    -> Homologous points saved to: /tmp/RtmprXx0Ey/demo_gcps.csv
-#>    -> Distorted map saved to: /tmp/RtmprXx0Ey/demo_map.shp
+#>    -> Homologous points saved to: /tmp/RtmpTTCH6N/demo_gcps.csv
+#>    -> Distorted map saved to: /tmp/RtmpTTCH6N/demo_map.shp
+#> Writing map to: /tmp/RtmpTTCH6N/demo_map.tif
+#> Map successfully written.
+#>    -> Distorted raster saved to: /tmp/RtmpTTCH6N/demo_map.tif
 
 # Load the GCPs (homologous points) from the demo file
 gcp_data <- read_gcps(gcp_path = demo_files$gcp_path)
 
 # Load the vector map that needs correction from the demo file
 map_to_correct <- read_map(shp_path = demo_files$shp_path)
-#> Reading layer `demo_map' from data source `/tmp/RtmprXx0Ey/demo_map.shp' using driver `ESRI Shapefile'
+#> Reading layer `demo_map' from data source `/tmp/RtmpTTCH6N/demo_map.shp' using driver `ESRI Shapefile'
 #> Simple feature collection with 30 features and 1 field
 #> Geometry type: LINESTRING
 #> Dimension:     XY
 #> Bounding box:  xmin: -0.06808406 ymin: -4.288813 xmax: 102.7102 ymax: 114.2245
 #> Projected CRS: WGS 84 / Pseudo-Mercator
+
+# Load the raster map that needs correction from the demo file
+raster_to_correct <- terra::rast(demo_files$raster_path)
 ```
 
 ### Assess Initial Error and Train a Model
@@ -120,6 +133,46 @@ ggplot(comparison_data) +
 the warped grid has been adjusted back to a regular shape, demonstrating
 a successful correction.
 
+### Apply Correction to a Raster Map
+
+The same trained PAI model can be applied directly to correct raster
+maps using
+[`apply_pai_raster()`](https://kvantas.github.io/mapAI/reference/apply_pai_raster.md).
+Because raster data sits on a regular grid of pixels,
+[`apply_pai_raster()`](https://kvantas.github.io/mapAI/reference/apply_pai_raster.md)
+uses inverse mapping and resampling to compute pixel values without
+leaving holes or artifacts.
+
+``` r
+
+# Apply the trained GAM model to the distorted raster map
+corrected_raster <- apply_pai_raster(
+  pai_model = pai_model_gam,
+  raster = raster_to_correct,
+  method = "bilinear"
+)
+#> Applying PAI model to raster...
+#> Correction complete.
+
+# Visualize the original and corrected rasters side-by-side
+par(mfrow = c(1, 2))
+terra::plot(raster_to_correct, main = "Original (Distorted) Raster", col = hcl.colors(50, "Grays"))
+terra::plot(corrected_raster, main = "Corrected Raster (mapAI)", col = hcl.colors(50, "Grays"))
+```
+
+![](reference/figures/gets_raster_correction-1.png)
+
+``` r
+
+par(mfrow = c(1, 1))
+
+# Save the corrected raster to disk using write_map()
+output_raster_path <- file.path(tempdir(), "corrected_demo_map.tif")
+write_map(corrected_raster, output_raster_path, overwrite = TRUE)
+#> Writing map to: /tmp/RtmpTTCH6N/corrected_demo_map.tif
+#> Map successfully written.
+```
+
 ------------------------------------------------------------------------
 
 ## Advanced Distortion Analysis
@@ -155,11 +208,11 @@ glimpse(distortion_results)
 #> $ a                      <dbl> 1.0201617, 1.0132633, 1.0082489, 1.0056066, 1.0…
 #> $ b                      <dbl> 0.9378401, 0.9356228, 0.9331371, 0.9299045, 0.9…
 #> $ area_scale             <dbl> 0.9567486, 0.9480322, 0.9408344, 0.9351181, 0.9…
-#> $ log2_area_scale        <dbl> -0.06378823, -0.07699201, -0.08798727, -0.09677…
+#> $ log2_area_scale        <dbl> -0.06378822, -0.07699201, -0.08798727, -0.09677…
 #> $ max_shear              <dbl> 2.409636, 2.283177, 2.217313, 2.241536, 2.30422…
-#> $ max_angular_distortion <dbl> 0.08411216, 0.07969792, 0.07739883, 0.07824438,…
+#> $ max_angular_distortion <dbl> 0.08411216, 0.07969792, 0.07739884, 0.07824438,…
 #> $ airy_kavrayskiy        <dbl> 0.002258491, 0.002300784, 0.002428281, 0.002656…
-#> $ theta_a                <dbl> -0.01012249, -4.08984269, -8.30682561, -11.7028…
+#> $ theta_a                <dbl> -0.01012332, -4.08984326, -8.30682585, -11.7028…
 ```
 
 ### Step 5: Visualize Distortion Metrics

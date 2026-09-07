@@ -204,13 +204,13 @@ plot_shear
 - [`read_gcps()`](https://kvantas.github.io/mapAI/reference/read_gcps.md)
   : Read and Prepare Homologous Points (GCPs)
 - [`read_map()`](https://kvantas.github.io/mapAI/reference/read_map.md)
-  : Read a Vector Map for Correction
+  : Read a Map (Vector or Raster) for Correction
 - [`swiss_cps`](https://kvantas.github.io/mapAI/reference/swiss_cps.md)
   : Swiss Control Points for Distortion Analysis
 - [`train_pai_model()`](https://kvantas.github.io/mapAI/reference/train_pai_model.md)
   : Train a PAI Model
 - [`write_map()`](https://kvantas.github.io/mapAI/reference/write_map.md)
-  : Write a Spatial Object to a File
+  : Write a Spatial Object (Vector or Raster) to a File
 
 # Articles
 

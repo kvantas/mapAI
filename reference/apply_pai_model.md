@@ -6,7 +6,7 @@ the position of all its vertices based on the learned transformation.
 ## Usage
 
 ``` r
-apply_pai_model(pai_model, map, aoi = NULL)
+apply_pai_model(pai_model, map, aoi = NULL, ...)
 ```
 
 ## Arguments

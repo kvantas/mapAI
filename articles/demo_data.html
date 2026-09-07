@@ -98,7 +98,14 @@ techniques based on Tissot’s indicatrix theory.</li>
 <span><span class="co">#&gt; The following objects are masked from 'package:base':</span></span>
 <span><span class="co">#&gt; </span></span>
 <span><span class="co">#&gt;     intersect, setdiff, setequal, union</span></span>
-<span><span class="kw"><a href="https://rdrr.io/r/base/library.html" class="external-link">library</a></span><span class="op">(</span><span class="va"><a href="https://magrittr.tidyverse.org" class="external-link">magrittr</a></span><span class="op">)</span> <span class="co"># For the %&gt;% pipe operator</span></span></code></pre></div>
+<span><span class="kw"><a href="https://rdrr.io/r/base/library.html" class="external-link">library</a></span><span class="op">(</span><span class="va"><a href="https://magrittr.tidyverse.org" class="external-link">magrittr</a></span><span class="op">)</span> <span class="co"># For the %&gt;% pipe operator</span></span>
+<span><span class="kw"><a href="https://rdrr.io/r/base/library.html" class="external-link">library</a></span><span class="op">(</span><span class="va"><a href="https://rspatial.org/" class="external-link">terra</a></span><span class="op">)</span></span>
+<span><span class="co">#&gt; terra 1.9.46</span></span>
+<span><span class="co">#&gt; </span></span>
+<span><span class="co">#&gt; Attaching package: 'terra'</span></span>
+<span><span class="co">#&gt; The following objects are masked from 'package:magrittr':</span></span>
+<span><span class="co">#&gt; </span></span>
+<span><span class="co">#&gt;     extract, inset</span></span></code></pre></div>
 <div class="section level2">
 <h2 id="positional-correction-workflow">Positional Correction Workflow<a class="anchor" aria-label="anchor" href="#positional-correction-workflow"></a>
 </h2>
@@ -110,22 +117,28 @@ case. We’ll choose the <code>"complex"</code> distortion type as it
 represents a challenging combination of errors. We then load these files
 into R using the package’s reading functions.</p>
 <div class="sourceCode" id="cb2"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="co"># Create the shapefile and GCPs CSV in a temporary directory</span></span>
+<code class="sourceCode R"><span><span class="co"># Create the shapefile, raster, and GCPs CSV in a temporary directory</span></span>
 <span><span class="va">demo_files</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/create_demo_data.html">create_demo_data</a></span><span class="op">(</span>type <span class="op">=</span> <span class="st">"complex"</span>, seed <span class="op">=</span> <span class="fl">123</span><span class="op">)</span></span>
-<span><span class="co">#&gt;    -&gt; Homologous points saved to: /tmp/RtmprXx0Ey/demo_gcps.csv</span></span>
-<span><span class="co">#&gt;    -&gt; Distorted map saved to: /tmp/RtmprXx0Ey/demo_map.shp</span></span>
+<span><span class="co">#&gt;    -&gt; Homologous points saved to: /tmp/RtmpTTCH6N/demo_gcps.csv</span></span>
+<span><span class="co">#&gt;    -&gt; Distorted map saved to: /tmp/RtmpTTCH6N/demo_map.shp</span></span>
+<span><span class="co">#&gt; Writing map to: /tmp/RtmpTTCH6N/demo_map.tif</span></span>
+<span><span class="co">#&gt; Map successfully written.</span></span>
+<span><span class="co">#&gt;    -&gt; Distorted raster saved to: /tmp/RtmpTTCH6N/demo_map.tif</span></span>
 <span></span>
 <span><span class="co"># Load the GCPs (homologous points) from the demo file</span></span>
 <span><span class="va">gcp_data</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/read_gcps.html">read_gcps</a></span><span class="op">(</span>gcp_path <span class="op">=</span> <span class="va">demo_files</span><span class="op">$</span><span class="va">gcp_path</span><span class="op">)</span></span>
 <span></span>
 <span><span class="co"># Load the vector map that needs correction from the demo file</span></span>
 <span><span class="va">map_to_correct</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/read_map.html">read_map</a></span><span class="op">(</span>shp_path <span class="op">=</span> <span class="va">demo_files</span><span class="op">$</span><span class="va">shp_path</span><span class="op">)</span></span>
-<span><span class="co">#&gt; Reading layer `demo_map' from data source `/tmp/RtmprXx0Ey/demo_map.shp' using driver `ESRI Shapefile'</span></span>
+<span><span class="co">#&gt; Reading layer `demo_map' from data source `/tmp/RtmpTTCH6N/demo_map.shp' using driver `ESRI Shapefile'</span></span>
 <span><span class="co">#&gt; Simple feature collection with 30 features and 1 field</span></span>
 <span><span class="co">#&gt; Geometry type: LINESTRING</span></span>
 <span><span class="co">#&gt; Dimension:     XY</span></span>
 <span><span class="co">#&gt; Bounding box:  xmin: -0.06808406 ymin: -4.288813 xmax: 102.7102 ymax: 114.2245</span></span>
-<span><span class="co">#&gt; Projected CRS: WGS 84 / Pseudo-Mercator</span></span></code></pre></div>
+<span><span class="co">#&gt; Projected CRS: WGS 84 / Pseudo-Mercator</span></span>
+<span></span>
+<span><span class="co"># Load the raster map that needs correction from the demo file</span></span>
+<span><span class="va">raster_to_correct</span> <span class="op">&lt;-</span> <span class="fu">terra</span><span class="fu">::</span><span class="fu"><a href="https://rspatial.github.io/terra/reference/rast.html" class="external-link">rast</a></span><span class="op">(</span><span class="va">demo_files</span><span class="op">$</span><span class="va">raster_path</span><span class="op">)</span></span></code></pre></div>
 </div>
 <div class="section level3">
 <h3 id="assess-initial-error-and-train-a-model">Assess Initial Error and Train a Model<a class="anchor" aria-label="anchor" href="#assess-initial-error-and-train-a-model"></a>
@@ -178,6 +191,38 @@ result by overlaying the corrected grid on the original.</p>
 <p><img src="reference/figures/gets_visualize-1.png" class="r-plt" alt="" width="100%">
 The plot clearly shows how the warped grid has been adjusted back to a
 regular shape, demonstrating a successful correction.</p>
+</div>
+<div class="section level3">
+<h3 id="apply-correction-to-a-raster-map">Apply Correction to a Raster Map<a class="anchor" aria-label="anchor" href="#apply-correction-to-a-raster-map"></a>
+</h3>
+<p>The same trained PAI model can be applied directly to correct raster
+maps using <code><a href="../reference/apply_pai_raster.html">apply_pai_raster()</a></code>. Because raster data sits on
+a regular grid of pixels, <code><a href="../reference/apply_pai_raster.html">apply_pai_raster()</a></code> uses inverse
+mapping and resampling to compute pixel values without leaving holes or
+artifacts.</p>
+<div class="sourceCode" id="cb5"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="co"># Apply the trained GAM model to the distorted raster map</span></span>
+<span><span class="va">corrected_raster</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/apply_pai_raster.html">apply_pai_raster</a></span><span class="op">(</span></span>
+<span>  pai_model <span class="op">=</span> <span class="va">pai_model_gam</span>,</span>
+<span>  raster <span class="op">=</span> <span class="va">raster_to_correct</span>,</span>
+<span>  method <span class="op">=</span> <span class="st">"bilinear"</span></span>
+<span><span class="op">)</span></span>
+<span><span class="co">#&gt; Applying PAI model to raster...</span></span>
+<span><span class="co">#&gt; Correction complete.</span></span>
+<span></span>
+<span><span class="co"># Visualize the original and corrected rasters side-by-side</span></span>
+<span><span class="fu"><a href="https://rdrr.io/r/graphics/par.html" class="external-link">par</a></span><span class="op">(</span>mfrow <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="fl">1</span>, <span class="fl">2</span><span class="op">)</span><span class="op">)</span></span>
+<span><span class="fu">terra</span><span class="fu">::</span><span class="fu"><a href="https://rspatial.github.io/terra/reference/plot.html" class="external-link">plot</a></span><span class="op">(</span><span class="va">raster_to_correct</span>, main <span class="op">=</span> <span class="st">"Original (Distorted) Raster"</span>, col <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/grDevices/palettes.html" class="external-link">hcl.colors</a></span><span class="op">(</span><span class="fl">50</span>, <span class="st">"Grays"</span><span class="op">)</span><span class="op">)</span></span>
+<span><span class="fu">terra</span><span class="fu">::</span><span class="fu"><a href="https://rspatial.github.io/terra/reference/plot.html" class="external-link">plot</a></span><span class="op">(</span><span class="va">corrected_raster</span>, main <span class="op">=</span> <span class="st">"Corrected Raster (mapAI)"</span>, col <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/grDevices/palettes.html" class="external-link">hcl.colors</a></span><span class="op">(</span><span class="fl">50</span>, <span class="st">"Grays"</span><span class="op">)</span><span class="op">)</span></span></code></pre></div>
+<p><img src="reference/figures/gets_raster_correction-1.png" class="r-plt" alt="" width="100%"></p>
+<div class="sourceCode" id="cb6"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="fu"><a href="https://rdrr.io/r/graphics/par.html" class="external-link">par</a></span><span class="op">(</span>mfrow <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="fl">1</span>, <span class="fl">1</span><span class="op">)</span><span class="op">)</span></span>
+<span></span>
+<span><span class="co"># Save the corrected raster to disk using write_map()</span></span>
+<span><span class="va">output_raster_path</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/file.path.html" class="external-link">file.path</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/tempfile.html" class="external-link">tempdir</a></span><span class="op">(</span><span class="op">)</span>, <span class="st">"corrected_demo_map.tif"</span><span class="op">)</span></span>
+<span><span class="fu"><a href="../reference/write_map.html">write_map</a></span><span class="op">(</span><span class="va">corrected_raster</span>, <span class="va">output_raster_path</span>, overwrite <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span></span>
+<span><span class="co">#&gt; Writing map to: /tmp/RtmpTTCH6N/corrected_demo_map.tif</span></span>
+<span><span class="co">#&gt; Map successfully written.</span></span></code></pre></div>
 <hr>
 </div>
 </div>
@@ -195,7 +240,7 @@ high uncertainty.</p>
 analysis. Then, we use the <code><a href="../reference/analyze_distortion.html">analyze_distortion()</a></code> function
 with our trained <code>gam_model</code> to calculate the detailed
 distortion metrics at each point.</p>
-<div class="sourceCode" id="cb5"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb7"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="co"># Create a regular grid of points for the analysis</span></span>
 <span><span class="va">analysis_points</span> <span class="op">&lt;-</span> <span class="fu">sf</span><span class="fu">::</span><span class="fu"><a href="https://r-spatial.github.io/sf/reference/st_make_grid.html" class="external-link">st_make_grid</a></span><span class="op">(</span><span class="va">gcp_data</span>, n <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="fl">25</span>, <span class="fl">25</span><span class="op">)</span><span class="op">)</span> <span class="op"><a href="../reference/pipe.html">%&gt;%</a></span></span>
 <span>  <span class="fu">sf</span><span class="fu">::</span><span class="fu"><a href="https://r-spatial.github.io/sf/reference/geos_unary.html" class="external-link">st_centroid</a></span><span class="op">(</span><span class="op">)</span> <span class="op"><a href="../reference/pipe.html">%&gt;%</a></span></span>
@@ -212,11 +257,11 @@ distortion metrics at each point.</p>
 <span><span class="co">#&gt; $ a                      <span style="color: #949494; font-style: italic;">&lt;dbl&gt;</span> 1.0201617<span style="color: #949494;">, </span>1.0132633<span style="color: #949494;">, </span>1.0082489<span style="color: #949494;">, </span>1.0056066<span style="color: #949494;">, </span>1.0…</span></span>
 <span><span class="co">#&gt; $ b                      <span style="color: #949494; font-style: italic;">&lt;dbl&gt;</span> 0.9378401<span style="color: #949494;">, </span>0.9356228<span style="color: #949494;">, </span>0.9331371<span style="color: #949494;">, </span>0.9299045<span style="color: #949494;">, </span>0.9…</span></span>
 <span><span class="co">#&gt; $ area_scale             <span style="color: #949494; font-style: italic;">&lt;dbl&gt;</span> 0.9567486<span style="color: #949494;">, </span>0.9480322<span style="color: #949494;">, </span>0.9408344<span style="color: #949494;">, </span>0.9351181<span style="color: #949494;">, </span>0.9…</span></span>
-<span><span class="co">#&gt; $ log2_area_scale        <span style="color: #949494; font-style: italic;">&lt;dbl&gt;</span> -0.06378823<span style="color: #949494;">, </span>-0.07699201<span style="color: #949494;">, </span>-0.08798727<span style="color: #949494;">, </span>-0.09677…</span></span>
+<span><span class="co">#&gt; $ log2_area_scale        <span style="color: #949494; font-style: italic;">&lt;dbl&gt;</span> -0.06378822<span style="color: #949494;">, </span>-0.07699201<span style="color: #949494;">, </span>-0.08798727<span style="color: #949494;">, </span>-0.09677…</span></span>
 <span><span class="co">#&gt; $ max_shear              <span style="color: #949494; font-style: italic;">&lt;dbl&gt;</span> 2.409636<span style="color: #949494;">, </span>2.283177<span style="color: #949494;">, </span>2.217313<span style="color: #949494;">, </span>2.241536<span style="color: #949494;">, </span>2.30422…</span></span>
-<span><span class="co">#&gt; $ max_angular_distortion <span style="color: #949494; font-style: italic;">&lt;dbl&gt;</span> 0.08411216<span style="color: #949494;">, </span>0.07969792<span style="color: #949494;">, </span>0.07739883<span style="color: #949494;">, </span>0.07824438<span style="color: #949494;">,</span>…</span></span>
+<span><span class="co">#&gt; $ max_angular_distortion <span style="color: #949494; font-style: italic;">&lt;dbl&gt;</span> 0.08411216<span style="color: #949494;">, </span>0.07969792<span style="color: #949494;">, </span>0.07739884<span style="color: #949494;">, </span>0.07824438<span style="color: #949494;">,</span>…</span></span>
 <span><span class="co">#&gt; $ airy_kavrayskiy        <span style="color: #949494; font-style: italic;">&lt;dbl&gt;</span> 0.002258491<span style="color: #949494;">, </span>0.002300784<span style="color: #949494;">, </span>0.002428281<span style="color: #949494;">, </span>0.002656…</span></span>
-<span><span class="co">#&gt; $ theta_a                <span style="color: #949494; font-style: italic;">&lt;dbl&gt;</span> -0.01012249<span style="color: #949494;">, </span>-4.08984269<span style="color: #949494;">, </span>-8.30682561<span style="color: #949494;">, </span>-11.7028…</span></span></code></pre></div>
+<span><span class="co">#&gt; $ theta_a                <span style="color: #949494; font-style: italic;">&lt;dbl&gt;</span> -0.01012332<span style="color: #949494;">, </span>-4.08984326<span style="color: #949494;">, </span>-8.30682585<span style="color: #949494;">, </span>-11.7028…</span></span></code></pre></div>
 </div>
 <div class="section level3">
 <h3 id="step-5-visualize-distortion-metrics">Step 5: Visualize Distortion Metrics<a class="anchor" aria-label="anchor" href="#step-5-visualize-distortion-metrics"></a>
@@ -230,7 +275,7 @@ these metrics.</p>
 <code>log2_area_scale</code> shows where the map has been stretched or
 shrunk, while <code>max_angular_distortion_rad</code> shows where angles
 have been deformed (shear).</p>
-<div class="sourceCode" id="cb6"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb8"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="co"># Plot for log2(sigma) - areal distortion</span></span>
 <span><span class="va">plot_area</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/plot_distortion_surface.html">plot_distortion_surface</a></span><span class="op">(</span></span>
 <span>  <span class="va">distortion_results</span>,</span>
@@ -256,7 +301,7 @@ have been deformed (shear).</p>
 <span><span class="co">#&gt; Raster pixels are placed at uneven horizontal intervals and will be shifted</span></span>
 <span><span class="co">#&gt; <span style="color: #00BBBB;">ℹ</span> Consider using `geom_tile()` instead.</span></span></code></pre></div>
 <p><img src="reference/figures/gets_plotsurfaces-1.png" class="r-plt" alt="" width="100%"></p>
-<div class="sourceCode" id="cb7"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb9"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span>  <span class="va">plot_area</span></span>
 <span><span class="co">#&gt; Warning: Raster pixels are placed at uneven horizontal intervals and will be shifted</span></span>
 <span><span class="co">#&gt; <span style="color: #00BBBB;">ℹ</span> Consider using `geom_tile()` instead.</span></span>
@@ -270,7 +315,7 @@ have been deformed (shear).</p>
 <p>This is a combined measure of distortion that balances both areal and
 angular errors. We can calculate it from the <code>a</code> and
 <code>b</code> values produced by <code>analyze_distortion</code>.</p>
-<div class="sourceCode" id="cb8"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb10"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="co"># Plot the Airy-Kavrayskiy metric</span></span>
 <span><span class="fu"><a href="../reference/plot_distortion_surface.html">plot_distortion_surface</a></span><span class="op">(</span></span>
 <span>  <span class="va">distortion_results</span>,</span>
@@ -292,7 +337,7 @@ angular errors. We can calculate it from the <code>a</code> and
 visualization, showing the distortion ellipses themselves. The shape,
 size, and orientation of each ellipse represent the local distortion
 pattern.</p>
-<div class="sourceCode" id="cb9"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb11"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="co"># Plot the indicatrices at the locations of the analysis points</span></span>
 <span><span class="co"># We use a large scale_factor to make the ellipses clearly visible.</span></span>
 <span><span class="fu"><a href="../reference/plot_indicatrices.html">plot_indicatrices</a></span><span class="op">(</span></span>

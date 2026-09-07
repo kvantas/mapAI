@@ -67,8 +67,11 @@ scaling, or non-linear warping).
 ``` r
 # --- 1. First, create a demo dataset to work with ---
 demo_files <- create_demo_data(type = "complex")
-#>    -> Homologous points saved to: /tmp/RtmpymxZu9/demo_gcps.csv
-#>    -> Distorted map saved to: /tmp/RtmpymxZu9/demo_map.shp
+#>    -> Homologous points saved to: /tmp/RtmpHwnDm7/demo_gcps.csv
+#>    -> Distorted map saved to: /tmp/RtmpHwnDm7/demo_map.shp
+#> Writing map to: /tmp/RtmpHwnDm7/demo_map.tif
+#> Map successfully written.
+#>    -> Distorted raster saved to: /tmp/RtmpHwnDm7/demo_map.tif
 gcp_data <- read_gcps(gcp_path = demo_files$gcp_path)
 
 # --- 2. Create the default displacement plot ---

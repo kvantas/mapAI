@@ -61,8 +61,9 @@ a PAI model at specified locations, based on Tissot's indicatrix theory.</p>
 
 
 <dt id="arg-points-to-analyze">points_to_analyze<a class="anchor" aria-label="anchor" href="#arg-points-to-analyze"></a></dt>
-<dd><p>An <code>sf</code> object of <strong>points</strong> where the analysis
-should be performed.</p></dd>
+<dd><p>An <code>sf</code> object of <strong>points</strong> or a <code>terra</code>
+<code>SpatRaster</code> object where the analysis should be performed. If a <code>SpatRaster</code>
+is passed, distortion metrics are evaluated at cell centers.</p></dd>
 
 
 <dt id="arg-reference-scale">reference_scale<a class="anchor" aria-label="anchor" href="#arg-reference-scale"></a></dt>
@@ -72,30 +73,29 @@ scale calculation. Defaults to <code>1</code> (no normalization).</p></dd>
 </dl></div>
     <div class="section level2">
     <h2 id="value">Value<a class="anchor" aria-label="anchor" href="#value"></a></h2>
-    <p>An <code>sf</code> object containing the original points and new columns with
-all calculated distortion metrics:</p>
+    <p>An <code>sf</code> object (if <code>points_to_analyze</code> is an <code>sf</code> object) or a
+<code><a href="https://rspatial.github.io/terra/reference/SpatRaster-class.html" class="external-link">terra::SpatRaster</a></code> object with 8 metric layers (if <code>points_to_analyze</code> is a
+<code>SpatRaster</code>), containing all calculated distortion metrics:</p>
 <dl><dt>a, b</dt>
-<dd><p>The semi-major and
-semi-minor axes of the Tissot indicatrix.</p></dd>
- <dt>area_scale</dt>
-<dd><p>The areal
-distortion factor (<code>a * b</code>).</p></dd>
- <dt>log2_area_scale</dt>
-<dd><p>The base-2 logarithm
-of <code>area_scale</code>, a symmetric metric centered at 0.</p></dd>
- <dt>max_shear</dt>
-<dd><p>The
-maximum angular distortion in degrees.</p></dd>
- <dt>max_angular_distortion</dt>
-<dd><p>The
-maximum angular distortion in radians (the <code>2Omega</code> metric).</p></dd>
+<dd><p>The semi-major and semi-minor axes of the Tissot indicatrix.</p></dd>
+
+<dt>area_scale</dt>
+<dd><p>The areal distortion factor (<code>a * b</code>).</p></dd>
+
+<dt>log2_area_scale</dt>
+<dd><p>The base-2 logarithm of <code>area_scale</code>, centered at 0.</p></dd>
+
+<dt>max_shear</dt>
+<dd><p>The maximum angular distortion in degrees.</p></dd>
+
+<dt>max_angular_distortion</dt>
+<dd><p>The maximum angular distortion in radians (<code>2Omega</code>).</p></dd>
 
 <dt>airy_kavrayskiy</dt>
-<dd><p>The Airy-Kavrayskiy measure, a balanced metric
-combining areal and angular distortion.</p></dd>
- <dt>theta_a</dt>
-<dd><p>The orientation of
-the axis of maximum scale (in degrees).</p></dd>
+<dd><p>The Airy-Kavrayskiy balanced distortion measure.</p></dd>
+
+<dt>theta_a</dt>
+<dd><p>The orientation of the axis of maximum scale (in degrees).</p></dd>
 
 </dl></div>
     <div class="section level2">

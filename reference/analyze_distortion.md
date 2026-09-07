@@ -18,7 +18,9 @@ analyze_distortion(pai_model, points_to_analyze, reference_scale = 1)
 
 - points_to_analyze:
 
-  An `sf` object of **points** where the analysis should be performed.
+  An `sf` object of **points** or a `terra` `SpatRaster` object where
+  the analysis should be performed. If a `SpatRaster` is passed,
+  distortion metrics are evaluated at cell centers.
 
 - reference_scale:
 
@@ -27,8 +29,10 @@ analyze_distortion(pai_model, points_to_analyze, reference_scale = 1)
 
 ## Value
 
-An `sf` object containing the original points and new columns with all
-calculated distortion metrics:
+An `sf` object (if `points_to_analyze` is an `sf` object) or a
+[`terra::SpatRaster`](https://rspatial.github.io/terra/reference/SpatRaster-class.html)
+object with 8 metric layers (if `points_to_analyze` is a `SpatRaster`),
+containing all calculated distortion metrics:
 
 - a, b:
 
@@ -40,8 +44,7 @@ calculated distortion metrics:
 
 - log2_area_scale:
 
-  The base-2 logarithm of `area_scale`, a symmetric metric centered at
-  0.
+  The base-2 logarithm of `area_scale`, centered at 0.
 
 - max_shear:
 
@@ -49,12 +52,11 @@ calculated distortion metrics:
 
 - max_angular_distortion:
 
-  The maximum angular distortion in radians (the `2Omega` metric).
+  The maximum angular distortion in radians (`2Omega`).
 
 - airy_kavrayskiy:
 
-  The Airy-Kavrayskiy measure, a balanced metric combining areal and
-  angular distortion.
+  The Airy-Kavrayskiy balanced distortion measure.
 
 - theta_a:
 

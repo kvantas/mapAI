@@ -85,6 +85,10 @@ A list containing the full paths to the generated files:
 
   The path to the 'demo_gcps.csv' file.
 
+- raster_path:
+
+  The path to the 'demo_map.tif' raster file.
+
 ## Details
 
 This function implements the simulation framework described in Vantas
