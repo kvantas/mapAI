@@ -41,14 +41,19 @@
 #' head(sf::st_coordinates(gcps))
 #' head(sf::st_coordinates(corrected_points))
 #'
-apply_pai_model <- function(pai_model, map, aoi = NULL) {
+apply_pai_model <- function(pai_model, map, aoi = NULL, ...) {
   # --- 1. Input Validation ---
   if (!inherits(pai_model, "pai_model")) {
     stop("`pai_model` must be an object of class 'pai_model'.", call. = FALSE)
   }
 
+  # If map is a SpatRaster, dispatch to apply_pai_raster
+  if (inherits(map, "SpatRaster")) {
+    return(apply_pai_raster(pai_model = pai_model, raster = map, aoi = aoi, ...))
+  }
+
   if (!inherits(map, "sf")) {
-    stop("`map` must be a valid `sf` object.", call. = FALSE)
+    stop("`map` must be a valid `sf` object or terra `SpatRaster` object.", call. = FALSE)
   }
 
   if (!is.null(aoi)) {

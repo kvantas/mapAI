@@ -4,7 +4,7 @@
 \alias{apply_pai_model}
 \title{Apply a Trained PAI Model to Correct a Vector Map}
 \usage{
-apply_pai_model(pai_model, map, aoi = NULL)
+apply_pai_model(pai_model, map, aoi = NULL, ...)
 }
 \arguments{
 \item{pai_model}{An object of class \code{pai_model} returned by

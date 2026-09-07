@@ -2,39 +2,48 @@
 % Please edit documentation in R/read_map.R
 \name{read_map}
 \alias{read_map}
-\title{Read a Vector Map for Correction}
+\title{Read a Map (Vector or Raster) for Correction}
 \usage{
-read_map(shp_path, ...)
+read_map(map_path, shp_path = NULL, ...)
 }
 \arguments{
-\item{shp_path}{A character string specifying the path to the input map file
-(e.g., a shapefile).}
+\item{map_path}{A character string specifying the path to the input map file
+(e.g., a shapefile or GeoTIFF).}
 
-\item{...}{Arguments passed to \code{sf::st_read}}
+\item{shp_path}{An alias for \code{map_path} kept for backward compatibility.}
+
+\item{...}{Arguments passed to \code{sf::st_read} (for vector maps) or \code{terra::rast}
+(for raster maps).}
 }
 \value{
-An \code{sf} object of the map to be corrected.
+An \code{sf} object (for vector maps) or a \code{terra::SpatRaster} object (for
+raster maps).
 }
 \description{
-Reads a vector map (e.g., shapefile) that is intended to be
-corrected.
+Reads a vector map (e.g., shapefile, GeoPackage) or a raster
+map (e.g., GeoTIFF) that is intended to be corrected.
 }
 \details{
-This function reads the geospatial file using \code{sf::st_read}. If the
-file contains polygon geometries and does not already have an area column
-named 'area_old', this function will calculate the area of each feature and
-add it.
+This function automatically detects whether the input file is a
+vector dataset or a raster dataset:
+\itemize{
+\item \strong{Vector maps} (e.g., \code{.shp}, \code{.gpkg}, \code{.geojson}): Read using
+\code{sf::st_read()}. If the file contains polygon geometries and lacks an
+\code{area_old} column, initial feature areas are calculated and added.
+\item \strong{Raster maps} (e.g., \code{.tif}, \code{.tiff}, \code{.geotiff}, \code{.asc}, \code{.grd}):
+Read using \code{terra::rast()}, returning a \code{terra::SpatRaster} object.
+}
 }
 \examples{
 \dontrun{
-# First, create a demo shapefile
+# First, create demo files (creates both vector and raster maps)
 demo_files <- create_demo_data()
 
-# Read the map that needs correction
-map_to_correct <- read_map(shp_path = demo_files$shp_path, quiet = TRUE)
+# Read the vector map that needs correction
+vector_map <- read_map(demo_files$shp_path, quiet = TRUE)
 
-# The output is now ready to be used in the `correct_map()` function
-# after a model has been trained.
-plot(sf::st_geometry(map_to_correct))
+# Read the raster map that needs correction
+raster_map <- read_map(demo_files$raster_path)
+print(raster_map)
 }
 }

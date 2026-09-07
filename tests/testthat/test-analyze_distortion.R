@@ -46,9 +46,27 @@ test_that("Input validation rejects incorrect object types", {
 
   expect_error(
     analyze_distortion(mock_model, as.data.frame(testing_points)),
-    "`points_to_analyze` must be an sf object.",
+    "`points_to_analyze` must be an sf object or terra `SpatRaster`.",
     fixed = TRUE
   )
+})
+
+test_that("analyze_distortion works with terra SpatRaster input", {
+  mock_model <- create_placeholder_model("gam")
+  r <- terra::rast(xmin = -10, xmax = 10, ymin = -10, ymax = 10, nrows = 5, ncols = 5)
+  terra::values(r) <- 1:25
+
+  mock_predict_zero <- function(object, newdata, ...) {
+    data.frame(dx = rep(0, nrow(newdata)), dy = rep(0, nrow(newdata)))
+  }
+  stub(analyze_distortion, 'predict', mock_predict_zero)
+
+  res_r <- suppressMessages(analyze_distortion(mock_model, r))
+  expect_s4_class(res_r, "SpatRaster")
+  expect_equal(terra::nlyr(res_r), 8)
+  expected_lyrs <- c("a", "b", "area_scale", "log2_area_scale", "max_shear",
+                     "max_angular_distortion", "airy_kavrayskiy", "theta_a")
+  expect_equal(names(res_r), expected_lyrs)
 })
 
 test_that("Output has the correct structure, columns, and types", {

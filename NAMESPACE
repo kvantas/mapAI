@@ -61,10 +61,12 @@ importFrom(terra,
   nlyr,
   project,
   rast,
+  rasterize,
   res,
   resample,
   values,
-  vect
+  vect,
+  writeRaster
 )
 importFrom(tools,file_ext)
 importFrom(units,set_units)

@@ -2,65 +2,61 @@
 % Please edit documentation in R/write_map.R
 \name{write_map}
 \alias{write_map}
-\title{Write a Spatial Object to a File}
+\title{Write a Spatial Object (Vector or Raster) to a File}
 \usage{
 write_map(map, file_path, overwrite = FALSE, ...)
 }
 \arguments{
-\item{map}{An \code{sf} object to be written to a file.}
+\item{map}{An \code{sf} object or a \code{terra} \code{SpatRaster} object to be written to a file.}
 
 \item{file_path}{A character string specifying the path and filename for the
-output file (e.g., \code{"path/to/my_corrected_map.shp"}).}
+output file (e.g., \code{"path/to/map.shp"} or \code{"path/to/raster.tif"}).}
 
 \item{overwrite}{A logical value. If \code{TRUE}, it will overwrite an existing
 file at the specified path. Defaults to \code{FALSE}.}
 
-\item{...}{Additional arguments to be passed directly to \code{sf::st_write}
-(e.g., \code{layer_options}).}
+\item{...}{Additional arguments to be passed directly to \code{sf::st_write} or
+\code{terra::writeRaster}.}
 }
 \value{
 Invisibly returns the input \code{map} object, allowing it to be used in a
 pipe chain.
 }
 \description{
-A robust and user-friendly wrapper around \code{sf::st_write} to save
-an \code{sf} object, for example, a corrected map.
+A robust and user-friendly wrapper around \code{sf::st_write} (for
+vector maps) and \code{terra::writeRaster} (for raster maps) to save spatial
+objects to disk.
 }
 \details{
 This function provides a straightforward way to save the output of
-the \code{mapAI} workflow (or any \code{sf} object) to a file on disk. It supports any
-file format that \code{sf::st_write} can handle. The function automatically infers
-the correct driver from the file extension (e.g., \code{.shp} -> \code{"ESRI Shapefile"}, \code{.gpkg} -> \code{"GPKG"}).
+the \code{mapAI} workflow (or any \code{sf} or \code{terra::SpatRaster} object) to a file on
+disk.
+
+For vector data (\code{sf}), it supports any file format that \code{sf::st_write} can
+handle and automatically infers the driver from the file extension
+(e.g., \code{.shp} -> \code{"ESRI Shapefile"}, \code{.gpkg} -> \code{"GPKG"}, \code{.geojson} -> \code{"GeoJSON"}).
+
+For raster data (\code{terra::SpatRaster}), it writes the raster using
+\code{terra::writeRaster}, supporting formats such as GeoTIFF (\code{.tif}),
+GPKG raster (\code{.gpkg}), and others.
 
 For safety, the function defaults to \code{overwrite = FALSE}, which will prevent
 accidentally overwriting an existing file. Advanced users can pass additional
-arguments directly to \code{sf::st_write} via the \code{...} parameter.
+arguments directly to the underlying writing functions (\code{sf::st_write} or
+\code{terra::writeRaster}) via the \code{...} parameter.
 }
 \examples{
 \dontrun{
-# This example shows how to save data and ensure all created files are removed.
-
-# --- 1. Create a sample sf object to write ---
+# --- 1. Write an sf vector object ---
 data(parcels)
 sample_map <- parcels[1:5, ]
+output_shp <- tempfile(fileext = ".shp")
+write_map(sample_map, output_shp, overwrite = TRUE)
 
-# --- 2. Define a temporary file path ---
-# Using tempfile() is best practice for examples.
-output_path <- tempfile(fileext = ".shp")
-
-# --- 3. Write the map to the file ---
-write_map(sample_map, output_path, overwrite = TRUE)
-
-# --- 4. Clean up ALL created files ---
-# A shapefile creates multiple "sidecar" files (.dbf, .shx, .prj, etc.).
-# This code finds all files with the same base name and removes them.
-base_name <- tools::file_path_sans_ext(output_path)
-files_to_remove <- list.files(dirname(base_name),
-                              pattern = basename(base_name),
-                              full.names = TRUE)
-file.remove(files_to_remove)
-
-# Check that the files are gone
-print(list.files(dirname(output_path), pattern = basename(base_name)))
+# --- 2. Write a SpatRaster object ---
+library(terra)
+r <- rast(nrows = 10, ncols = 10, vals = 1:100)
+output_tif <- tempfile(fileext = ".tif")
+write_map(r, output_tif, overwrite = TRUE)
 }
 }

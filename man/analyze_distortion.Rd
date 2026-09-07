@@ -10,23 +10,24 @@ analyze_distortion(pai_model, points_to_analyze, reference_scale = 1)
 \item{pai_model}{A model object of class \code{pai_model} from
 \code{train_pai_model()}.}
 
-\item{points_to_analyze}{An \code{sf} object of \strong{points} where the analysis
-should be performed.}
+\item{points_to_analyze}{An \code{sf} object of \strong{points} or a \code{terra}
+\code{SpatRaster} object where the analysis should be performed. If a \code{SpatRaster}
+is passed, distortion metrics are evaluated at cell centers.}
 
 \item{reference_scale}{A single numeric value used to normalize the area
 scale calculation. Defaults to \code{1} (no normalization).}
 }
 \value{
-An \code{sf} object containing the original points and new columns with
-all calculated distortion metrics: \item{a, b}{The semi-major and
-semi-minor axes of the Tissot indicatrix.} \item{area_scale}{The areal
-distortion factor (\code{a * b}).} \item{log2_area_scale}{The base-2 logarithm
-of \code{area_scale}, a symmetric metric centered at 0.} \item{max_shear}{The
-maximum angular distortion in degrees.} \item{max_angular_distortion}{The
-maximum angular distortion in radians (the \verb{2Omega} metric).}
-\item{airy_kavrayskiy}{The Airy-Kavrayskiy measure, a balanced metric
-combining areal and angular distortion.} \item{theta_a}{The orientation of
-the axis of maximum scale (in degrees).}
+An \code{sf} object (if \code{points_to_analyze} is an \code{sf} object) or a
+\code{terra::SpatRaster} object with 8 metric layers (if \code{points_to_analyze} is a
+\code{SpatRaster}), containing all calculated distortion metrics:
+\item{a, b}{The semi-major and semi-minor axes of the Tissot indicatrix.}
+\item{area_scale}{The areal distortion factor (\code{a * b}).}
+\item{log2_area_scale}{The base-2 logarithm of \code{area_scale}, centered at 0.}
+\item{max_shear}{The maximum angular distortion in degrees.}
+\item{max_angular_distortion}{The maximum angular distortion in radians (\verb{2Omega}).}
+\item{airy_kavrayskiy}{The Airy-Kavrayskiy balanced distortion measure.}
+\item{theta_a}{The orientation of the axis of maximum scale (in degrees).}
 }
 \description{
 Computes a comprehensive set of detailed distortion metrics for

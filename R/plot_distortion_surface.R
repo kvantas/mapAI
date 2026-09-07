@@ -58,6 +58,7 @@
 #'
 #' @import ggplot2
 #' @import dplyr
+#' @importFrom terra crds values
 #' @importFrom rlang .data sym
 #' @importFrom sf st_drop_geometry st_coordinates st_crs
 #' @importFrom magrittr %>%
@@ -103,18 +104,35 @@ plot_distortion_surface <- function(distortion_sf, metric, gcp_data = NULL,
                paste(valid_metrics, collapse = ", ")), call. = FALSE)
   }
 
-  if (!metric %in% names(distortion_sf)) {
-    stop(paste("Metric", metric, "not found in the input data."), call. = FALSE)
+  if (inherits(distortion_sf, "SpatRaster")) {
+    if (!metric %in% names(distortion_sf)) {
+      stop(paste("Metric", metric, "not found in the input data."), call. = FALSE)
+    }
+    coords_mat <- terra::crds(distortion_sf)
+    vals <- terra::values(distortion_sf[[metric]])[, 1]
+    plot_df <- data.frame(
+      metric_val = vals,
+      X = coords_mat[, 1],
+      Y = coords_mat[, 2]
+    )
+    is_grid <- TRUE
+  } else {
+    if (!inherits(distortion_sf, "sf")) {
+      stop("`distortion_sf` must be an sf object or terra `SpatRaster`.", call. = FALSE)
+    }
+    if (!metric %in% names(distortion_sf)) {
+      stop(paste("Metric", metric, "not found in the input data."), call. = FALSE)
+    }
+
+    # --- Prepare data & Detect Grid ---
+    plot_df <- sf::st_drop_geometry(distortion_sf) %>%
+      dplyr::select(metric_val = !!rlang::sym(metric)) %>%
+      dplyr::bind_cols(as.data.frame(sf::st_coordinates(distortion_sf)))
+
+    n_x <- length(unique(round(plot_df$X, 6)))
+    n_y <- length(unique(round(plot_df$Y, 6)))
+    is_grid <- abs((n_x * n_y) - nrow(plot_df)) <= 2
   }
-
-  # --- Prepare data & Detect Grid ---
-  plot_df <- sf::st_drop_geometry(distortion_sf) %>%
-    dplyr::select(metric_val = !!rlang::sym(metric)) %>%
-    dplyr::bind_cols(as.data.frame(sf::st_coordinates(distortion_sf)))
-
-  n_x <- length(unique(round(plot_df$X, 6)))
-  n_y <- length(unique(round(plot_df$Y, 6)))
-  is_grid <- abs((n_x * n_y) - nrow(plot_df)) <= 2
 
   # --- Create the base plot ---
   p <- ggplot2::ggplot() +

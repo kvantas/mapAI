@@ -16,14 +16,21 @@ test_that("Function executes with default parameters and creates files", {
   # Check for expected messages
   expect_true(any(grepl("Homologous points saved to:", msgs)))
   expect_true(any(grepl("Distorted map saved to:", msgs)))
+  expect_true(any(grepl("Distorted raster saved to:", msgs)))
 
   # Check that the returned object is a list with the correct names
   expect_type(demo_files, "list")
-  expect_named(demo_files, c("shp_path", "gcp_path"))
+  expect_named(demo_files, c("shp_path", "gcp_path", "raster_path"))
 
   # Verify that the files were actually created at the specified paths
   expect_true(file.exists(demo_files$shp_path))
   expect_true(file.exists(demo_files$gcp_path))
+  expect_true(file.exists(demo_files$raster_path))
+
+  # Verify the raster is readable and valid
+  demo_r <- terra::rast(demo_files$raster_path)
+  expect_s4_class(demo_r, "SpatRaster")
+  expect_equal(terra::nlyr(demo_r), 1)
 })
 
 test_that("Output files have the correct structure and content", {
@@ -58,6 +65,7 @@ test_that("All distortion types run without error", {
     )
     expect_true(file.exists(files$gcp_path))
     expect_true(file.exists(files$shp_path))
+    expect_true(file.exists(files$raster_path))
   }
 })
 

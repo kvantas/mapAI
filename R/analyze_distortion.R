@@ -29,24 +29,26 @@
 #'
 #' @param pai_model A model object of class `pai_model` from
 #'   `train_pai_model()`.
-#' @param points_to_analyze An `sf` object of **points** where the analysis
-#'   should be performed.
+#' @param points_to_analyze An `sf` object of **points** or a `terra`
+#'   `SpatRaster` object where the analysis should be performed. If a `SpatRaster`
+#'   is passed, distortion metrics are evaluated at cell centers.
 #' @param reference_scale A single numeric value used to normalize the area
 #'   scale calculation. Defaults to `1` (no normalization).
 #'
-#' @return An `sf` object containing the original points and new columns with
-#'   all calculated distortion metrics: \item{a, b}{The semi-major and
-#'   semi-minor axes of the Tissot indicatrix.} \item{area_scale}{The areal
-#'   distortion factor (`a * b`).} \item{log2_area_scale}{The base-2 logarithm
-#'   of `area_scale`, a symmetric metric centered at 0.} \item{max_shear}{The
-#'   maximum angular distortion in degrees.} \item{max_angular_distortion}{The
-#'   maximum angular distortion in radians (the `2Omega` metric).}
-#'   \item{airy_kavrayskiy}{The Airy-Kavrayskiy measure, a balanced metric
-#'   combining areal and angular distortion.} \item{theta_a}{The orientation of
-#'   the axis of maximum scale (in degrees).}
+#' @return An `sf` object (if `points_to_analyze` is an `sf` object) or a
+#'   `terra::SpatRaster` object with 8 metric layers (if `points_to_analyze` is a
+#'   `SpatRaster`), containing all calculated distortion metrics:
+#'   \item{a, b}{The semi-major and semi-minor axes of the Tissot indicatrix.}
+#'   \item{area_scale}{The areal distortion factor (`a * b`).}
+#'   \item{log2_area_scale}{The base-2 logarithm of `area_scale`, centered at 0.}
+#'   \item{max_shear}{The maximum angular distortion in degrees.}
+#'   \item{max_angular_distortion}{The maximum angular distortion in radians (`2Omega`).}
+#'   \item{airy_kavrayskiy}{The Airy-Kavrayskiy balanced distortion measure.}
+#'   \item{theta_a}{The orientation of the axis of maximum scale (in degrees).}
 #'
 #' @import sf
 #' @import dplyr
+#' @importFrom terra crds rast values<-
 #' @importFrom stats predict
 #' @importFrom magrittr %>%
 #' @export
@@ -80,12 +82,20 @@ analyze_distortion <- function(pai_model,
   if (!inherits(pai_model, "pai_model")) {
     stop("`pai_model` must be an object of class 'pai_model'.", call. = FALSE)
   }
-  if (!inherits(points_to_analyze, "sf")) {
-    stop("`points_to_analyze` must be an sf object.", call. = FALSE)
+
+  is_raster <- inherits(points_to_analyze, "SpatRaster")
+
+  if (!inherits(points_to_analyze, c("sf", "SpatRaster"))) {
+    stop("`points_to_analyze` must be an sf object or terra `SpatRaster`.", call. = FALSE)
   }
 
-  coords_df <- as.data.frame(sf::st_coordinates(points_to_analyze))
-  names(coords_df) <- c("source_x", "source_y")
+  if (is_raster) {
+    coords_mat <- terra::crds(points_to_analyze)
+    coords_df <- data.frame(source_x = coords_mat[, 1], source_y = coords_mat[, 2])
+  } else {
+    coords_df <- as.data.frame(sf::st_coordinates(points_to_analyze))
+    names(coords_df) <- c("source_x", "source_y")
+  }
   n_points <- nrow(coords_df)
 
   # --- Numerical Derivatives Calculation ---
@@ -142,9 +152,8 @@ analyze_distortion <- function(pai_model,
   max_angular_distortion <- 2 * asin((a - b) / (a + b)) # This is 2*Omega
   airy_kavrayskiy <- 0.5 * (log(a)^2 + log(b)^2)
 
-  # --- Add all metrics to the output sf object ---
-  results_sf <- points_to_analyze %>%
-    dplyr::mutate(
+  if (is_raster) {
+    metrics_mat <- cbind(
       a = a,
       b = b,
       area_scale = area_scale,
@@ -154,7 +163,26 @@ analyze_distortion <- function(pai_model,
       airy_kavrayskiy = airy_kavrayskiy,
       theta_a = theta_a * 180 / pi
     )
+    out_rast <- terra::rast(points_to_analyze, nlyrs = ncol(metrics_mat))
+    names(out_rast) <- colnames(metrics_mat)
+    terra::values(out_rast) <- metrics_mat
+    message("Distortion analysis complete.")
+    return(out_rast)
+  } else {
+    # --- Add all metrics to the output sf object ---
+    results_sf <- points_to_analyze %>%
+      dplyr::mutate(
+        a = a,
+        b = b,
+        area_scale = area_scale,
+        log2_area_scale = log2_area_scale,
+        max_shear = max_shear_rad * 180 / pi,
+        max_angular_distortion = max_angular_distortion,
+        airy_kavrayskiy = airy_kavrayskiy,
+        theta_a = theta_a * 180 / pi
+      )
 
-  message("Distortion analysis complete.")
-  return(results_sf)
+    message("Distortion analysis complete.")
+    return(results_sf)
+  }
 }

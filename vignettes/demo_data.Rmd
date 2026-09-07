@@ -31,6 +31,7 @@ library(ggplot2)
 library(sf)
 library(dplyr)
 library(magrittr) # For the %>% pipe operator
+library(terra)
 ```
 
 ## Positional Correction Workflow
@@ -40,7 +41,7 @@ library(magrittr) # For the %>% pipe operator
 First, we use `create_demo_data()` to create our test case. We'll choose the `"complex"` distortion type as it represents a challenging combination of errors. We then load these files into R using the package's reading functions.
 
 ```{r createdata}
-# Create the shapefile and GCPs CSV in a temporary directory
+# Create the shapefile, raster, and GCPs CSV in a temporary directory
 demo_files <- create_demo_data(type = "complex", seed = 123)
 
 # Load the GCPs (homologous points) from the demo file
@@ -48,6 +49,9 @@ gcp_data <- read_gcps(gcp_path = demo_files$gcp_path)
 
 # Load the vector map that needs correction from the demo file
 map_to_correct <- read_map(shp_path = demo_files$shp_path)
+
+# Load the raster map that needs correction from the demo file
+raster_to_correct <- terra::rast(demo_files$raster_path)
 ```
 
 ### Assess Initial Error and Train a Model
@@ -91,6 +95,29 @@ ggplot(comparison_data) +
   theme_minimal()
 ```
 The plot clearly shows how the warped grid has been adjusted back to a regular shape, demonstrating a successful correction.
+
+### Apply Correction to a Raster Map
+
+The same trained PAI model can be applied directly to correct raster maps using `apply_pai_raster()`. Because raster data sits on a regular grid of pixels, `apply_pai_raster()` uses inverse mapping and resampling to compute pixel values without leaving holes or artifacts.
+
+```{r raster_correction}
+# Apply the trained GAM model to the distorted raster map
+corrected_raster <- apply_pai_raster(
+  pai_model = pai_model_gam,
+  raster = raster_to_correct,
+  method = "bilinear"
+)
+
+# Visualize the original and corrected rasters side-by-side
+par(mfrow = c(1, 2))
+terra::plot(raster_to_correct, main = "Original (Distorted) Raster", col = hcl.colors(50, "Grays"))
+terra::plot(corrected_raster, main = "Corrected Raster (mapAI)", col = hcl.colors(50, "Grays"))
+par(mfrow = c(1, 1))
+
+# Save the corrected raster to disk using write_map()
+output_raster_path <- file.path(tempdir(), "corrected_demo_map.tif")
+write_map(corrected_raster, output_raster_path, overwrite = TRUE)
+```
 
 ---
 

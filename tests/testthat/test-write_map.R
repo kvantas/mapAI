@@ -58,8 +58,70 @@ test_that("overwrite argument works as expected", {
 test_that("write_map handles invalid inputs gracefully", {
   temp_dir <- withr::local_tempdir()
   temp_path <- file.path(temp_dir, "parcels.gpkg")
-  expect_error(write_map(as.data.frame(parcels), temp_path), "`map` must be a valid `sf` object.")
+  expect_error(write_map(as.data.frame(parcels), temp_path), "`map` must be a valid `sf` object")
   expect_error(write_map(parcels, file_path = 12345), "`file_path` must be a single character string.")
   temp_path_xxx <- file.path(temp_dir, "parcels.xxx")
   expect_error(suppressWarnings( write_map(parcels, temp_path_xxx)) )
+})
+
+test_that("write_map writes and reads back a raster file correctly", {
+  temp_dir <- withr::local_tempdir()
+  temp_tif <- file.path(temp_dir, "test_raster.tif")
+
+  r <- terra::rast(nrows = 20, ncols = 20, crs = "EPSG:3857")
+  terra::values(r) <- seq_len(terra::ncell(r))
+  names(r) <- "layer1"
+
+  # ACT: write raster
+  ret <- expect_no_error(write_map(r, temp_tif, overwrite = TRUE))
+
+  # Invisibly returns input
+  expect_s4_class(ret, "SpatRaster")
+
+  # ASSERT: file exists and can be read back
+  expect_true(file.exists(temp_tif))
+  r_back <- terra::rast(temp_tif)
+  expect_s4_class(r_back, "SpatRaster")
+  expect_equal(terra::nrow(r_back), terra::nrow(r))
+  expect_equal(terra::ncol(r_back), terra::ncol(r))
+  expect_equal(terra::nlyr(r_back), 1)
+  expect_equal(terra::values(r_back)[, 1], terra::values(r)[, 1])
+})
+
+test_that("write_map handles overwrite correctly for rasters", {
+  temp_dir <- withr::local_tempdir()
+  temp_tif <- file.path(temp_dir, "test_raster_overwrite.tif")
+
+  r <- terra::rast(nrows = 10, ncols = 10, crs = "EPSG:3857")
+  terra::values(r) <- 1:100
+
+  write_map(r, temp_tif)
+  expect_true(file.exists(temp_tif))
+
+  # Should fail when overwrite = FALSE
+  expect_error(write_map(r, temp_tif, overwrite = FALSE))
+
+  # Should succeed when overwrite = TRUE
+  expect_no_error(write_map(r, temp_tif, overwrite = TRUE))
+})
+
+test_that("write_map writes multi-band rasters correctly", {
+  temp_dir <- withr::local_tempdir()
+  temp_tif <- file.path(temp_dir, "test_multiband.tif")
+
+  r1 <- terra::rast(nrows = 10, ncols = 10, crs = "EPSG:3857")
+  r2 <- terra::rast(nrows = 10, ncols = 10, crs = "EPSG:3857")
+  terra::values(r1) <- 1:100
+  terra::values(r2) <- 101:200
+  r_multi <- c(r1, r2)
+  names(r_multi) <- c("band1", "band2")
+
+  write_map(r_multi, temp_tif, overwrite = TRUE)
+
+  expect_true(file.exists(temp_tif))
+  r_back <- terra::rast(temp_tif)
+  expect_equal(terra::nlyr(r_back), 2)
+  expect_equal(names(r_back), c("band1", "band2"))
+  expect_equal(terra::values(r_back)[, 1], 1:100)
+  expect_equal(terra::values(r_back)[, 2], 101:200)
 })

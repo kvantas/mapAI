@@ -91,3 +91,14 @@ test_that("gcp_data and diverging scale arguments work correctly", {
   scale <- p_diverging$scales$get_scales("fill")
   expect_s3_class(scale, "ScaleContinuous")
 })
+
+test_that("plot_distortion_surface works with SpatRaster input", {
+  bb <- sf::st_bbox(gcps)
+  r <- terra::rast(xmin = unname(bb["xmin"]), xmax = unname(bb["xmax"]),
+                   ymin = unname(bb["ymin"]), ymax = unname(bb["ymax"]),
+                   nrows = 10, ncols = 10)
+  distortion_raster <- suppressMessages(analyze_distortion(test_gam_model, r))
+  p_rast <- suppressMessages(plot_distortion_surface(distortion_raster, metric = "area_scale"))
+  expect_s3_class(p_rast, "ggplot")
+  expect_s3_class(p_rast$layers[[1]]$geom, "GeomRaster")
+})

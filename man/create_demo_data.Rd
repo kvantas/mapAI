@@ -53,6 +53,7 @@ Defaults to \code{list(A = 4, Ec = 50, Nc = 0, sigma2 = 20)}.}
 A list containing the full paths to the generated files:
 \item{shp_path}{The path to the 'demo_map.shp' shapefile.}
 \item{gcp_path}{The path to the 'demo_gcps.csv' file.}
+\item{raster_path}{The path to the 'demo_map.tif' raster file.}
 }
 \description{
 Generates a simulated dataset representing a distorted

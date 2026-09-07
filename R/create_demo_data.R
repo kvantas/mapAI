@@ -43,13 +43,14 @@
 #' @param gauss_params A list of parameters for the Gaussian warp: `A`
 #'  (amplitude), `Ec`, `Nc` (center coordinates), and `sigma2` (variance).
 #'  Defaults to `list(A = 4, Ec = 50, Nc = 0, sigma2 = 20)`.
-#'
 #' @return A list containing the full paths to the generated files:
 #'   \item{shp_path}{The path to the 'demo_map.shp' shapefile.}
 #'   \item{gcp_path}{The path to the 'demo_gcps.csv' file.}
+#'   \item{raster_path}{The path to the 'demo_map.tif' raster file.}
 #'
 #' @import sf
 #' @import dplyr
+#' @importFrom terra vect rast rasterize
 #' @importFrom stats predict rnorm
 #' @importFrom utils write.csv
 #' @export
@@ -221,6 +222,16 @@ create_demo_data <- function(type = "complex",
   sf::st_write(map_sf, shp_path, delete_layer = TRUE, quiet = TRUE)
   message(paste("   -> Distorted map saved to:", shp_path))
 
+  # 6. Create and save the "old map" raster file (rasterized distorted grid)
+  map_vect <- terra::vect(map_sf)
+  rast_template <- terra::rast(map_vect, nrows = 150, ncols = 150)
+  r_map <- terra::rasterize(map_vect, rast_template, field = 1, background = 0, touches = TRUE)
+  names(r_map) <- "grid_lines"
+
+  raster_path <- file.path(output_dir, "demo_map.tif")
+  write_map(r_map, raster_path, overwrite = TRUE)
+  message(paste("   -> Distorted raster saved to:", raster_path))
+
   # --- Return file paths ---
-  return(list(shp_path = shp_path, gcp_path = gcp_path))
+  return(list(shp_path = shp_path, gcp_path = gcp_path, raster_path = raster_path))
 }

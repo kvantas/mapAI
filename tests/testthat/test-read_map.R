@@ -68,3 +68,11 @@ test_that("read_map does not calculate area_old for non-polygon geometries", {
   map <- read_map(shp_file)
   expect_false("area_old" %in% names(map))
 })
+
+test_that("read_map reads raster files (.tif) into SpatRaster", {
+  temp_dir <- withr::local_tempdir()
+  demo_files <- create_demo_data(output_dir = temp_dir)
+  r_map <- read_map(demo_files$raster_path)
+  expect_s4_class(r_map, "SpatRaster")
+  expect_true(terra::nlyr(r_map) >= 1)
+})
