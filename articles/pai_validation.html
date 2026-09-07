@@ -185,8 +185,6 @@ model’s predictive accuracy.</p>
 <span><span class="co"># Run both random and spatial cross-validation</span></span>
 <span><span class="va">random_cv_results</span> <span class="op">&lt;-</span> <span class="fu">validate_all_pai_methods</span><span class="op">(</span><span class="va">gcps</span>, <span class="st">"random"</span><span class="op">)</span></span>
 <span><span class="va">spatial_cv_results</span> <span class="op">&lt;-</span> <span class="fu">validate_all_pai_methods</span><span class="op">(</span><span class="va">gcps</span>, <span class="st">"spatial"</span><span class="op">)</span></span>
-<span><span class="co">#&gt; Warning in bfgs(lsp = lsp, X = G$X, y = G$y, Eb = G$Eb, UrS = G$UrS, L = G$L, :</span></span>
-<span><span class="co">#&gt; gam.fit5 step failed: max magnitude relative grad = 2.46505780699731e-08</span></span>
 <span><span class="va">stratified_results</span> <span class="op">&lt;-</span> <span class="fu">validate_all_pai_methods</span><span class="op">(</span><span class="va">gcps</span>, <span class="st">"stratified"</span><span class="op">)</span></span>
 <span></span>
 <span><span class="co"># Combine into one table for comparison</span></span>

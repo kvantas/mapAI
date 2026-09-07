@@ -1,28 +1,31 @@
 # Model-Agnostic Distortion Diagnostics for Positional Accuracy Improvement
 
-## 1. Introduction: The High-Stakes Dilemma of Vector Rectification
+## 1. Introduction: The High-Stakes Dilemma of Spatial Data Rectification
 
-Historical cartography, legacy cadastral surveys, and administrative
-vector datasets provide irreplaceable baselines for analyzing long-term
-environmental, geomorphic, and land-use change. In historical geographic
-information systems (HGIS) and landscape ecology, researchers frequently
-synthesize these historical geometries with modern basemaps to measure
-phenomena such as:
+Historical cartography, legacy cadastral surveys, scanned map archives,
+and administrative geospatial datasets provide irreplaceable baselines
+for analyzing long-term environmental, geomorphic, and land-use change.
+In historical geographic information systems (HGIS), landscape ecology,
+and geomorphology, researchers frequently synthesize these historical
+geometries and imagery with modern basemaps to measure phenomena such
+as:
 
 - Decadal wetland contraction and drainage,
 - Centennial forest fragmentation and agricultural expansion,
-- River channel migration and coastal erosion, and
-- Cadastral boundary evolution and land tenure stability.
+- River channel migration and coastal erosion,
+- Cadastral boundary evolution and land tenure stability, and
+- Historical land-cover transitions extracted from scanned maps and
+  orthomosaics.
 
-To align historical layers with modern coordinate reference systems
-(CRS), **Positional Accuracy Improvement (PAI)** methods are essential.
-Because historical maps suffer from non-linear paper shrinkage,
-composite surveying campaigns, and unrecorded projection variations,
-global rigid transformations (e.g., Helmert or affine) are rarely
-sufficient. Consequently, researchers increasingly deploy flexible
-spatial transformations and machine learning learners, such as Thin
-Plate Splines (TPS), Generalized Additive Models (GAMs), and Support
-Vector Machines (SVMs).
+To align historical data with modern coordinate reference systems (CRS),
+**Positional Accuracy Improvement (PAI)** methods are essential. Because
+historical datasets suffer from non-linear paper shrinkage, composite
+surveying campaigns, and unrecorded projection variations, global rigid
+transformations (e.g., Helmert or affine) are rarely sufficient.
+Consequently, researchers increasingly deploy flexible spatial
+transformations and machine learning learners, such as Thin Plate
+Splines (TPS), Generalized Additive Models (GAMs), and Support Vector
+Machines (SVMs).
 
 ### The Danger: Transformation Artifacts Mimic Real Landscape Signals
 
@@ -38,10 +41,11 @@ from a true environmental signal**. For instance:
 
 - If an unconstrained model artificially compresses local area by 30% to
   fit adjacent control points, a researcher measuring parcel or wetland
-  dynamics will erroneously report a **30% real-world habitat loss**.
+  dynamics—whether from vector boundaries or classified raster
+  cells—will erroneously report a **30% real-world habitat loss**.
 - If a model introduces local angular shear, orthogonal historical
-  structures and straight river channels will falsely appear bent or
-  deformed.
+  structures, field boundaries, and straight river channels will falsely
+  appear bent or deformed.
 
 ### The Blind Spot of Standard Metrics
 
@@ -49,10 +53,10 @@ Conventional spatial validation relies on point-based summary metrics:
 Root Mean Square Error (RMSE), Mean Absolute Error (MAE), and spatial
 $`k`$-fold cross-validation. While these metrics assess how well the
 model predicts target coordinates at discrete points, **they provide
-zero information about whether the vector fabric between points was
-compressed, rotated, or sheared**. A model can achieve an impressively
-low cross-validation RMSE while severely tearing or squishing the
-continuous geometry of the landscape.
+zero information about whether the continuous geospatial fabric between
+points was compressed, rotated, or sheared**. A model can achieve an
+impressively low cross-validation RMSE while severely tearing or
+squishing the continuous geometry of the landscape.
 
 ### The Methodological Barrier: Generalizing Beyond Thin Plate Splines
 
@@ -70,7 +74,8 @@ random forests, neural regressors). The `mapAI` package breaks this
 15-year dependency by introducing a **model-agnostic numerical Jacobian
 estimation engine**. By decoupling distortion analysis from analytical
 calculus, `mapAI` enables rigorous distortion auditing for *any*
-differentiable spatial transformation.
+differentiable spatial transformation, providing an end-to-end pipeline
+that accurately rectifies **both vector geometries and raster maps**.
 
 ------------------------------------------------------------------------
 
@@ -159,34 +164,35 @@ across the study domain:
 
 ## 3. Comparative Context: Desktop GIS and MapAnalyst
 
-Before running the workflow, it is instructive to compare how vector
+Before running the workflow, it is instructive to compare how spatial
 adjustment is handled across existing GIS platforms:
 
-| Feature / Capability | ArcGIS Pro (Spatial Adjustment) | QGIS (Vector Bender) | MapAnalyst | `mapAI` Package |
+| Feature / Capability | ArcGIS Pro (Spatial Adjustment) | QGIS (Vector Bender / Georeferencer) | MapAnalyst | `mapAI` Package |
 |:---|:---|:---|:---|:---|
-| **Adjustment Paradigms** | Piecewise Linear TIN / Natural Neighbor rubbersheet | Piecewise Linear TIN | Rigid Affine / Thin Plate Splines | Unified: Geodetic, Regularized Splines (TPS, GAM), and ML |
+| **Data Modalities** | Separate vector rubbersheet / raster georeference | Vector Bender (vectors only) / Georeferencer (rasters only) | Raster scans only (visual diagnostics) | **Unified**: Vectors (`sf`) & Rasters (`terra`) in one pipeline |
+| **Adjustment Paradigms** | Piecewise Linear TIN / Natural Neighbor rubbersheet | Piecewise Linear TIN (vectors); TPS / Poly (rasters) | Rigid Affine / Thin Plate Splines | Unified: Geodetic, Regularized Splines (TPS, GAM), and ML |
 | **Mathematical Continuity** | $`C^0`$ (Linear TIN kinks) or $`C^1`$ | $`C^0`$ (Linear TIN kinks) | $`C^2`$ (Analytical TPS) | $`C^2`$ to $`C^\infty`$ (Smooth regularized splines) |
 | **Point Accuracy Metrics** | Link Table ($`dx, dy`$) & RMSE | Point residual vectors | Residual vectors & RMSE | Design-based sampling & Spatial cross-validation |
 | **Continuous Distortion Diagnostics** | **None** | **None** | **TPS-Only** (Analytical isolines & grids) | **Model-Agnostic** ($`\sigma, 2\Omega, E_{AK}`$ surfaces via numerical Jacobian) |
-| **Vector Geometry Mutation** | Interactive manual session | Interactive manual session | **None** (Diagnostic-only; cannot transform vectors) | Programmatic: recursive vertex mutation across all `sf` types |
+| **Operational Output** | Manual interactive GUI editing | Manual interactive GUI editing | **None** (Diagnostic-only; cannot export corrected GIS layers) | Programmatic: `apply_pai_model` (vectors) & `apply_pai_raster` (rasters) |
 
-- **The Desktop GIS Limitation**: ArcGIS Pro and QGIS use Triangulated
-  Irregular Networks (TINs) for rubbersheeting. Linear TIN facets
-  exhibit $`C^0`$ continuity: derivatives are discontinuous along
-  triangle boundaries, introducing artificial sharp kinks into
-  continuous linear features (roads, rivers, parcel boundaries).
-  Furthermore, they report only discrete link residuals, leaving users
-  blind to inter-point fabric distortion.
+- **The Desktop GIS Limitation**: ArcGIS Pro and QGIS treat vector
+  adjustment and raster georeferencing as disconnected, interactive GUI
+  operations. Vector rubbersheeting uses Triangulated Irregular Networks
+  (TINs) with $`C^0`$ derivative discontinuities along triangle edges,
+  introducing artificial kinks into linear features. Furthermore, they
+  report only discrete link residuals, leaving users blind to
+  inter-point fabric distortion.
 - **The MapAnalyst Limitation**: MapAnalyst (Jenny & Hurni, 2011)
   pioneered distortion visualization for historical maps. However, it is
-  **strictly diagnostic**: it cannot ingest and transform vector feature
-  layers (`sf` objects) into analysis-ready GIS layers, and its
-  mathematical formulation is tied exclusively to analytical Thin Plate
-  Splines.
+  **strictly diagnostic**: it cannot transform vector feature layers
+  (`sf` objects) or export rectified raster datasets into analysis-ready
+  GIS layers, and its mathematical formulation is tied exclusively to
+  analytical Thin Plate Splines.
 
 ------------------------------------------------------------------------
 
-## 4. Empirical Workflow: Auditing Cadastral Vector Renewal (1798 Swiss Dataset)
+## 4. Empirical Workflow: Auditing Cadastral Renewal (1798 Swiss Dataset)
 
 We demonstrate this methodology using the built-in `swiss_cps` dataset:
 343 homologous ground control points from Wilhelm Haas’s 1798 cadastral
@@ -199,6 +205,7 @@ coordinate reference system (CH1903 / LV03).
 
 library(mapAI)
 library(sf)
+library(terra)
 library(dplyr)
 library(ggplot2)
 library(knitr)
@@ -431,15 +438,19 @@ Table 2: Continuous Distortion Summary Statistics (GAM Model). {.table}
 
 ------------------------------------------------------------------------
 
-## 5. Operational Vector Renewal & Scientific Safeguards
+## 5. Operational Renewal for Vector and Raster Geospatial Data
 
-### Mutating Vector Features: `apply_pai_model`
+Having audited the model for deformation artifacts, `mapAI` provides
+operational functions to apply the learned transformation to both vector
+geometries and continuous or discrete raster grids.
 
-Unlike MapAnalyst, `mapAI` actively applies the learned transformation
-to vector geometries. The
+### 5.1 Mutating Vector Features: `apply_pai_model`
+
+The
 [`apply_pai_model()`](https://kvantas.github.io/mapAI/reference/apply_pai_model.md)
 function traverses every vertex of simple feature objects (`POINT`,
-`LINESTRING`, `POLYGON`, `MULTIPOLYGON`):
+`LINESTRING`, `POLYGON`, `MULTIPOLYGON`), applying the displacement
+vector $`(dx, dy)`$:
 
 ``` r
 
@@ -448,7 +459,7 @@ sample_grid <- sf::st_make_grid(swiss_cps, n = c(12, 12)) %>%
   sf::st_cast("MULTILINESTRING") %>%
   sf::st_sf()
 
-# Apply the trained GAM model
+# Apply the trained GAM model to vectors
 corrected_grid <- apply_pai_model(final_gam, sample_grid)
 
 # Plot comparison
@@ -462,15 +473,15 @@ ggplot(grid_comp) +
   scale_linetype_manual(values = c("Original Grid" = "dashed", "GAM Corrected" = "solid")) +
   theme_minimal() +
   labs(
-    title = "Continuous Fabric Transformation (Regular Grid Warping)",
+    title = "Continuous Fabric Transformation (Vector Grid Warping)",
     x = "x (m)",
     y = "y (m)"
   )
 ```
 
-![](reference/figures/dist_apply_model-1.png)
+![](reference/figures/dist_apply_vector-1.png)
 
-We confirm residual behavior by plotting post-correction residuals:
+We evaluate residual point displacements after model fitting:
 
 ``` r
 
@@ -484,22 +495,115 @@ plot_residuals(final_gam, swiss_cps) +
 
 ![](reference/figures/dist_residual_plot-1.png)
 
-### The Geoscientific Takeaway: Avoiding False Change Detection
+------------------------------------------------------------------------
+
+### 5.2 Rectifying Raster Grids: `apply_pai_raster`
+
+While vector features are updated by shifting existing vertices forward
+($`(x, y) \to (x + dx, y + dy)`$), raster geospatial data (e.g., scanned
+historical maps, aerial orthomosaics, classified land cover, digital
+elevation models) exists on a rigid, regular grid matrix.
+
+Applying forward mapping directly to raster pixels produces an irregular
+point cloud with empty gaps (“holes”) in dilated areas and cell
+collisions in compressed areas. To produce a continuous, regular raster
+grid,
+[`apply_pai_raster()`](https://kvantas.github.io/mapAI/reference/apply_pai_raster.md)
+implements **inverse (backward) mapping**:
+
+1.  **Target Grid Definition**: Defines the regular coordinate grid for
+    the target (corrected) raster.
+2.  **Model Inversion**: Projects each target cell center backwards
+    through the transformation to find its corresponding location in the
+    source (distorted) image. For non-linear models (`gam`, `tps`,
+    `svmRadial`), it employs a rapid fixed-point inversion algorithm
+    that converges to sub-millimeter precision in two iterations.
+3.  **Resampling**: Resamples pixel values from the source image using
+    either `"bilinear"` interpolation (for continuous surfaces such as
+    scanned map scans, imagery, and DEMs) or `"near"` / `"simple"`
+    nearest-neighbor assignment (essential for categorical rasters like
+    land-use classes or soil types to prevent creating false
+    intermediate class values).
+4.  **Computational Acceleration (`mesh_step`)**: For multi-gigabyte or
+    high-resolution rasters, setting `mesh_step` (e.g., 10 or 20)
+    computes exact displacements on a subsampled grid and uses
+    high-performance C++ interpolation
+    ([`terra::resample`](https://rspatial.github.io/terra/reference/resample.html))
+    to reconstruct the fine displacement field, delivering
+    orders-of-magnitude speedups with sub-pixel fidelity.
+
+We demonstrate raster rectification by creating a raster layer across
+the 1798 Swiss dataset extent:
+
+``` r
+
+# Define raster extent matching swiss_cps bounding box
+bb <- sf::st_bbox(swiss_cps)
+swiss_ext <- terra::ext(bb["xmin"], bb["xmax"], bb["ymin"], bb["ymax"])
+
+# Create a demo continuous raster (e.g., historical topography / intensity)
+historical_raster <- terra::rast(swiss_ext, nrows = 50, ncols = 50, crs = sf::st_crs(swiss_cps)$wkt)
+terra::values(historical_raster) <- sin(seq(0, 3 * pi, length.out = terra::ncell(historical_raster))) * 100
+names(historical_raster) <- "Elevation_m"
+
+# Rectify the raster using the trained GAM model
+corrected_raster <- apply_pai_raster(
+  pai_model = final_gam,
+  raster = historical_raster,
+  method = "bilinear"
+)
+
+# Prepare data for comparative visualization
+df_orig <- terra::as.data.frame(historical_raster, xy = TRUE)
+df_orig$Status <- "Original (Distorted) Raster"
+names(df_orig)[3] <- "Value"
+
+df_corr <- terra::as.data.frame(corrected_raster, xy = TRUE)
+df_corr$Status <- "GAM Corrected Raster"
+names(df_corr)[3] <- "Value"
+
+raster_comp <- rbind(df_orig, df_corr)
+
+ggplot(raster_comp, aes(x = x, y = y, fill = Value)) +
+  geom_raster() +
+  facet_wrap(~Status) +
+  scale_fill_viridis_c(option = "viridis", name = "Value") +
+  coord_equal() +
+  theme_minimal() +
+  labs(
+    title = "Raster Map Positional Accuracy Improvement",
+    subtitle = "Inverse mapping with bilinear resampling via apply_pai_raster()",
+    x = "x (m)",
+    y = "y (m)"
+  )
+```
+
+![](reference/figures/dist_apply_raster-1.png)
+
+------------------------------------------------------------------------
+
+### 5.3 The Geoscientific Takeaway: Avoiding False Change Detection
 
 The southeastern anomaly in the 1798 Basel map is a documented
 cartographic artifact—likely caused by Wilhelm Haas relying on older,
 unverified surveys for that quadrant.
 
 Had a researcher applied an un-audited GAM transformation to measure
-200-year land-use change in the southeast, the model’s **55% artificial
-compression ($`\sigma = 0.45`$)** would have generated massive **phantom
-deforestation or parcel shrinkage signals**. Standard RMSE metrics never
-warned the analyst because the GAM fitted the control points accurately.
+200-year land-use change in the southeast: \* **In Vector Analyses**:
+The model’s **55% artificial compression ($`\sigma = 0.45`$)** would
+have created severe **phantom wetland contraction or parcel shrinking**.
+\* **In Raster Analyses**: The backward mapping in the compressed
+southeast samples pixel values from an artificially large source area,
+distorting pixel-count-based land-cover statistics.
 
-### The 3-Step Distortion-Audited Protocol
+Standard RMSE metrics never warned the analyst because the GAM fitted
+the control points accurately. Only continuous, model-agnostic
+distortion surfaces unmask these localized transformation artifacts.
+
+### 5.4 The 3-Step Distortion-Audited Protocol
 
 To ensure data integrity, we recommend the following protocol when
-renewing legacy vector data for scientific reuse:
+renewing legacy vector or raster geospatial data for scientific reuse:
 
 1.  **Candidate Modeling & Point Assessment**: Train candidate models
     (Helmert, TPS, GAM, ML) and calculate unbiased out-of-sample RMSE
@@ -511,11 +615,13 @@ renewing legacy vector data for scientific reuse:
     $`2\Omega`$. If local scaling exceeds project tolerance thresholds
     (e.g., $`|\sigma - 1| > 0.15`$), increase model regularization or
     collect additional control points.
-3.  **Safe Vector Renewal**: Once the continuous fabric integrity is
+3.  **Safe Geospatial Renewal**: Once continuous fabric integrity is
     verified, execute
     [`apply_pai_model()`](https://kvantas.github.io/mapAI/reference/apply_pai_model.md)
-    to transform the vector layers for downstream environmental change
-    detection.
+    for vector layers or
+    [`apply_pai_raster()`](https://kvantas.github.io/mapAI/reference/apply_pai_raster.md)
+    for raster maps to generate trustworthy, analysis-ready baselines
+    for downstream environmental change detection.
 
 ------------------------------------------------------------------------
 

@@ -164,6 +164,6 @@ print(corrected_rast)
 #> coord. ref. : GGRS87 / Greek Grid (EPSG:2100)
 #> source(s)   : memory
 #> name        :      lyr.1
-#> min value   :    1.36903
-#> max value   : 897.841968
+#> min value   :    1.36902
+#> max value   : 897.841958
 ```

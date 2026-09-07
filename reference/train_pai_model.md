@@ -82,9 +82,9 @@ summary(gam_model$model)
 #> 
 #> Formula:
 #> dx ~ s(source_x, source_y)
-#> <environment: 0x556bdca4a490>
+#> <environment: 0x556d68d7eaa8>
 #> dy ~ s(source_x, source_y)
-#> <environment: 0x556bdca4a490>
+#> <environment: 0x556d68d7eaa8>
 #> 
 #> Parametric coefficients:
 #>               Estimate Std. Error z value Pr(>|z|)    
@@ -96,7 +96,7 @@ summary(gam_model$model)
 #> Approximate significance of smooth terms:
 #>                           edf Ref.df Chi.sq p-value    
 #> s(source_x,source_y)   23.845  27.45  234.5  <2e-16 ***
-#> s.1(source_x,source_y)  7.623  10.63  156.8  <2e-16 ***
+#> s.1(source_x,source_y)  7.624  10.63  156.8  <2e-16 ***
 #> ---
 #> Signif. codes:  0 ‘***’ 0.001 ‘**’ 0.01 ‘*’ 0.05 ‘.’ 0.1 ‘ ’ 1
 #> 

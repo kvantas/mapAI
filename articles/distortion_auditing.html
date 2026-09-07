@@ -68,24 +68,27 @@
     
     
 <div class="section level2">
-<h2 id="introduction-the-high-stakes-dilemma-of-vector-rectification">1. Introduction: The High-Stakes Dilemma of Vector
-Rectification<a class="anchor" aria-label="anchor" href="#introduction-the-high-stakes-dilemma-of-vector-rectification"></a>
+<h2 id="introduction-the-high-stakes-dilemma-of-spatial-data-rectification">1. Introduction: The High-Stakes Dilemma of Spatial Data
+Rectification<a class="anchor" aria-label="anchor" href="#introduction-the-high-stakes-dilemma-of-spatial-data-rectification"></a>
 </h2>
-<p>Historical cartography, legacy cadastral surveys, and administrative
-vector datasets provide irreplaceable baselines for analyzing long-term
-environmental, geomorphic, and land-use change. In historical geographic
-information systems (HGIS) and landscape ecology, researchers frequently
-synthesize these historical geometries with modern basemaps to measure
+<p>Historical cartography, legacy cadastral surveys, scanned map
+archives, and administrative geospatial datasets provide irreplaceable
+baselines for analyzing long-term environmental, geomorphic, and
+land-use change. In historical geographic information systems (HGIS),
+landscape ecology, and geomorphology, researchers frequently synthesize
+these historical geometries and imagery with modern basemaps to measure
 phenomena such as:</p>
 <ul>
 <li>Decadal wetland contraction and drainage,</li>
 <li>Centennial forest fragmentation and agricultural expansion,</li>
-<li>River channel migration and coastal erosion, and</li>
-<li>Cadastral boundary evolution and land tenure stability.</li>
+<li>River channel migration and coastal erosion,</li>
+<li>Cadastral boundary evolution and land tenure stability, and</li>
+<li>Historical land-cover transitions extracted from scanned maps and
+orthomosaics.</li>
 </ul>
-<p>To align historical layers with modern coordinate reference systems
+<p>To align historical data with modern coordinate reference systems
 (CRS), <strong>Positional Accuracy Improvement (PAI)</strong> methods
-are essential. Because historical maps suffer from non-linear paper
+are essential. Because historical datasets suffer from non-linear paper
 shrinkage, composite surveying campaigns, and unrecorded projection
 variations, global rigid transformations (e.g., Helmert or affine) are
 rarely sufficient. Consequently, researchers increasingly deploy
@@ -107,11 +110,11 @@ from a true environmental signal</strong>. For instance:</p>
 <ul>
 <li>If an unconstrained model artificially compresses local area by 30%
 to fit adjacent control points, a researcher measuring parcel or wetland
-dynamics will erroneously report a <strong>30% real-world habitat
-loss</strong>.</li>
+dynamics—whether from vector boundaries or classified raster cells—will
+erroneously report a <strong>30% real-world habitat loss</strong>.</li>
 <li>If a model introduces local angular shear, orthogonal historical
-structures and straight river channels will falsely appear bent or
-deformed.</li>
+structures, field boundaries, and straight river channels will falsely
+appear bent or deformed.</li>
 </ul>
 </div>
 <div class="section level3">
@@ -123,9 +126,9 @@ spatial
 <math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mi>k</mi><annotation encoding="application/x-tex">k</annotation></semantics></math>-fold
 cross-validation. While these metrics assess how well the model predicts
 target coordinates at discrete points, <strong>they provide zero
-information about whether the vector fabric between points was
-compressed, rotated, or sheared</strong>. A model can achieve an
-impressively low cross-validation RMSE while severely tearing or
+information about whether the continuous geospatial fabric between
+points was compressed, rotated, or sheared</strong>. A model can achieve
+an impressively low cross-validation RMSE while severely tearing or
 squishing the continuous geometry of the landscape.</p>
 </div>
 <div class="section level3">
@@ -146,7 +149,9 @@ package breaks this 15-year dependency by introducing a
 <strong>model-agnostic numerical Jacobian estimation engine</strong>. By
 decoupling distortion analysis from analytical calculus,
 <code>mapAI</code> enables rigorous distortion auditing for <em>any</em>
-differentiable spatial transformation.</p>
+differentiable spatial transformation, providing an end-to-end pipeline
+that accurately rectifies <strong>both vector geometries and raster
+maps</strong>.</p>
 <hr>
 </div>
 </div>
@@ -253,7 +258,7 @@ deviation from an ideal isometric transformation
 <div class="section level2">
 <h2 id="comparative-context-desktop-gis-and-mapanalyst">3. Comparative Context: Desktop GIS and MapAnalyst<a class="anchor" aria-label="anchor" href="#comparative-context-desktop-gis-and-mapanalyst"></a>
 </h2>
-<p>Before running the workflow, it is instructive to compare how vector
+<p>Before running the workflow, it is instructive to compare how spatial
 adjustment is handled across existing GIS platforms:</p>
 <table class="table">
 <colgroup>
@@ -266,22 +271,33 @@ adjustment is handled across existing GIS platforms:</p>
 <thead><tr class="header">
 <th align="left">Feature / Capability</th>
 <th align="left">ArcGIS Pro (Spatial Adjustment)</th>
-<th align="left">QGIS (Vector Bender)</th>
+<th align="left">QGIS (Vector Bender / Georeferencer)</th>
 <th align="left">MapAnalyst</th>
 <th align="left">
 <code>mapAI</code> Package</th>
 </tr></thead>
 <tbody>
 <tr class="odd">
+<td align="left"><strong>Data Modalities</strong></td>
+<td align="left">Separate vector rubbersheet / raster georeference</td>
+<td align="left">Vector Bender (vectors only) / Georeferencer (rasters
+only)</td>
+<td align="left">Raster scans only (visual diagnostics)</td>
+<td align="left">
+<strong>Unified</strong>: Vectors (<code>sf</code>)
+&amp; Rasters (<code>terra</code>) in one pipeline</td>
+</tr>
+<tr class="even">
 <td align="left"><strong>Adjustment Paradigms</strong></td>
 <td align="left">Piecewise Linear TIN / Natural Neighbor
 rubbersheet</td>
-<td align="left">Piecewise Linear TIN</td>
+<td align="left">Piecewise Linear TIN (vectors); TPS / Poly
+(rasters)</td>
 <td align="left">Rigid Affine / Thin Plate Splines</td>
 <td align="left">Unified: Geodetic, Regularized Splines (TPS, GAM), and
 ML</td>
 </tr>
-<tr class="even">
+<tr class="odd">
 <td align="left"><strong>Mathematical Continuity</strong></td>
 <td align="left">
 <math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><msup><mi>C</mi><mn>0</mn></msup><annotation encoding="application/x-tex">C^0</annotation></semantics></math>
@@ -300,7 +316,7 @@ to
 <math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><msup><mi>C</mi><mi>∞</mi></msup><annotation encoding="application/x-tex">C^\infty</annotation></semantics></math>
 (Smooth regularized splines)</td>
 </tr>
-<tr class="odd">
+<tr class="even">
 <td align="left"><strong>Point Accuracy Metrics</strong></td>
 <td align="left">Link Table
 (<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>d</mi><mi>x</mi><mo>,</mo><mi>d</mi><mi>y</mi></mrow><annotation encoding="application/x-tex">dx, dy</annotation></semantics></math>)
@@ -310,7 +326,7 @@ to
 <td align="left">Design-based sampling &amp; Spatial
 cross-validation</td>
 </tr>
-<tr class="even">
+<tr class="odd">
 <td align="left"><strong>Continuous Distortion Diagnostics</strong></td>
 <td align="left"><strong>None</strong></td>
 <td align="left"><strong>None</strong></td>
@@ -322,42 +338,41 @@ grids)</td>
 (<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>σ</mi><mo>,</mo><mn>2</mn><mi mathvariant="normal">Ω</mi><mo>,</mo><msub><mi>E</mi><mrow><mi>A</mi><mi>K</mi></mrow></msub></mrow><annotation encoding="application/x-tex">\sigma, 2\Omega, E_{AK}</annotation></semantics></math>
 surfaces via numerical Jacobian)</td>
 </tr>
-<tr class="odd">
-<td align="left"><strong>Vector Geometry Mutation</strong></td>
-<td align="left">Interactive manual session</td>
-<td align="left">Interactive manual session</td>
+<tr class="even">
+<td align="left"><strong>Operational Output</strong></td>
+<td align="left">Manual interactive GUI editing</td>
+<td align="left">Manual interactive GUI editing</td>
 <td align="left">
-<strong>None</strong> (Diagnostic-only; cannot
-transform vectors)</td>
-<td align="left">Programmatic: recursive vertex mutation across all
-<code>sf</code> types</td>
+<strong>None</strong> (Diagnostic-only; cannot export
+corrected GIS layers)</td>
+<td align="left">Programmatic: <code>apply_pai_model</code> (vectors)
+&amp; <code>apply_pai_raster</code> (rasters)</td>
 </tr>
 </tbody>
 </table>
 <ul>
 <li>
-<strong>The Desktop GIS Limitation</strong>: ArcGIS Pro and QGIS use
-Triangulated Irregular Networks (TINs) for rubbersheeting. Linear TIN
-facets exhibit
+<strong>The Desktop GIS Limitation</strong>: ArcGIS Pro and QGIS
+treat vector adjustment and raster georeferencing as disconnected,
+interactive GUI operations. Vector rubbersheeting uses Triangulated
+Irregular Networks (TINs) with
 <math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><msup><mi>C</mi><mn>0</mn></msup><annotation encoding="application/x-tex">C^0</annotation></semantics></math>
-continuity: derivatives are discontinuous along triangle boundaries,
-introducing artificial sharp kinks into continuous linear features
-(roads, rivers, parcel boundaries). Furthermore, they report only
-discrete link residuals, leaving users blind to inter-point fabric
-distortion.</li>
+derivative discontinuities along triangle edges, introducing artificial
+kinks into linear features. Furthermore, they report only discrete link
+residuals, leaving users blind to inter-point fabric distortion.</li>
 <li>
 <strong>The MapAnalyst Limitation</strong>: MapAnalyst (Jenny &amp;
 Hurni, 2011) pioneered distortion visualization for historical maps.
-However, it is <strong>strictly diagnostic</strong>: it cannot ingest
-and transform vector feature layers (<code>sf</code> objects) into
-analysis-ready GIS layers, and its mathematical formulation is tied
-exclusively to analytical Thin Plate Splines.</li>
+However, it is <strong>strictly diagnostic</strong>: it cannot transform
+vector feature layers (<code>sf</code> objects) or export rectified
+raster datasets into analysis-ready GIS layers, and its mathematical
+formulation is tied exclusively to analytical Thin Plate Splines.</li>
 </ul>
 <hr>
 </div>
 <div class="section level2">
-<h2 id="empirical-workflow-auditing-cadastral-vector-renewal-1798-swiss-dataset">4. Empirical Workflow: Auditing Cadastral Vector Renewal (1798 Swiss
-Dataset)<a class="anchor" aria-label="anchor" href="#empirical-workflow-auditing-cadastral-vector-renewal-1798-swiss-dataset"></a>
+<h2 id="empirical-workflow-auditing-cadastral-renewal-1798-swiss-dataset">4. Empirical Workflow: Auditing Cadastral Renewal (1798 Swiss
+Dataset)<a class="anchor" aria-label="anchor" href="#empirical-workflow-auditing-cadastral-renewal-1798-swiss-dataset"></a>
 </h2>
 <p>We demonstrate this methodology using the built-in
 <code>swiss_cps</code> dataset: 343 homologous ground control points
@@ -370,6 +385,7 @@ LV03).</p>
 <div class="sourceCode" id="cb1"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="kw"><a href="https://rdrr.io/r/base/library.html" class="external-link">library</a></span><span class="op">(</span><span class="va"><a href="https://kvantas.github.io/mapAI/">mapAI</a></span><span class="op">)</span></span>
 <span><span class="kw"><a href="https://rdrr.io/r/base/library.html" class="external-link">library</a></span><span class="op">(</span><span class="va"><a href="https://r-spatial.github.io/sf/" class="external-link">sf</a></span><span class="op">)</span></span>
+<span><span class="kw"><a href="https://rdrr.io/r/base/library.html" class="external-link">library</a></span><span class="op">(</span><span class="va"><a href="https://rspatial.org/" class="external-link">terra</a></span><span class="op">)</span></span>
 <span><span class="kw"><a href="https://rdrr.io/r/base/library.html" class="external-link">library</a></span><span class="op">(</span><span class="va"><a href="https://dplyr.tidyverse.org" class="external-link">dplyr</a></span><span class="op">)</span></span>
 <span><span class="kw"><a href="https://rdrr.io/r/base/library.html" class="external-link">library</a></span><span class="op">(</span><span class="va"><a href="https://ggplot2.tidyverse.org" class="external-link">ggplot2</a></span><span class="op">)</span></span>
 <span><span class="kw"><a href="https://rdrr.io/r/base/library.html" class="external-link">library</a></span><span class="op">(</span><span class="va"><a href="https://yihui.org/knitr/" class="external-link">knitr</a></span><span class="op">)</span></span>
@@ -621,23 +637,27 @@ Model).</caption>
 </div>
 </div>
 <div class="section level2">
-<h2 id="operational-vector-renewal-scientific-safeguards">5. Operational Vector Renewal &amp; Scientific Safeguards<a class="anchor" aria-label="anchor" href="#operational-vector-renewal-scientific-safeguards"></a>
+<h2 id="operational-renewal-for-vector-and-raster-geospatial-data">5. Operational Renewal for Vector and Raster Geospatial Data<a class="anchor" aria-label="anchor" href="#operational-renewal-for-vector-and-raster-geospatial-data"></a>
 </h2>
+<p>Having audited the model for deformation artifacts,
+<code>mapAI</code> provides operational functions to apply the learned
+transformation to both vector geometries and continuous or discrete
+raster grids.</p>
 <div class="section level3">
-<h3 id="mutating-vector-features-apply_pai_model">Mutating Vector Features: <code>apply_pai_model</code><a class="anchor" aria-label="anchor" href="#mutating-vector-features-apply_pai_model"></a>
+<h3 id="mutating-vector-features-apply_pai_model">5.1 Mutating Vector Features: <code>apply_pai_model</code><a class="anchor" aria-label="anchor" href="#mutating-vector-features-apply_pai_model"></a>
 </h3>
-<p>Unlike MapAnalyst, <code>mapAI</code> actively applies the learned
-transformation to vector geometries. The <code><a href="../reference/apply_pai_model.html">apply_pai_model()</a></code>
-function traverses every vertex of simple feature objects
-(<code>POINT</code>, <code>LINESTRING</code>, <code>POLYGON</code>,
-<code>MULTIPOLYGON</code>):</p>
+<p>The <code><a href="../reference/apply_pai_model.html">apply_pai_model()</a></code> function traverses every vertex of
+simple feature objects (<code>POINT</code>, <code>LINESTRING</code>,
+<code>POLYGON</code>, <code>MULTIPOLYGON</code>), applying the
+displacement vector
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mo stretchy="false" form="prefix">(</mo><mi>d</mi><mi>x</mi><mo>,</mo><mi>d</mi><mi>y</mi><mo stretchy="false" form="postfix">)</mo></mrow><annotation encoding="application/x-tex">(dx, dy)</annotation></semantics></math>:</p>
 <div class="sourceCode" id="cb10"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="co"># Create a regular line grid to illustrate geometry transformation</span></span>
 <span><span class="va">sample_grid</span> <span class="op">&lt;-</span> <span class="fu">sf</span><span class="fu">::</span><span class="fu"><a href="https://r-spatial.github.io/sf/reference/st_make_grid.html" class="external-link">st_make_grid</a></span><span class="op">(</span><span class="va">swiss_cps</span>, n <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="fl">12</span>, <span class="fl">12</span><span class="op">)</span><span class="op">)</span> <span class="op"><a href="../reference/pipe.html">%&gt;%</a></span></span>
 <span>  <span class="fu">sf</span><span class="fu">::</span><span class="fu"><a href="https://r-spatial.github.io/sf/reference/st_cast.html" class="external-link">st_cast</a></span><span class="op">(</span><span class="st">"MULTILINESTRING"</span><span class="op">)</span> <span class="op"><a href="../reference/pipe.html">%&gt;%</a></span></span>
 <span>  <span class="fu">sf</span><span class="fu">::</span><span class="fu"><a href="https://r-spatial.github.io/sf/reference/sf.html" class="external-link">st_sf</a></span><span class="op">(</span><span class="op">)</span></span>
 <span></span>
-<span><span class="co"># Apply the trained GAM model</span></span>
+<span><span class="co"># Apply the trained GAM model to vectors</span></span>
 <span><span class="va">corrected_grid</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/apply_pai_model.html">apply_pai_model</a></span><span class="op">(</span><span class="va">final_gam</span>, <span class="va">sample_grid</span><span class="op">)</span></span>
 <span></span>
 <span><span class="co"># Plot comparison</span></span>
@@ -651,13 +671,12 @@ function traverses every vertex of simple feature objects
 <span>  <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/scale_manual.html" class="external-link">scale_linetype_manual</a></span><span class="op">(</span>values <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"Original Grid"</span> <span class="op">=</span> <span class="st">"dashed"</span>, <span class="st">"GAM Corrected"</span> <span class="op">=</span> <span class="st">"solid"</span><span class="op">)</span><span class="op">)</span> <span class="op">+</span></span>
 <span>  <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/ggtheme.html" class="external-link">theme_minimal</a></span><span class="op">(</span><span class="op">)</span> <span class="op">+</span></span>
 <span>  <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/labs.html" class="external-link">labs</a></span><span class="op">(</span></span>
-<span>    title <span class="op">=</span> <span class="st">"Continuous Fabric Transformation (Regular Grid Warping)"</span>,</span>
+<span>    title <span class="op">=</span> <span class="st">"Continuous Fabric Transformation (Vector Grid Warping)"</span>,</span>
 <span>    x <span class="op">=</span> <span class="st">"x (m)"</span>,</span>
 <span>    y <span class="op">=</span> <span class="st">"y (m)"</span></span>
 <span>  <span class="op">)</span></span></code></pre></div>
-<p><img src="reference/figures/dist_apply_model-1.png" class="r-plt" alt="" width="100%"></p>
-<p>We confirm residual behavior by plotting post-correction
-residuals:</p>
+<p><img src="reference/figures/dist_apply_vector-1.png" class="r-plt" alt="" width="100%"></p>
+<p>We evaluate residual point displacements after model fitting:</p>
 <div class="sourceCode" id="cb11"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="../reference/plot_residuals.html">plot_residuals</a></span><span class="op">(</span><span class="va">final_gam</span>, <span class="va">swiss_cps</span><span class="op">)</span> <span class="op">+</span></span>
 <span>  <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/labs.html" class="external-link">labs</a></span><span class="op">(</span></span>
@@ -666,26 +685,119 @@ residuals:</p>
 <span>    y <span class="op">=</span> <span class="st">"y (m)"</span></span>
 <span>  <span class="op">)</span></span></code></pre></div>
 <p><img src="reference/figures/dist_residual_plot-1.png" class="r-plt" alt="" width="100%"></p>
+<hr>
 </div>
 <div class="section level3">
-<h3 id="the-geoscientific-takeaway-avoiding-false-change-detection">The Geoscientific Takeaway: Avoiding False Change Detection<a class="anchor" aria-label="anchor" href="#the-geoscientific-takeaway-avoiding-false-change-detection"></a>
+<h3 id="rectifying-raster-grids-apply_pai_raster">5.2 Rectifying Raster Grids: <code>apply_pai_raster</code><a class="anchor" aria-label="anchor" href="#rectifying-raster-grids-apply_pai_raster"></a>
+</h3>
+<p>While vector features are updated by shifting existing vertices
+forward
+(<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mo stretchy="false" form="prefix">(</mo><mi>x</mi><mo>,</mo><mi>y</mi><mo stretchy="false" form="postfix">)</mo><mo>→</mo><mo stretchy="false" form="prefix">(</mo><mi>x</mi><mo>+</mo><mi>d</mi><mi>x</mi><mo>,</mo><mi>y</mi><mo>+</mo><mi>d</mi><mi>y</mi><mo stretchy="false" form="postfix">)</mo></mrow><annotation encoding="application/x-tex">(x, y) \to (x + dx, y + dy)</annotation></semantics></math>),
+raster geospatial data (e.g., scanned historical maps, aerial
+orthomosaics, classified land cover, digital elevation models) exists on
+a rigid, regular grid matrix.</p>
+<p>Applying forward mapping directly to raster pixels produces an
+irregular point cloud with empty gaps (“holes”) in dilated areas and
+cell collisions in compressed areas. To produce a continuous, regular
+raster grid, <code><a href="../reference/apply_pai_raster.html">apply_pai_raster()</a></code> implements <strong>inverse
+(backward) mapping</strong>:</p>
+<ol style="list-style-type: decimal">
+<li>
+<strong>Target Grid Definition</strong>: Defines the regular
+coordinate grid for the target (corrected) raster.</li>
+<li>
+<strong>Model Inversion</strong>: Projects each target cell center
+backwards through the transformation to find its corresponding location
+in the source (distorted) image. For non-linear models
+(<code>gam</code>, <code>tps</code>, <code>svmRadial</code>), it employs
+a rapid fixed-point inversion algorithm that converges to sub-millimeter
+precision in two iterations.</li>
+<li>
+<strong>Resampling</strong>: Resamples pixel values from the source
+image using either <code>"bilinear"</code> interpolation (for continuous
+surfaces such as scanned map scans, imagery, and DEMs) or
+<code>"near"</code> / <code>"simple"</code> nearest-neighbor assignment
+(essential for categorical rasters like land-use classes or soil types
+to prevent creating false intermediate class values).</li>
+<li>
+<strong>Computational Acceleration
+(<code>mesh_step</code>)</strong>: For multi-gigabyte or high-resolution
+rasters, setting <code>mesh_step</code> (e.g., 10 or 20) computes exact
+displacements on a subsampled grid and uses high-performance C++
+interpolation (<code><a href="https://rspatial.github.io/terra/reference/resample.html" class="external-link">terra::resample</a></code>) to reconstruct the fine
+displacement field, delivering orders-of-magnitude speedups with
+sub-pixel fidelity.</li>
+</ol>
+<p>We demonstrate raster rectification by creating a raster layer across
+the 1798 Swiss dataset extent:</p>
+<div class="sourceCode" id="cb12"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="co"># Define raster extent matching swiss_cps bounding box</span></span>
+<span><span class="va">bb</span> <span class="op">&lt;-</span> <span class="fu">sf</span><span class="fu">::</span><span class="fu"><a href="https://r-spatial.github.io/sf/reference/st_bbox.html" class="external-link">st_bbox</a></span><span class="op">(</span><span class="va">swiss_cps</span><span class="op">)</span></span>
+<span><span class="va">swiss_ext</span> <span class="op">&lt;-</span> <span class="fu">terra</span><span class="fu">::</span><span class="fu"><a href="https://rspatial.github.io/terra/reference/ext.html" class="external-link">ext</a></span><span class="op">(</span><span class="va">bb</span><span class="op">[</span><span class="st">"xmin"</span><span class="op">]</span>, <span class="va">bb</span><span class="op">[</span><span class="st">"xmax"</span><span class="op">]</span>, <span class="va">bb</span><span class="op">[</span><span class="st">"ymin"</span><span class="op">]</span>, <span class="va">bb</span><span class="op">[</span><span class="st">"ymax"</span><span class="op">]</span><span class="op">)</span></span>
+<span></span>
+<span><span class="co"># Create a demo continuous raster (e.g., historical topography / intensity)</span></span>
+<span><span class="va">historical_raster</span> <span class="op">&lt;-</span> <span class="fu">terra</span><span class="fu">::</span><span class="fu"><a href="https://rspatial.github.io/terra/reference/rast.html" class="external-link">rast</a></span><span class="op">(</span><span class="va">swiss_ext</span>, nrows <span class="op">=</span> <span class="fl">50</span>, ncols <span class="op">=</span> <span class="fl">50</span>, crs <span class="op">=</span> <span class="fu">sf</span><span class="fu">::</span><span class="fu"><a href="https://r-spatial.github.io/sf/reference/st_crs.html" class="external-link">st_crs</a></span><span class="op">(</span><span class="va">swiss_cps</span><span class="op">)</span><span class="op">$</span><span class="va">wkt</span><span class="op">)</span></span>
+<span><span class="fu">terra</span><span class="fu">::</span><span class="fu"><a href="https://rspatial.github.io/terra/reference/values.html" class="external-link">values</a></span><span class="op">(</span><span class="va">historical_raster</span><span class="op">)</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/Trig.html" class="external-link">sin</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/seq.html" class="external-link">seq</a></span><span class="op">(</span><span class="fl">0</span>, <span class="fl">3</span> <span class="op">*</span> <span class="va">pi</span>, length.out <span class="op">=</span> <span class="fu">terra</span><span class="fu">::</span><span class="fu"><a href="https://rspatial.github.io/terra/reference/dimensions.html" class="external-link">ncell</a></span><span class="op">(</span><span class="va">historical_raster</span><span class="op">)</span><span class="op">)</span><span class="op">)</span> <span class="op">*</span> <span class="fl">100</span></span>
+<span><span class="fu"><a href="https://rspatial.github.io/terra/reference/names.html" class="external-link">names</a></span><span class="op">(</span><span class="va">historical_raster</span><span class="op">)</span> <span class="op">&lt;-</span> <span class="st">"Elevation_m"</span></span>
+<span></span>
+<span><span class="co"># Rectify the raster using the trained GAM model</span></span>
+<span><span class="va">corrected_raster</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/apply_pai_raster.html">apply_pai_raster</a></span><span class="op">(</span></span>
+<span>  pai_model <span class="op">=</span> <span class="va">final_gam</span>,</span>
+<span>  raster <span class="op">=</span> <span class="va">historical_raster</span>,</span>
+<span>  method <span class="op">=</span> <span class="st">"bilinear"</span></span>
+<span><span class="op">)</span></span>
+<span></span>
+<span><span class="co"># Prepare data for comparative visualization</span></span>
+<span><span class="va">df_orig</span> <span class="op">&lt;-</span> <span class="fu">terra</span><span class="fu">::</span><span class="fu"><a href="https://rspatial.github.io/terra/reference/as.data.frame.html" class="external-link">as.data.frame</a></span><span class="op">(</span><span class="va">historical_raster</span>, xy <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span></span>
+<span><span class="va">df_orig</span><span class="op">$</span><span class="va">Status</span> <span class="op">&lt;-</span> <span class="st">"Original (Distorted) Raster"</span></span>
+<span><span class="fu"><a href="https://rspatial.github.io/terra/reference/names.html" class="external-link">names</a></span><span class="op">(</span><span class="va">df_orig</span><span class="op">)</span><span class="op">[</span><span class="fl">3</span><span class="op">]</span> <span class="op">&lt;-</span> <span class="st">"Value"</span></span>
+<span></span>
+<span><span class="va">df_corr</span> <span class="op">&lt;-</span> <span class="fu">terra</span><span class="fu">::</span><span class="fu"><a href="https://rspatial.github.io/terra/reference/as.data.frame.html" class="external-link">as.data.frame</a></span><span class="op">(</span><span class="va">corrected_raster</span>, xy <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span></span>
+<span><span class="va">df_corr</span><span class="op">$</span><span class="va">Status</span> <span class="op">&lt;-</span> <span class="st">"GAM Corrected Raster"</span></span>
+<span><span class="fu"><a href="https://rspatial.github.io/terra/reference/names.html" class="external-link">names</a></span><span class="op">(</span><span class="va">df_corr</span><span class="op">)</span><span class="op">[</span><span class="fl">3</span><span class="op">]</span> <span class="op">&lt;-</span> <span class="st">"Value"</span></span>
+<span></span>
+<span><span class="va">raster_comp</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/cbind.html" class="external-link">rbind</a></span><span class="op">(</span><span class="va">df_orig</span>, <span class="va">df_corr</span><span class="op">)</span></span>
+<span></span>
+<span><span class="fu"><a href="https://ggplot2.tidyverse.org/reference/ggplot.html" class="external-link">ggplot</a></span><span class="op">(</span><span class="va">raster_comp</span>, <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/aes.html" class="external-link">aes</a></span><span class="op">(</span>x <span class="op">=</span> <span class="va">x</span>, y <span class="op">=</span> <span class="va">y</span>, fill <span class="op">=</span> <span class="va">Value</span><span class="op">)</span><span class="op">)</span> <span class="op">+</span></span>
+<span>  <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/geom_tile.html" class="external-link">geom_raster</a></span><span class="op">(</span><span class="op">)</span> <span class="op">+</span></span>
+<span>  <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/facet_wrap.html" class="external-link">facet_wrap</a></span><span class="op">(</span><span class="op">~</span><span class="va">Status</span><span class="op">)</span> <span class="op">+</span></span>
+<span>  <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/scale_viridis.html" class="external-link">scale_fill_viridis_c</a></span><span class="op">(</span>option <span class="op">=</span> <span class="st">"viridis"</span>, name <span class="op">=</span> <span class="st">"Value"</span><span class="op">)</span> <span class="op">+</span></span>
+<span>  <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/coord_fixed.html" class="external-link">coord_equal</a></span><span class="op">(</span><span class="op">)</span> <span class="op">+</span></span>
+<span>  <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/ggtheme.html" class="external-link">theme_minimal</a></span><span class="op">(</span><span class="op">)</span> <span class="op">+</span></span>
+<span>  <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/labs.html" class="external-link">labs</a></span><span class="op">(</span></span>
+<span>    title <span class="op">=</span> <span class="st">"Raster Map Positional Accuracy Improvement"</span>,</span>
+<span>    subtitle <span class="op">=</span> <span class="st">"Inverse mapping with bilinear resampling via apply_pai_raster()"</span>,</span>
+<span>    x <span class="op">=</span> <span class="st">"x (m)"</span>,</span>
+<span>    y <span class="op">=</span> <span class="st">"y (m)"</span></span>
+<span>  <span class="op">)</span></span></code></pre></div>
+<p><img src="reference/figures/dist_apply_raster-1.png" class="r-plt" alt="" width="100%"></p>
+<hr>
+</div>
+<div class="section level3">
+<h3 id="the-geoscientific-takeaway-avoiding-false-change-detection">5.3 The Geoscientific Takeaway: Avoiding False Change Detection<a class="anchor" aria-label="anchor" href="#the-geoscientific-takeaway-avoiding-false-change-detection"></a>
 </h3>
 <p>The southeastern anomaly in the 1798 Basel map is a documented
 cartographic artifact—likely caused by Wilhelm Haas relying on older,
 unverified surveys for that quadrant.</p>
 <p>Had a researcher applied an un-audited GAM transformation to measure
-200-year land-use change in the southeast, the model’s <strong>55%
-artificial compression
+200-year land-use change in the southeast: * <strong>In Vector
+Analyses</strong>: The model’s <strong>55% artificial compression
 (<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>σ</mi><mo>=</mo><mn>0.45</mn></mrow><annotation encoding="application/x-tex">\sigma = 0.45</annotation></semantics></math>)</strong>
-would have generated massive <strong>phantom deforestation or parcel
-shrinkage signals</strong>. Standard RMSE metrics never warned the
-analyst because the GAM fitted the control points accurately.</p>
+would have created severe <strong>phantom wetland contraction or parcel
+shrinking</strong>. * <strong>In Raster Analyses</strong>: The backward
+mapping in the compressed southeast samples pixel values from an
+artificially large source area, distorting pixel-count-based land-cover
+statistics.</p>
+<p>Standard RMSE metrics never warned the analyst because the GAM fitted
+the control points accurately. Only continuous, model-agnostic
+distortion surfaces unmask these localized transformation artifacts.</p>
 </div>
 <div class="section level3">
-<h3 id="the-3-step-distortion-audited-protocol">The 3-Step Distortion-Audited Protocol<a class="anchor" aria-label="anchor" href="#the-3-step-distortion-audited-protocol"></a>
+<h3 id="the-3-step-distortion-audited-protocol">5.4 The 3-Step Distortion-Audited Protocol<a class="anchor" aria-label="anchor" href="#the-3-step-distortion-audited-protocol"></a>
 </h3>
 <p>To ensure data integrity, we recommend the following protocol when
-renewing legacy vector data for scientific reuse:</p>
+renewing legacy vector or raster geospatial data for scientific
+reuse:</p>
 <ol style="list-style-type: decimal">
 <li>
 <strong>Candidate Modeling &amp; Point Assessment</strong>: Train
@@ -703,10 +815,11 @@ If local scaling exceeds project tolerance thresholds (e.g.,
 <math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mo stretchy="false" form="prefix">|</mo><mi>σ</mi><mo>−</mo><mn>1</mn><mo stretchy="false" form="prefix">|</mo><mo>&gt;</mo><mn>0.15</mn></mrow><annotation encoding="application/x-tex">|\sigma - 1| &gt; 0.15</annotation></semantics></math>),
 increase model regularization or collect additional control points.</li>
 <li>
-<strong>Safe Vector Renewal</strong>: Once the continuous fabric
-integrity is verified, execute <code><a href="../reference/apply_pai_model.html">apply_pai_model()</a></code> to
-transform the vector layers for downstream environmental change
-detection.</li>
+<strong>Safe Geospatial Renewal</strong>: Once continuous fabric
+integrity is verified, execute <code><a href="../reference/apply_pai_model.html">apply_pai_model()</a></code> for vector
+layers or <code><a href="../reference/apply_pai_raster.html">apply_pai_raster()</a></code> for raster maps to generate
+trustworthy, analysis-ready baselines for downstream environmental
+change detection.</li>
 </ol>
 <hr>
 </div>

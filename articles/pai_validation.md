@@ -118,8 +118,6 @@ validate_all_pai_methods <- function(gcp_data, validation_type) {
 # Run both random and spatial cross-validation
 random_cv_results <- validate_all_pai_methods(gcps, "random")
 spatial_cv_results <- validate_all_pai_methods(gcps, "spatial")
-#> Warning in bfgs(lsp = lsp, X = G$X, y = G$y, Eb = G$Eb, UrS = G$UrS, L = G$L, :
-#> gam.fit5 step failed: max magnitude relative grad = 2.46505780699731e-08
 stratified_results <- validate_all_pai_methods(gcps, "stratified")
 
 # Combine into one table for comparison
