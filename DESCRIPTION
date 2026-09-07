@@ -34,7 +34,8 @@ Imports:
     units,
     ggplot2,
     viridis,
-    e1071
+    e1071,
+    terra
 Depends: 
     R (>= 4.1)
 LazyData: true

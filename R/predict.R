@@ -79,8 +79,16 @@ predict.pai_model <- function(object, newdata, ...) {
          call. = FALSE)
   }
   if (!all(c("source_x", "source_y") %in% names(newdata))) {
-    stop("'newdata' must contain 'source_x' and 'source_y' columns.",
-         call. = FALSE)
+    if (all(c("target_x", "target_y") %in% names(newdata))) {
+      newdata$source_x <- newdata$target_x
+      newdata$source_y <- newdata$target_y
+    } else if (all(c("x", "y") %in% names(newdata))) {
+      newdata$source_x <- newdata$x
+      newdata$source_y <- newdata$y
+    } else {
+      stop("'newdata' must contain 'source_x' and 'source_y' columns.",
+           call. = FALSE)
+    }
   }
 
   # --- 2. Handle NA values ---

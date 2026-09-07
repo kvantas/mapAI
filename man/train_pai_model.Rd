@@ -4,7 +4,13 @@
 \alias{train_pai_model}
 \title{Train a PAI Model}
 \usage{
-train_pai_model(gcp_data, pai_method, seed = 123, ...)
+train_pai_model(
+  gcp_data,
+  pai_method,
+  seed = 123,
+  direction = c("forward", "inverse"),
+  ...
+)
 }
 \arguments{
 \item{gcp_data}{An \code{sf} object of homologous points from \code{read_gcps()}.}
@@ -13,6 +19,10 @@ train_pai_model(gcp_data, pai_method, seed = 123, ...)
 "lm","tps", "gam", "rf", "svmRadial", "svmLinear", or "helmert".}
 
 \item{seed}{An integer for setting the random seed for reproducibility.}
+
+\item{direction}{A character string specifying the modeling direction:
+"forward" (default, modeling displacements from source to target, used for vector data)
+or "inverse" (modeling displacements from target to source, used for raster warping).}
 
 \item{...}{Additional arguments passed to the underlying model fitting
 functions (\code{mgcv::gam}, \code{stats::lm}, \code{ranger::ranger}, \code{fields::Tps}, \code{e1071::svm}).}

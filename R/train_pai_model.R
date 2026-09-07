@@ -17,6 +17,9 @@
 #' @param pai_method A character string specifying the algorithm. One of:
 #'    "lm","tps", "gam", "rf", "svmRadial", "svmLinear", or "helmert".
 #' @param seed An integer for setting the random seed for reproducibility.
+#' @param direction A character string specifying the modeling direction:
+#'    "forward" (default, modeling displacements from source to target, used for vector data)
+#'    or "inverse" (modeling displacements from target to source, used for raster warping).
 #' @param ... Additional arguments passed to the underlying model fitting
 #'    functions (`mgcv::gam`, `stats::lm`, `ranger::ranger`, `fields::Tps`, `e1071::svm`).
 #'
@@ -42,8 +45,9 @@
 #' summary(lm_model$model$model_dx)
 #' summary(lm_model$model$model_dy)
 #'
-train_pai_model <- function(gcp_data, pai_method, seed = 123, ...) {
+train_pai_model <- function(gcp_data, pai_method, seed = 123, direction = c("forward", "inverse"), ...) {
 
+  direction <- match.arg(direction)
   set.seed(seed)
 
   # Ensure the input is valid
@@ -65,6 +69,23 @@ train_pai_model <- function(gcp_data, pai_method, seed = 123, ...) {
 
   df <- sf::st_drop_geometry(gcp_data)
 
+  # Prepare training data based on direction
+  if (direction == "inverse") {
+    if (!all(c("target_x", "target_y") %in% names(df))) {
+      stop("For inverse models, `gcp_data` must contain 'target_x' and 'target_y' columns.", call. = FALSE)
+    }
+    df_train <- data.frame(
+      source_x = df$target_x,
+      source_y = df$target_y,
+      target_x = df$source_x,
+      target_y = df$source_y,
+      dx = df$source_x - df$target_x,
+      dy = df$source_y - df$target_y
+    )
+  } else {
+    df_train <- df
+  }
+
   # --- 2. Data Requirement Guardrail ---
   # Check if a complex model is requested with insufficient data
   n_points <- nrow(gcp_data)
@@ -82,23 +103,23 @@ train_pai_model <- function(gcp_data, pai_method, seed = 123, ...) {
   if (pai_method == "helmert") {
     message("Fitting Helmert transformation...")
     model_fit <- helmert(
-      source_x = df$source_x,
-      source_y = df$source_y,
-      target_x = df$target_x,
-      target_y = df$target_y
+      source_x = df_train$source_x,
+      source_y = df_train$source_y,
+      target_x = df_train$target_x,
+      target_y = df_train$target_y
     )
     # The output from helmert() is already structured correctly
   } else if (pai_method == "tps") {
     message("Fitting Thin Plate Spline model...")
-    source_coords <- as.matrix(df[, c("source_x", "source_y")])
+    source_coords <- as.matrix(df_train[, c("source_x", "source_y")])
     # Train separate models for dx and dy, similar to lm and rf
     model_fit <- list(
-      model_dx = fields::Tps(x = source_coords, Y = df$dx, ...),
-      model_dy = fields::Tps(x = source_coords, Y = df$dy, ...)
+      model_dx = fields::Tps(x = source_coords, Y = df_train$dx, ...),
+      model_dy = fields::Tps(x = source_coords, Y = df_train$dy, ...)
     )
   } else {
     # --- Handle Machine Learning Models ---
-    df_ml <- dplyr::select(df, "source_x", "source_y", "dx", "dy")
+    df_ml <- dplyr::select(df_train, "source_x", "source_y", "dx", "dy")
     message("Training '", pai_method, "' model...")
 
     if (pai_method == "gam") {
@@ -153,6 +174,7 @@ train_pai_model <- function(gcp_data, pai_method, seed = 123, ...) {
 
   # --- Return final model object with a consistent class ---
   output <- list(model = model_fit, method = pai_method)
+  attr(output, "direction") <- direction
   class(output) <- "pai_model"
   return(output)
 }
