@@ -21,6 +21,7 @@
 <li class="nav-item dropdown">
   <button class="nav-link dropdown-toggle" type="button" id="dropdown-articles" data-bs-toggle="dropdown" aria-expanded="false" aria-haspopup="true">Articles</button>
   <ul class="dropdown-menu" aria-labelledby="dropdown-articles"><li><a class="dropdown-item" href="../articles/demo_data.html">Getting Started with mapAI: A Complete Workflow</a></li>
+    <li><a class="dropdown-item" href="../articles/distortion_auditing.html">Model-Agnostic Distortion Diagnostics for Positional Accuracy Improvement</a></li>
     <li><a class="dropdown-item" href="../articles/pai_validation.html">Comparing PAI Methods and Validation Strategies</a></li>
     <li><a class="dropdown-item" href="../articles/swiss_data.html">Advanced Analysis with Swiss Data</a></li>
   </ul></li>
@@ -111,8 +112,8 @@ non-linear warping).</p>
     <h2 id="ref-examples">Examples<a class="anchor" aria-label="anchor" href="#ref-examples"></a></h2>
     <div class="sourceCode"><pre class="sourceCode r"><code><span class="r-in"><span><span class="co"># --- 1. First, create a demo dataset to work with ---</span></span></span>
 <span class="r-in"><span><span class="va">demo_files</span> <span class="op">&lt;-</span> <span class="fu"><a href="create_demo_data.html">create_demo_data</a></span><span class="op">(</span>type <span class="op">=</span> <span class="st">"complex"</span><span class="op">)</span></span></span>
-<span class="r-msg co"><span class="r-pr">#&gt;</span>    -&gt; Homologous points saved to: /tmp/Rtmp5XWmNQ/demo_gcps.csv</span>
-<span class="r-msg co"><span class="r-pr">#&gt;</span>    -&gt; Distorted map saved to: /tmp/Rtmp5XWmNQ/demo_map.shp</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span>    -&gt; Homologous points saved to: /tmp/RtmpymxZu9/demo_gcps.csv</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span>    -&gt; Distorted map saved to: /tmp/RtmpymxZu9/demo_map.shp</span>
 <span class="r-in"><span><span class="va">gcp_data</span> <span class="op">&lt;-</span> <span class="fu"><a href="read_gcps.html">read_gcps</a></span><span class="op">(</span>gcp_path <span class="op">=</span> <span class="va">demo_files</span><span class="op">$</span><span class="va">gcp_path</span><span class="op">)</span></span></span>
 <span class="r-in"><span></span></span>
 <span class="r-in"><span><span class="co"># --- 2. Create the default displacement plot ---</span></span></span>

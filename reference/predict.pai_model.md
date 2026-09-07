@@ -2,7 +2,8 @@
 
 Predicts spatial corrections (dx, dy) from a trained `pai_model` object.
 This is an S3 method for the generic
-[`predict()`](https://rdrr.io/r/stats/predict.html) function.
+[`predict()`](https://rspatial.github.io/terra/reference/predict.html)
+function.
 
 ## Usage
 
@@ -40,8 +41,8 @@ by
 [`train_pai_model()`](https://kvantas.github.io/mapAI/reference/train_pai_model.md).
 As an S3 method, it should not be called directly (e.g.,
 `predict.pai_model(...)`), but rather through the generic
-[`predict()`](https://rdrr.io/r/stats/predict.html) function (e.g.,
-`predict(my_model, ...)`).
+[`predict()`](https://rspatial.github.io/terra/reference/predict.html)
+function (e.g., `predict(my_model, ...)`).
 
 Key features of this method include:
 

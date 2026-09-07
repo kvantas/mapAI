@@ -34,6 +34,7 @@
   <button class="nav-link dropdown-toggle" type="button" id="dropdown-articles" data-bs-toggle="dropdown" aria-expanded="false" aria-haspopup="true">Articles</button>
   <ul class="dropdown-menu" aria-labelledby="dropdown-articles">
 <li><a class="dropdown-item" href="../articles/demo_data.html">Getting Started with mapAI: A Complete Workflow</a></li>
+    <li><a class="dropdown-item" href="../articles/distortion_auditing.html">Model-Agnostic Distortion Diagnostics for Positional Accuracy Improvement</a></li>
     <li><a class="dropdown-item" href="../articles/pai_validation.html">Comparing PAI Methods and Validation Strategies</a></li>
     <li><a class="dropdown-item" href="../articles/swiss_data.html">Advanced Analysis with Swiss Data</a></li>
   </ul>
@@ -117,8 +118,8 @@ directly with the data() function.</p>
 <span></span>
 <span><span class="co"># Let's calculate the baseline error of the uncorrected map</span></span>
 <span><span class="co"># This "Identity RMSE" is our starting point.</span></span>
-<span><span class="va">identity_rmse</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/MathFun.html" class="external-link">sqrt</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/mean.html" class="external-link">mean</a></span><span class="op">(</span><span class="va">gcps</span><span class="op">$</span><span class="va">dx</span><span class="op">^</span><span class="fl">2</span> <span class="op">+</span> <span class="va">gcps</span><span class="op">$</span><span class="va">dy</span><span class="op">^</span><span class="fl">2</span><span class="op">)</span><span class="op">)</span></span>
-<span><span class="fu"><a href="https://rdrr.io/r/base/print.html" class="external-link">print</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/paste.html" class="external-link">paste</a></span><span class="op">(</span><span class="st">"Initial average error (RMSE) of the Kastoria map:"</span>, <span class="fu"><a href="https://rdrr.io/r/base/Round.html" class="external-link">round</a></span><span class="op">(</span><span class="va">identity_rmse</span>, <span class="fl">2</span><span class="op">)</span>, <span class="st">"meters"</span><span class="op">)</span><span class="op">)</span></span>
+<span><span class="va">identity_rmse</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/MathFun.html" class="external-link">sqrt</a></span><span class="op">(</span><span class="fu"><a href="https://rspatial.github.io/terra/reference/summarize-generics.html" class="external-link">mean</a></span><span class="op">(</span><span class="va">gcps</span><span class="op">$</span><span class="va">dx</span><span class="op">^</span><span class="fl">2</span> <span class="op">+</span> <span class="va">gcps</span><span class="op">$</span><span class="va">dy</span><span class="op">^</span><span class="fl">2</span><span class="op">)</span><span class="op">)</span></span>
+<span><span class="fu"><a href="https://rdrr.io/r/base/print.html" class="external-link">print</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/paste.html" class="external-link">paste</a></span><span class="op">(</span><span class="st">"Initial average error (RMSE) of the Kastoria map:"</span>, <span class="fu"><a href="https://rspatial.github.io/terra/reference/math-generics.html" class="external-link">round</a></span><span class="op">(</span><span class="va">identity_rmse</span>, <span class="fl">2</span><span class="op">)</span>, <span class="st">"meters"</span><span class="op">)</span><span class="op">)</span></span>
 <span><span class="co">#&gt; [1] "Initial average error (RMSE) of the Kastoria map: 0.69 meters"</span></span></code></pre></div>
 </div>
 <div class="section level2">
@@ -341,7 +342,7 @@ and train it on the <strong>entire</strong> set of GCPs.</p>
 <span><span class="co">#&gt; Training 'lm' model...</span></span>
 <span></span>
 <span><span class="co"># Let's look at the statistical summary of our trained model</span></span>
-<span><span class="fu"><a href="https://rdrr.io/r/base/print.html" class="external-link">print</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/summary.html" class="external-link">summary</a></span><span class="op">(</span><span class="va">pai_model</span><span class="op">$</span><span class="va">model</span><span class="op">$</span><span class="va">model_dx</span><span class="op">)</span><span class="op">)</span></span>
+<span><span class="fu"><a href="https://rdrr.io/r/base/print.html" class="external-link">print</a></span><span class="op">(</span><span class="fu"><a href="https://rspatial.github.io/terra/reference/summary.html" class="external-link">summary</a></span><span class="op">(</span><span class="va">pai_model</span><span class="op">$</span><span class="va">model</span><span class="op">$</span><span class="va">model_dx</span><span class="op">)</span><span class="op">)</span></span>
 <span><span class="co">#&gt; </span></span>
 <span><span class="co">#&gt; Call:</span></span>
 <span><span class="co">#&gt; stats::lm(formula = formula, data = data)</span></span>
@@ -361,7 +362,7 @@ and train it on the <strong>entire</strong> set of GCPs.</p>
 <span><span class="co">#&gt; Residual standard error: 0.3619 on 297 degrees of freedom</span></span>
 <span><span class="co">#&gt; Multiple R-squared:  0.2109, Adjusted R-squared:  0.2056 </span></span>
 <span><span class="co">#&gt; F-statistic: 39.68 on 2 and 297 DF,  p-value: 5.333e-16</span></span>
-<span><span class="fu"><a href="https://rdrr.io/r/base/print.html" class="external-link">print</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/summary.html" class="external-link">summary</a></span><span class="op">(</span><span class="va">pai_model</span><span class="op">$</span><span class="va">model</span><span class="op">$</span><span class="va">model_dy</span><span class="op">)</span><span class="op">)</span></span>
+<span><span class="fu"><a href="https://rdrr.io/r/base/print.html" class="external-link">print</a></span><span class="op">(</span><span class="fu"><a href="https://rspatial.github.io/terra/reference/summary.html" class="external-link">summary</a></span><span class="op">(</span><span class="va">pai_model</span><span class="op">$</span><span class="va">model</span><span class="op">$</span><span class="va">model_dy</span><span class="op">)</span><span class="op">)</span></span>
 <span><span class="co">#&gt; </span></span>
 <span><span class="co">#&gt; Call:</span></span>
 <span><span class="co">#&gt; stats::lm(formula = formula, data = data)</span></span>
@@ -398,7 +399,7 @@ area.</p>
 <span><span class="co"># Inspect the output - note the new 'area_new' column</span></span>
 <span><span class="fu"><a href="https://rdrr.io/r/base/print.html" class="external-link">print</a></span><span class="op">(</span><span class="st">"Original vs. Corrected Dataframe Head:"</span><span class="op">)</span></span>
 <span><span class="co">#&gt; [1] "Original vs. Corrected Dataframe Head:"</span></span>
-<span><span class="fu"><a href="https://rdrr.io/r/utils/head.html" class="external-link">head</a></span><span class="op">(</span><span class="va">corrected_parcels</span><span class="op">)</span></span>
+<span><span class="fu"><a href="https://rspatial.github.io/terra/reference/headtail.html" class="external-link">head</a></span><span class="op">(</span><span class="va">corrected_parcels</span><span class="op">)</span></span>
 <span><span class="co">#&gt; Simple feature collection with 6 features and 3 fields</span></span>
 <span><span class="co">#&gt; Geometry type: POLYGON</span></span>
 <span><span class="co">#&gt; Dimension:     XY</span></span>

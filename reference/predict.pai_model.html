@@ -21,6 +21,7 @@ object. This is an S3 method for the generic predict() function."></head><body>
 <li class="nav-item dropdown">
   <button class="nav-link dropdown-toggle" type="button" id="dropdown-articles" data-bs-toggle="dropdown" aria-expanded="false" aria-haspopup="true">Articles</button>
   <ul class="dropdown-menu" aria-labelledby="dropdown-articles"><li><a class="dropdown-item" href="../articles/demo_data.html">Getting Started with mapAI: A Complete Workflow</a></li>
+    <li><a class="dropdown-item" href="../articles/distortion_auditing.html">Model-Agnostic Distortion Diagnostics for Positional Accuracy Improvement</a></li>
     <li><a class="dropdown-item" href="../articles/pai_validation.html">Comparing PAI Methods and Validation Strategies</a></li>
     <li><a class="dropdown-item" href="../articles/swiss_data.html">Advanced Analysis with Swiss Data</a></li>
   </ul></li>
@@ -42,13 +43,13 @@ object. This is an S3 method for the generic predict() function."></head><body>
 
     <div class="ref-description section level2">
     <p>Predicts spatial corrections (dx, dy) from a trained <code>pai_model</code>
-object. This is an S3 method for the generic <code><a href="https://rdrr.io/r/stats/predict.html" class="external-link">predict()</a></code> function.</p>
+object. This is an S3 method for the generic <code><a href="https://rspatial.github.io/terra/reference/predict.html" class="external-link">predict()</a></code> function.</p>
     </div>
 
     <div class="section level2">
     <h2 id="ref-usage">Usage<a class="anchor" aria-label="anchor" href="#ref-usage"></a></h2>
     <div class="sourceCode"><pre class="sourceCode r"><code><span><span class="co"># S3 method for class 'pai_model'</span></span>
-<span><span class="fu"><a href="https://rdrr.io/r/stats/predict.html" class="external-link">predict</a></span><span class="op">(</span><span class="va">object</span>, <span class="va">newdata</span>, <span class="va">...</span><span class="op">)</span></span></code></pre></div>
+<span><span class="fu"><a href="https://rspatial.github.io/terra/reference/predict.html" class="external-link">predict</a></span><span class="op">(</span><span class="va">object</span>, <span class="va">newdata</span>, <span class="va">...</span><span class="op">)</span></span></code></pre></div>
     </div>
 
     <div class="section level2">
@@ -80,7 +81,7 @@ number of rows as <code>newdata</code>.</p>
     <p>This function provides the core prediction logic for all models
 created by <code><a href="train_pai_model.html">train_pai_model()</a></code>. As an S3 method, it should not be called
 directly (e.g., <code>predict.pai_model(...)</code>), but rather through the generic
-<code><a href="https://rdrr.io/r/stats/predict.html" class="external-link">predict()</a></code> function (e.g., <code>predict(my_model, ...)</code>).</p>
+<code><a href="https://rspatial.github.io/terra/reference/predict.html" class="external-link">predict()</a></code> function (e.g., <code>predict(my_model, ...)</code>).</p>
 <p>Key features of this method include:</p><ul><li><p><strong>Automatic Model Handling:</strong> It transparently handles the
 different output structures of <code>helmert</code>,<code>tps</code>, <code>gam</code>, <code>lm</code>, <code>rf</code>,
 <code>svmRadial</code> and <code>svmLinear</code> models, always returning a consistent
@@ -116,10 +117,10 @@ preventing errors from underlying prediction functions.</p></li>
 <span class="r-in"><span><span class="co"># The same `predict()` call works for both model objects.</span></span></span>
 <span class="r-in"><span></span></span>
 <span class="r-in"><span><span class="co"># Predict using the GAM model</span></span></span>
-<span class="r-in"><span><span class="va">predictions_from_gam</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/stats/predict.html" class="external-link">predict</a></span><span class="op">(</span><span class="va">pai_model_gam</span>, newdata <span class="op">=</span> <span class="va">new_points_to_predict</span><span class="op">)</span></span></span>
+<span class="r-in"><span><span class="va">predictions_from_gam</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rspatial.github.io/terra/reference/predict.html" class="external-link">predict</a></span><span class="op">(</span><span class="va">pai_model_gam</span>, newdata <span class="op">=</span> <span class="va">new_points_to_predict</span><span class="op">)</span></span></span>
 <span class="r-in"><span></span></span>
 <span class="r-in"><span><span class="co"># Predict using the Random Forest model</span></span></span>
-<span class="r-in"><span><span class="va">predictions_from_rf</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/stats/predict.html" class="external-link">predict</a></span><span class="op">(</span><span class="va">pai_model_rf</span>, newdata <span class="op">=</span> <span class="va">new_points_to_predict</span><span class="op">)</span></span></span>
+<span class="r-in"><span><span class="va">predictions_from_rf</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rspatial.github.io/terra/reference/predict.html" class="external-link">predict</a></span><span class="op">(</span><span class="va">pai_model_rf</span>, newdata <span class="op">=</span> <span class="va">new_points_to_predict</span><span class="op">)</span></span></span>
 <span class="r-in"><span></span></span>
 <span class="r-in"><span><span class="co"># --- 4. Inspect the Results ---</span></span></span>
 <span class="r-in"><span><span class="fu"><a href="https://rdrr.io/r/base/print.html" class="external-link">print</a></span><span class="op">(</span><span class="st">"Predictions from GAM model:"</span><span class="op">)</span></span></span>

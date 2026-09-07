@@ -6,7 +6,13 @@ transformation.
 ## Usage
 
 ``` r
-train_pai_model(gcp_data, pai_method, seed = 123, ...)
+train_pai_model(
+  gcp_data,
+  pai_method,
+  seed = 123,
+  direction = c("forward", "inverse"),
+  ...
+)
 ```
 
 ## Arguments
@@ -24,6 +30,13 @@ train_pai_model(gcp_data, pai_method, seed = 123, ...)
 - seed:
 
   An integer for setting the random seed for reproducibility.
+
+- direction:
+
+  A character string specifying the modeling direction: "forward"
+  (default, modeling displacements from source to target, used for
+  vector data) or "inverse" (modeling displacements from target to
+  source, used for raster warping).
 
 - ...:
 
@@ -69,9 +82,9 @@ summary(gam_model$model)
 #> 
 #> Formula:
 #> dx ~ s(source_x, source_y)
-#> <environment: 0x55eca531ad40>
+#> <environment: 0x561f992dce10>
 #> dy ~ s(source_x, source_y)
-#> <environment: 0x55eca531ad40>
+#> <environment: 0x561f992dce10>
 #> 
 #> Parametric coefficients:
 #>               Estimate Std. Error z value Pr(>|z|)    

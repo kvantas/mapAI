@@ -34,6 +34,7 @@
   <button class="nav-link dropdown-toggle" type="button" id="dropdown-articles" data-bs-toggle="dropdown" aria-expanded="false" aria-haspopup="true">Articles</button>
   <ul class="dropdown-menu" aria-labelledby="dropdown-articles">
 <li><a class="dropdown-item" href="../articles/demo_data.html">Getting Started with mapAI: A Complete Workflow</a></li>
+    <li><a class="dropdown-item" href="../articles/distortion_auditing.html">Model-Agnostic Distortion Diagnostics for Positional Accuracy Improvement</a></li>
     <li><a class="dropdown-item" href="../articles/pai_validation.html">Comparing PAI Methods and Validation Strategies</a></li>
     <li><a class="dropdown-item" href="../articles/swiss_data.html">Advanced Analysis with Swiss Data</a></li>
   </ul>
@@ -111,15 +112,15 @@ into R using the package’s reading functions.</p>
 <div class="sourceCode" id="cb2"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="co"># Create the shapefile and GCPs CSV in a temporary directory</span></span>
 <span><span class="va">demo_files</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/create_demo_data.html">create_demo_data</a></span><span class="op">(</span>type <span class="op">=</span> <span class="st">"complex"</span>, seed <span class="op">=</span> <span class="fl">123</span><span class="op">)</span></span>
-<span><span class="co">#&gt;    -&gt; Homologous points saved to: /tmp/RtmpDW4lAB/demo_gcps.csv</span></span>
-<span><span class="co">#&gt;    -&gt; Distorted map saved to: /tmp/RtmpDW4lAB/demo_map.shp</span></span>
+<span><span class="co">#&gt;    -&gt; Homologous points saved to: /tmp/RtmprXx0Ey/demo_gcps.csv</span></span>
+<span><span class="co">#&gt;    -&gt; Distorted map saved to: /tmp/RtmprXx0Ey/demo_map.shp</span></span>
 <span></span>
 <span><span class="co"># Load the GCPs (homologous points) from the demo file</span></span>
 <span><span class="va">gcp_data</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/read_gcps.html">read_gcps</a></span><span class="op">(</span>gcp_path <span class="op">=</span> <span class="va">demo_files</span><span class="op">$</span><span class="va">gcp_path</span><span class="op">)</span></span>
 <span></span>
 <span><span class="co"># Load the vector map that needs correction from the demo file</span></span>
 <span><span class="va">map_to_correct</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/read_map.html">read_map</a></span><span class="op">(</span>shp_path <span class="op">=</span> <span class="va">demo_files</span><span class="op">$</span><span class="va">shp_path</span><span class="op">)</span></span>
-<span><span class="co">#&gt; Reading layer `demo_map' from data source `/tmp/RtmpDW4lAB/demo_map.shp' using driver `ESRI Shapefile'</span></span>
+<span><span class="co">#&gt; Reading layer `demo_map' from data source `/tmp/RtmprXx0Ey/demo_map.shp' using driver `ESRI Shapefile'</span></span>
 <span><span class="co">#&gt; Simple feature collection with 30 features and 1 field</span></span>
 <span><span class="co">#&gt; Geometry type: LINESTRING</span></span>
 <span><span class="co">#&gt; Dimension:     XY</span></span>
@@ -136,8 +137,8 @@ estimate the out-of-sample error of a <strong>Generalized Additive Model
 smooth, non-linear distortions in our synthetic data.</p>
 <div class="sourceCode" id="cb3"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="co"># Calculate the initial error before correction</span></span>
-<span><span class="va">identity_rmse</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/MathFun.html" class="external-link">sqrt</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/mean.html" class="external-link">mean</a></span><span class="op">(</span><span class="va">gcp_data</span><span class="op">$</span><span class="va">dx</span><span class="op">^</span><span class="fl">2</span> <span class="op">+</span> <span class="va">gcp_data</span><span class="op">$</span><span class="va">dy</span><span class="op">^</span><span class="fl">2</span><span class="op">)</span><span class="op">)</span></span>
-<span><span class="fu"><a href="https://rdrr.io/r/base/print.html" class="external-link">print</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/paste.html" class="external-link">paste</a></span><span class="op">(</span><span class="st">"Initial (Identity) 2D RMSE:"</span>, <span class="fu"><a href="https://rdrr.io/r/base/Round.html" class="external-link">round</a></span><span class="op">(</span><span class="va">identity_rmse</span>, <span class="fl">4</span><span class="op">)</span><span class="op">)</span><span class="op">)</span></span>
+<span><span class="va">identity_rmse</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/MathFun.html" class="external-link">sqrt</a></span><span class="op">(</span><span class="fu"><a href="https://rspatial.github.io/terra/reference/summarize-generics.html" class="external-link">mean</a></span><span class="op">(</span><span class="va">gcp_data</span><span class="op">$</span><span class="va">dx</span><span class="op">^</span><span class="fl">2</span> <span class="op">+</span> <span class="va">gcp_data</span><span class="op">$</span><span class="va">dy</span><span class="op">^</span><span class="fl">2</span><span class="op">)</span><span class="op">)</span></span>
+<span><span class="fu"><a href="https://rdrr.io/r/base/print.html" class="external-link">print</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/paste.html" class="external-link">paste</a></span><span class="op">(</span><span class="st">"Initial (Identity) 2D RMSE:"</span>, <span class="fu"><a href="https://rspatial.github.io/terra/reference/math-generics.html" class="external-link">round</a></span><span class="op">(</span><span class="va">identity_rmse</span>, <span class="fl">4</span><span class="op">)</span><span class="op">)</span><span class="op">)</span></span>
 <span><span class="co">#&gt; [1] "Initial (Identity) 2D RMSE: 5.3465"</span></span>
 <span></span>
 <span><span class="co"># use cross validation to assess a GAM's model accuracy</span></span>
@@ -196,8 +197,8 @@ with our trained <code>gam_model</code> to calculate the detailed
 distortion metrics at each point.</p>
 <div class="sourceCode" id="cb5"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="co"># Create a regular grid of points for the analysis</span></span>
-<span><span class="va">analysis_points</span> <span class="op">&lt;-</span> <span class="fu">sf</span><span class="fu">::</span><span class="fu"><a href="https://r-spatial.github.io/sf/reference/st_make_grid.html" class="external-link">st_make_grid</a></span><span class="op">(</span><span class="va">gcp_data</span>, n <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="fl">25</span>, <span class="fl">25</span><span class="op">)</span><span class="op">)</span> <span class="op"><a href="https://magrittr.tidyverse.org/reference/pipe.html" class="external-link">%&gt;%</a></span></span>
-<span>  <span class="fu">sf</span><span class="fu">::</span><span class="fu"><a href="https://r-spatial.github.io/sf/reference/geos_unary.html" class="external-link">st_centroid</a></span><span class="op">(</span><span class="op">)</span> <span class="op"><a href="https://magrittr.tidyverse.org/reference/pipe.html" class="external-link">%&gt;%</a></span></span>
+<span><span class="va">analysis_points</span> <span class="op">&lt;-</span> <span class="fu">sf</span><span class="fu">::</span><span class="fu"><a href="https://r-spatial.github.io/sf/reference/st_make_grid.html" class="external-link">st_make_grid</a></span><span class="op">(</span><span class="va">gcp_data</span>, n <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="fl">25</span>, <span class="fl">25</span><span class="op">)</span><span class="op">)</span> <span class="op"><a href="../reference/pipe.html">%&gt;%</a></span></span>
+<span>  <span class="fu">sf</span><span class="fu">::</span><span class="fu"><a href="https://r-spatial.github.io/sf/reference/geos_unary.html" class="external-link">st_centroid</a></span><span class="op">(</span><span class="op">)</span> <span class="op"><a href="../reference/pipe.html">%&gt;%</a></span></span>
 <span>  <span class="fu">sf</span><span class="fu">::</span><span class="fu"><a href="https://r-spatial.github.io/sf/reference/sf.html" class="external-link">st_sf</a></span><span class="op">(</span><span class="op">)</span></span>
 <span></span>
 <span><span class="co"># Run the analysis</span></span>

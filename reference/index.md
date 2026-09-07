@@ -6,6 +6,8 @@
   : Perform a Differential Distortion Analysis
 - [`apply_pai_model()`](https://kvantas.github.io/mapAI/reference/apply_pai_model.md)
   : Apply a Trained PAI Model to Correct a Vector Map
+- [`apply_pai_raster()`](https://kvantas.github.io/mapAI/reference/apply_pai_raster.md)
+  : Apply a Trained PAI Model to Correct a Raster Map
 - [`assess_pai_model()`](https://kvantas.github.io/mapAI/reference/assess_pai_model.md)
   : Assess PAI Model Performance
 - [`create_demo_data()`](https://kvantas.github.io/mapAI/reference/create_demo_data.md)

@@ -3,6 +3,7 @@
 <url><loc>https://kvantas.github.io/mapAI/LICENSE-text.html</loc></url>
 <url><loc>https://kvantas.github.io/mapAI/LICENSE.html</loc></url>
 <url><loc>https://kvantas.github.io/mapAI/articles/demo_data.html</loc></url>
+<url><loc>https://kvantas.github.io/mapAI/articles/distortion_auditing.html</loc></url>
 <url><loc>https://kvantas.github.io/mapAI/articles/index.html</loc></url>
 <url><loc>https://kvantas.github.io/mapAI/articles/pai_validation.html</loc></url>
 <url><loc>https://kvantas.github.io/mapAI/articles/swiss_data.html</loc></url>
@@ -10,6 +11,7 @@
 <url><loc>https://kvantas.github.io/mapAI/index.html</loc></url>
 <url><loc>https://kvantas.github.io/mapAI/reference/analyze_distortion.html</loc></url>
 <url><loc>https://kvantas.github.io/mapAI/reference/apply_pai_model.html</loc></url>
+<url><loc>https://kvantas.github.io/mapAI/reference/apply_pai_raster.html</loc></url>
 <url><loc>https://kvantas.github.io/mapAI/reference/assess_pai_model.html</loc></url>
 <url><loc>https://kvantas.github.io/mapAI/reference/create_demo_data.html</loc></url>
 <url><loc>https://kvantas.github.io/mapAI/reference/gcps.html</loc></url>
@@ -17,6 +19,7 @@
 <url><loc>https://kvantas.github.io/mapAI/reference/index.html</loc></url>
 <url><loc>https://kvantas.github.io/mapAI/reference/mapAI.html</loc></url>
 <url><loc>https://kvantas.github.io/mapAI/reference/parcels.html</loc></url>
+<url><loc>https://kvantas.github.io/mapAI/reference/pipe.html</loc></url>
 <url><loc>https://kvantas.github.io/mapAI/reference/plot_correction_surface.html</loc></url>
 <url><loc>https://kvantas.github.io/mapAI/reference/plot_displacement.html</loc></url>
 <url><loc>https://kvantas.github.io/mapAI/reference/plot_distortion_surface.html</loc></url>

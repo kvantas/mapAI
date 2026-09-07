@@ -47,15 +47,15 @@ files into R using the package’s reading functions.
 
 # Create the shapefile and GCPs CSV in a temporary directory
 demo_files <- create_demo_data(type = "complex", seed = 123)
-#>    -> Homologous points saved to: /tmp/RtmpDW4lAB/demo_gcps.csv
-#>    -> Distorted map saved to: /tmp/RtmpDW4lAB/demo_map.shp
+#>    -> Homologous points saved to: /tmp/RtmprXx0Ey/demo_gcps.csv
+#>    -> Distorted map saved to: /tmp/RtmprXx0Ey/demo_map.shp
 
 # Load the GCPs (homologous points) from the demo file
 gcp_data <- read_gcps(gcp_path = demo_files$gcp_path)
 
 # Load the vector map that needs correction from the demo file
 map_to_correct <- read_map(shp_path = demo_files$shp_path)
-#> Reading layer `demo_map' from data source `/tmp/RtmpDW4lAB/demo_map.shp' using driver `ESRI Shapefile'
+#> Reading layer `demo_map' from data source `/tmp/RtmprXx0Ey/demo_map.shp' using driver `ESRI Shapefile'
 #> Simple feature collection with 30 features and 1 field
 #> Geometry type: LINESTRING
 #> Dimension:     XY

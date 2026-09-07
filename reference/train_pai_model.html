@@ -21,6 +21,7 @@ spatial transformation."></head><body>
 <li class="nav-item dropdown">
   <button class="nav-link dropdown-toggle" type="button" id="dropdown-articles" data-bs-toggle="dropdown" aria-expanded="false" aria-haspopup="true">Articles</button>
   <ul class="dropdown-menu" aria-labelledby="dropdown-articles"><li><a class="dropdown-item" href="../articles/demo_data.html">Getting Started with mapAI: A Complete Workflow</a></li>
+    <li><a class="dropdown-item" href="../articles/distortion_auditing.html">Model-Agnostic Distortion Diagnostics for Positional Accuracy Improvement</a></li>
     <li><a class="dropdown-item" href="../articles/pai_validation.html">Comparing PAI Methods and Validation Strategies</a></li>
     <li><a class="dropdown-item" href="../articles/swiss_data.html">Advanced Analysis with Swiss Data</a></li>
   </ul></li>
@@ -47,7 +48,13 @@ spatial transformation.</p>
 
     <div class="section level2">
     <h2 id="ref-usage">Usage<a class="anchor" aria-label="anchor" href="#ref-usage"></a></h2>
-    <div class="sourceCode"><pre class="sourceCode r"><code><span><span class="fu">train_pai_model</span><span class="op">(</span><span class="va">gcp_data</span>, <span class="va">pai_method</span>, seed <span class="op">=</span> <span class="fl">123</span>, <span class="va">...</span><span class="op">)</span></span></code></pre></div>
+    <div class="sourceCode"><pre class="sourceCode r"><code><span><span class="fu">train_pai_model</span><span class="op">(</span></span>
+<span>  <span class="va">gcp_data</span>,</span>
+<span>  <span class="va">pai_method</span>,</span>
+<span>  seed <span class="op">=</span> <span class="fl">123</span>,</span>
+<span>  direction <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"forward"</span>, <span class="st">"inverse"</span><span class="op">)</span>,</span>
+<span>  <span class="va">...</span></span>
+<span><span class="op">)</span></span></code></pre></div>
     </div>
 
     <div class="section level2">
@@ -65,6 +72,12 @@ spatial transformation.</p>
 
 <dt id="arg-seed">seed<a class="anchor" aria-label="anchor" href="#arg-seed"></a></dt>
 <dd><p>An integer for setting the random seed for reproducibility.</p></dd>
+
+
+<dt id="arg-direction">direction<a class="anchor" aria-label="anchor" href="#arg-direction"></a></dt>
+<dd><p>A character string specifying the modeling direction:
+"forward" (default, modeling displacements from source to target, used for vector data)
+or "inverse" (modeling displacements from target to source, used for raster warping).</p></dd>
 
 
 <dt id="arg--">...<a class="anchor" aria-label="anchor" href="#arg--"></a></dt>
@@ -98,16 +111,16 @@ points, please use the more robust "lm" or "helmert" methods.</p>
 <span class="r-in"><span><span class="co"># Train a General Additive Model (GAM)</span></span></span>
 <span class="r-in"><span><span class="va">gam_model</span> <span class="op">&lt;-</span> <span class="fu">train_pai_model</span><span class="op">(</span><span class="va">gcps</span>, pai_method <span class="op">=</span> <span class="st">"gam"</span><span class="op">)</span></span></span>
 <span class="r-msg co"><span class="r-pr">#&gt;</span> Training 'gam' model...</span>
-<span class="r-in"><span><span class="fu"><a href="https://rdrr.io/r/base/summary.html" class="external-link">summary</a></span><span class="op">(</span><span class="va">gam_model</span><span class="op">$</span><span class="va">model</span><span class="op">)</span></span></span>
+<span class="r-in"><span><span class="fu"><a href="https://rspatial.github.io/terra/reference/summary.html" class="external-link">summary</a></span><span class="op">(</span><span class="va">gam_model</span><span class="op">$</span><span class="va">model</span><span class="op">)</span></span></span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> </span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> Family: Multivariate normal </span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> Link function: </span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> </span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> Formula:</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> dx ~ s(source_x, source_y)</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> &lt;environment: 0x55eca531ad40&gt;</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> &lt;environment: 0x561f992dce10&gt;</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> dy ~ s(source_x, source_y)</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> &lt;environment: 0x55eca531ad40&gt;</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> &lt;environment: 0x561f992dce10&gt;</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> </span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> Parametric coefficients:</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>               Estimate Std. Error z value Pr(&gt;|z|)    </span>
@@ -129,7 +142,7 @@ points, please use the more robust "lm" or "helmert" methods.</p>
 <span class="r-in"><span><span class="co"># Train a linear model</span></span></span>
 <span class="r-in"><span><span class="va">lm_model</span> <span class="op">&lt;-</span> <span class="fu">train_pai_model</span><span class="op">(</span><span class="va">gcps</span>, pai_method <span class="op">=</span> <span class="st">"lm"</span><span class="op">)</span></span></span>
 <span class="r-msg co"><span class="r-pr">#&gt;</span> Training 'lm' model...</span>
-<span class="r-in"><span><span class="fu"><a href="https://rdrr.io/r/base/summary.html" class="external-link">summary</a></span><span class="op">(</span><span class="va">lm_model</span><span class="op">$</span><span class="va">model</span><span class="op">$</span><span class="va">model_dx</span><span class="op">)</span></span></span>
+<span class="r-in"><span><span class="fu"><a href="https://rspatial.github.io/terra/reference/summary.html" class="external-link">summary</a></span><span class="op">(</span><span class="va">lm_model</span><span class="op">$</span><span class="va">model</span><span class="op">$</span><span class="va">model_dx</span><span class="op">)</span></span></span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> </span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> Call:</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> stats::lm(formula = formula, data = data)</span>
@@ -150,7 +163,7 @@ points, please use the more robust "lm" or "helmert" methods.</p>
 <span class="r-out co"><span class="r-pr">#&gt;</span> Multiple R-squared:  0.2109,	Adjusted R-squared:  0.2056 </span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> F-statistic: 39.68 on 2 and 297 DF,  p-value: 5.333e-16</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> </span>
-<span class="r-in"><span><span class="fu"><a href="https://rdrr.io/r/base/summary.html" class="external-link">summary</a></span><span class="op">(</span><span class="va">lm_model</span><span class="op">$</span><span class="va">model</span><span class="op">$</span><span class="va">model_dy</span><span class="op">)</span></span></span>
+<span class="r-in"><span><span class="fu"><a href="https://rspatial.github.io/terra/reference/summary.html" class="external-link">summary</a></span><span class="op">(</span><span class="va">lm_model</span><span class="op">$</span><span class="va">model</span><span class="op">$</span><span class="va">model_dy</span><span class="op">)</span></span></span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> </span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> Call:</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> stats::lm(formula = formula, data = data)</span>
