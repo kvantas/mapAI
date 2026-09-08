@@ -38,8 +38,7 @@ This function is the core analytical engine of the \code{mapAI} package.
 It implements a differential analysis by calculating the first partial
 derivatives of the spatial transformation learned by a \code{pai_model}. This is
 achieved using a  \strong{numerical differentiation} (finite difference) method
-that is universally applicable to all models in the package (\code{helmert},
-\code{tps}, \code{gam}, \code{lm}, \code{rf},\code{svmRadial} and \code{svmLinear}).
+that is applicable across models in the package.
 
 From these derivatives, it calculates key distortion metrics that describe
 how shape, area, and angles are warped at every point.
@@ -48,15 +47,16 @@ how shape, area, and angles are warped at every point.
 
 The nature of the output is \strong{highly dependent} on the model used:
 \itemize{
-\item \strong{\code{gam} & \code{tps} (Recommended for this analysis)}: Produce a
-smooth, differentiable surface. The distortion metrics will be
-\strong{spatially variable} and provide a rich, meaningful understanding of
-how distortion changes across the map.
-\item \strong{\code{helmert} & \code{lm}}: Represent global transformations.
+\item \strong{\code{gam}, \code{tps}, \code{gp}, \code{gamboost}, \code{torch}, & \code{svmRadial} (Recommended for this analysis)}:
+Produce smooth, continuously differentiable surfaces (C^1, C^2, or smooth continuous transformations). The distortion
+metrics will be \strong{spatially variable} and provide a rich, theoretically sound understanding of
+how distortion changes continuously across the map.
+\item \strong{\code{helmert} & \code{lm}}: Represent global affine transformations.
 The distortion metrics will be \strong{constant for every point}.
-\item \strong{\code{rf}}: Creates a step-like surface. The local derivatives may
-be effectively zero, resulting in metrics indicating no local distortion
-(e.g.,  \code{area_scale} = 1, \code{max_shear} = 0).
+\item \strong{\code{rf}}: Creates a piecewise-constant step surface. Because decision tree ensembles
+are non-differentiable step functions, local numerical derivatives are zero almost everywhere or
+erratic across partition boundaries, leading to uninformative metrics (e.g., \code{area_scale} = 1, \code{max_shear} = 0).
+A warning is raised when analyzing an \code{rf} model.
 }
 }
 \examples{

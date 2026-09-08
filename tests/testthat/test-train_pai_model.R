@@ -2,7 +2,7 @@ test_that("train_pai_model() creates valid models", {
   withr::with_tempdir({
     demo_files <- create_demo_data(output_dir = ".")
     gcp_data <- read_gcps(gcp_path = demo_files$gcp_path)
-    for (pai_method in c("rf", "lm", "gam", "helmert", "tps", "svmRadial", "svmLinear")) {
+    for (pai_method in c("rf", "lm", "gam", "helmert", "tps", "svmRadial", "svmLinear", "gp")) {
       model <- train_pai_model(gcp_data, pai_method = pai_method)
       expect_s3_class(model, "pai_model")
       expect_named(model, c("model", "method"))
@@ -35,6 +35,9 @@ test_that("train_pai_model() internal model classes are correct", {
     model_svm_linear <- train_pai_model(gcp_data, pai_method = "svmLinear")
     expect_s3_class(model_svm_linear$model$model_dx, "svm")
     expect_equal(model_svm_linear$model$model_dx$kernel, 0) # 0 for linear
+
+    model_gp <- train_pai_model(gcp_data, pai_method = "gp")
+    expect_s3_class(model_gp$model$model_dx, "spatialProcess")
   })
 })
 

@@ -16,7 +16,7 @@ train_pai_model(
 \item{gcp_data}{An \code{sf} object of homologous points from \code{read_gcps()}.}
 
 \item{pai_method}{A character string specifying the algorithm. One of:
-"lm","tps", "gam", "rf", "svmRadial", "svmLinear", or "helmert".}
+"lm", "tps", "gam", "rf", "svmRadial", "svmLinear", "gp", "gamboost", "torch", or "helmert".}
 
 \item{seed}{An integer for setting the random seed for reproducibility.}
 
@@ -36,16 +36,16 @@ spatial transformation.
 }
 \details{
 This function serves as a factory for creating transformation
-models. It supports machine learning methods ("lm", "gam", "rf", "svmRadial", "svmLinear") that learn
-the relationship between source coordinates and displacement vectors, as
-well as the analytical "helmert" method which solves for a global
-similarity transformation.
+models. It supports geodetic similarity ("helmert"), regularized splines
+("tps", "gam"), kernel methods ("svmRadial", "svmLinear", "gp"),
+boosting ("gamboost"), deep learning ("torch"), and ensemble trees ("rf").
 
-\strong{Important}: The more flexible machine learning models, \code{gam} and \code{rf},
-require a sufficient number of data points to produce stable and reliable
-results. This function will prevent training these models with fewer than
-60 homologous points to avoid overfitting. If you have a small number of
-points, please use the more robust "lm" or "helmert" methods.
+\strong{Important}: The more flexible machine learning models, \code{gam}, \code{rf},
+\code{gamboost}, and \code{torch}, require a sufficient number of data points to
+produce stable and reliable results. This function will prevent training
+these models with fewer than 60 homologous points to avoid overfitting.
+If you have a small number of points, please use more robust methods
+like "lm", "gp", or "helmert".
 }
 \examples{
 # Load the ground control points data

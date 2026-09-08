@@ -10,8 +10,8 @@
 #'   Key features of this method include:
 #' \itemize{
 #'   \item \strong{Automatic Model Handling:} It transparently handles the
-#'    different output structures of `helmert`,`tps`, `gam`, `lm`, `rf`,
-#'    `svmRadial` and `svmLinear` models, always returning a consistent
+#'    different output structures of `helmert`, `tps`, `gam`, `lm`, `rf`,
+#'    `svmRadial`, `svmLinear`, `gp`, `gamboost`, and `torch` models, always returning a consistent
 #'    `data.frame`.
 #'   \item \strong{Robust NA Handling:} It correctly handles `NA` values in the
 #'     `newdata` predictors. Rows with `NA` inputs will produce `NA` outputs,
@@ -146,6 +146,29 @@ predict.pai_model <- function(object, newdata, ...) {
       pred_dx[complete_rows_idx] <- predict(object$model$model_dx, x = clean_coords, ...)
       pred_dy[complete_rows_idx] <- predict(object$model$model_dy, x = clean_coords, ...)
 
+    } else if (object$method == "gp") {
+      clean_coords <- as.matrix(clean_data[, c("source_x", "source_y")])
+      pred_dx[complete_rows_idx] <- as.numeric(stats::predict(object$model$model_dx, x = clean_coords, ...))
+      pred_dy[complete_rows_idx] <- as.numeric(stats::predict(object$model$model_dy, x = clean_coords, ...))
+
+    } else if (object$method == "gamboost") {
+      pred_dx[complete_rows_idx] <- as.numeric(stats::predict(object$model$model_dx, newdata = clean_data, type = "response", ...))
+      pred_dy[complete_rows_idx] <- as.numeric(stats::predict(object$model$model_dy, newdata = clean_data, type = "response", ...))
+
+    } else if (object$method == "torch") {
+      x_raw <- as.matrix(clean_data[, c("source_x", "source_y")])
+      norm <- object$model$norm
+      x_norm <- sweep(sweep(x_raw, 2, norm$x_mean, "-"), 2, norm$x_sd, "/")
+      x_t <- torch::torch_tensor(x_norm, dtype = torch::torch_float32())
+
+      object$model$net$eval()
+      torch::with_no_grad({
+        pred_t <- object$model$net(x_t)
+      })
+      pred_mat <- as.matrix(pred_t)
+      pred_unnorm <- sweep(sweep(pred_mat, 2, norm$y_sd, "*"), 2, norm$y_mean, "+")
+      pred_dx[complete_rows_idx] <- pred_unnorm[, 1]
+      pred_dy[complete_rows_idx] <- pred_unnorm[, 2]
     }
   }
 

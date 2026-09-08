@@ -19,7 +19,7 @@ test_that("assess_pai_model() returns a correctly structured data frame", {
     demo_files <- create_demo_data(output_dir = ".")
     gcp_data <- read_gcps(gcp_path = demo_files$gcp_path)
 
-    methods_to_test <- c("rf", "lm", "gam", "helmert", "tps")
+    methods_to_test <- c("rf", "lm", "gam", "helmert", "tps", "gp")
     validation_types <- c("random", "spatial")
 
     for (pai_method in methods_to_test) {

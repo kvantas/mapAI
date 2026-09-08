@@ -192,3 +192,18 @@ test_that("`reference_scale` argument correctly normalizes log2_area_scale", {
                log2(0.96 / 4),
                tolerance = TOLERANCE)
 })
+
+test_that("analyze_distortion warns when using 'rf' model due to non-differentiability", {
+  mock_rf <- create_placeholder_model("rf")
+  mock_predict_zero <- function(object, newdata, ...) {
+    data.frame(dx = rep(0, nrow(newdata)), dy = rep(0, nrow(newdata)))
+  }
+  stub(analyze_distortion, 'predict', mock_predict_zero)
+
+  expect_warning(
+    suppressMessages(analyze_distortion(mock_rf, testing_points)),
+    "Random Forest ('rf') models produce piecewise-constant step functions",
+    fixed = TRUE
+  )
+})
+

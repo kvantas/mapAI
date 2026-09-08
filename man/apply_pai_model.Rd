@@ -14,6 +14,9 @@ apply_pai_model(pai_model, map, aoi = NULL, ...)
 
 \item{aoi}{An optional \code{sf} polygon object representing the Area of Interest.
 If provided, the transformation is only applied within this area.}
+
+\item{...}{Additional arguments passed on to the underlying predict methods
+(e.g., \code{predict.lm}, \code{predict.gam}, \code{predict.svm}).}
 }
 \value{
 A new \code{sf} object with the corrected geometry.

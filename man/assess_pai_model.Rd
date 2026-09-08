@@ -19,7 +19,7 @@ assess_pai_model(
 \item{gcp_data}{An \code{sf} object of homologous points, from \code{read_gcps()}.}
 
 \item{pai_method}{A character string specifying the algorithm to assess. One of:
-\code{helmert},\code{tps}, \code{gam}, \code{lm}, \code{rf}, \code{svmRadial} and \code{svmLinear}.}
+\code{helmert}, \code{tps}, \code{gam}, \code{lm}, \code{rf}, \code{svmRadial}, \code{svmLinear}, \code{gp}, \code{gamboost}, or \code{torch}.}
 
 \item{validation_type}{A character string specifying the validation
 strategy. One of "random", "spatial", "probability", or "stratified".}

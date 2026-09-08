@@ -2,20 +2,20 @@
 #' @description Trains a supervised learning or analytical model to define a
 #'   spatial transformation.
 #' @details This function serves as a factory for creating transformation
-#'   models. It supports machine learning methods ("lm", "gam", "rf", "svmRadial", "svmLinear") that learn
-#'   the relationship between source coordinates and displacement vectors, as
-#'   well as the analytical "helmert" method which solves for a global
-#'   similarity transformation.
+#'   models. It supports geodetic similarity ("helmert"), regularized splines
+#'   ("tps", "gam"), kernel methods ("svmRadial", "svmLinear", "gp"),
+#'   boosting ("gamboost"), deep learning ("torch"), and ensemble trees ("rf").
 #'
-#'   **Important**: The more flexible machine learning models, `gam` and `rf`,
-#'   require a sufficient number of data points to produce stable and reliable
-#'   results. This function will prevent training these models with fewer than
-#'   60 homologous points to avoid overfitting. If you have a small number of
-#'   points, please use the more robust "lm" or "helmert" methods.
+#'   **Important**: The more flexible machine learning models, `gam`, `rf`,
+#'   `gamboost`, and `torch`, require a sufficient number of data points to
+#'   produce stable and reliable results. This function will prevent training
+#'   these models with fewer than 60 homologous points to avoid overfitting.
+#'   If you have a small number of points, please use more robust methods
+#'   like "lm", "gp", or "helmert".
 #'
 #' @param gcp_data An `sf` object of homologous points from `read_gcps()`.
 #' @param pai_method A character string specifying the algorithm. One of:
-#'    "lm","tps", "gam", "rf", "svmRadial", "svmLinear", or "helmert".
+#'    "lm", "tps", "gam", "rf", "svmRadial", "svmLinear", "gp", "gamboost", "torch", or "helmert".
 #' @param seed An integer for setting the random seed for reproducibility.
 #' @param direction A character string specifying the modeling direction:
 #'    "forward" (default, modeling displacements from source to target, used for vector data)
@@ -57,7 +57,7 @@ train_pai_model <- function(gcp_data, pai_method, seed = 123, direction = c("for
   }
 
   # Check if the pai_method is valid
-  allowed_methods <- c("lm", "gam", "rf", "tps", "helmert", "svmRadial", "svmLinear")
+  allowed_methods <- c("lm", "gam", "rf", "tps", "helmert", "svmRadial", "svmLinear", "gp", "gamboost", "torch")
   if (!pai_method %in% allowed_methods) {
     stop(
       "Invalid 'pai_method'. Please choose one of: ",
@@ -89,10 +89,10 @@ train_pai_model <- function(gcp_data, pai_method, seed = 123, direction = c("for
   # --- 2. Data Requirement Guardrail ---
   # Check if a complex model is requested with insufficient data
   n_points <- nrow(gcp_data)
-  if (pai_method %in% c("gam", "rf") && n_points < 60) {
+  if (pai_method %in% c("gam", "rf", "gamboost", "torch") && n_points < 60) {
     error_message <- sprintf(
       "Method '%s' requires at least 60 data points for stable results,
-      but you provided %d. Please use simpler models like 'lm' or 'helmert'
+      but you provided %d. Please use simpler models like 'lm', 'gp', or 'helmert'
       for small datasets.",
       pai_method, n_points
     )
@@ -117,12 +117,97 @@ train_pai_model <- function(gcp_data, pai_method, seed = 123, direction = c("for
       model_dx = fields::Tps(x = source_coords, Y = df_train$dx, ...),
       model_dy = fields::Tps(x = source_coords, Y = df_train$dy, ...)
     )
+  } else if (pai_method == "gp") {
+    message("Fitting Gaussian Process (Kriging) model...")
+    source_coords <- as.matrix(df_train[, c("source_x", "source_y")])
+    # fields::spatialProcess internally calls args("stationary.cov") which
+    # requires package:fields to be on the search path during fitting.
+    was_attached <- "package:fields" %in% search()
+    if (!was_attached) {
+      suppressPackageStartupMessages(attachNamespace("fields"))
+      on.exit({
+        if (!was_attached && "package:fields" %in% search()) {
+          detach("package:fields", character.only = TRUE)
+        }
+      }, add = TRUE)
+    }
+    model_fit <- list(
+      model_dx = fields::spatialProcess(x = source_coords, y = df_train$dx, ...),
+      model_dy = fields::spatialProcess(x = source_coords, y = df_train$dy, ...)
+    )
   } else {
     # --- Handle Machine Learning Models ---
     df_ml <- dplyr::select(df_train, "source_x", "source_y", "dx", "dy")
     message("Training '", pai_method, "' model...")
 
-    if (pai_method == "gam") {
+    if (pai_method == "gamboost") {
+      if (!requireNamespace("mboost", quietly = TRUE)) {
+        stop("The 'mboost' package is required for method 'gamboost'. Please install it using install.packages('mboost').", call. = FALSE)
+      }
+      dots <- list(...)
+      ctrl <- if ("control" %in% names(dots)) dots$control else mboost::boost_control(mstop = 150, nu = 0.1)
+      dots_other <- dots[!names(dots) %in% "control"]
+
+      form_dx <- stats::as.formula("dx ~ mboost::bspatial(source_x, source_y, df = 4)")
+      form_dy <- stats::as.formula("dy ~ mboost::bspatial(source_x, source_y, df = 4)")
+
+      args_dx <- c(list(formula = form_dx, data = df_ml, control = ctrl), dots_other)
+      args_dy <- c(list(formula = form_dy, data = df_ml, control = ctrl), dots_other)
+
+      model_fit <- list(
+        model_dx = do.call(mboost::gamboost, args_dx),
+        model_dy = do.call(mboost::gamboost, args_dy)
+      )
+    } else if (pai_method == "torch") {
+      if (!requireNamespace("torch", quietly = TRUE)) {
+        stop("The 'torch' package is required for method 'torch'. Please install it using install.packages('torch').", call. = FALSE)
+      }
+      x_raw <- as.matrix(df_train[, c("source_x", "source_y")])
+      y_raw <- as.matrix(df_train[, c("dx", "dy")])
+
+      x_mean <- colMeans(x_raw)
+      x_sd <- apply(x_raw, 2, stats::sd)
+      x_sd[x_sd == 0] <- 1
+      y_mean <- colMeans(y_raw)
+      y_sd <- apply(y_raw, 2, stats::sd)
+      y_sd[y_sd == 0] <- 1
+
+      x_norm <- scale(x_raw, center = x_mean, scale = x_sd)
+      y_norm <- scale(y_raw, center = y_mean, scale = y_sd)
+
+      x_t <- torch::torch_tensor(x_norm, dtype = torch::torch_float32())
+      y_t <- torch::torch_tensor(y_norm, dtype = torch::torch_float32())
+
+      dots <- list(...)
+      hidden_dim <- if ("hidden_dim" %in% names(dots)) as.integer(dots$hidden_dim) else 64L
+      epochs <- if ("epochs" %in% names(dots)) as.integer(dots$epochs) else 200L
+      lr <- if ("lr" %in% names(dots)) as.numeric(dots$lr) else 0.01
+
+      torch::torch_manual_seed(seed)
+      net <- torch::nn_sequential(
+        torch::nn_linear(2L, hidden_dim),
+        torch::nn_gelu(),
+        torch::nn_linear(hidden_dim, hidden_dim),
+        torch::nn_gelu(),
+        torch::nn_linear(hidden_dim, 2L)
+      )
+
+      opt <- torch::optim_adam(net$parameters, lr = lr)
+      loss_fn <- torch::nn_mse_loss()
+
+      for (ep in seq_len(epochs)) {
+        opt$zero_grad()
+        preds <- net(x_t)
+        l <- loss_fn(preds, y_t)
+        l$backward()
+        opt$step()
+      }
+
+      model_fit <- list(
+        net = net,
+        norm = list(x_mean = x_mean, x_sd = x_sd, y_mean = y_mean, y_sd = y_sd)
+      )
+    } else if (pai_method == "gam") {
       formula_list <- list(dx ~ s(source_x, source_y), dy ~ s(source_x, source_y))
       model_fit <- mgcv::gam(formula_list, data = df_ml, family = mgcv::mvn(d = 2), ...)
     } else if (pai_method %in% c("svmRadial", "svmLinear")) {

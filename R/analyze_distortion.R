@@ -6,8 +6,7 @@
 #'   It implements a differential analysis by calculating the first partial
 #'   derivatives of the spatial transformation learned by a `pai_model`. This is
 #'   achieved using a  **numerical differentiation** (finite difference) method
-#'   that is universally applicable to all models in the package (`helmert`,
-#'   `tps`, `gam`, `lm`, `rf`,`svmRadial` and `svmLinear`).
+#'   that is applicable across models in the package.
 #'
 #'   From these derivatives, it calculates key distortion metrics that describe
 #'   how shape, area, and angles are warped at every point.
@@ -16,15 +15,16 @@
 #'
 #'   The nature of the output is **highly dependent** on the model used:
 #' \itemize{
-#'   \item \strong{`gam` & `tps` (Recommended for this analysis)}: Produce a
-#'   smooth, differentiable surface. The distortion metrics will be
-#'     **spatially variable** and provide a rich, meaningful understanding of
-#'     how distortion changes across the map.
-#'   \item \strong{`helmert` & `lm`}: Represent global transformations.
+#'   \item \strong{`gam`, `tps`, `gp`, `gamboost`, `torch`, & `svmRadial` (Recommended for this analysis)}:
+#'   Produce smooth, continuously differentiable surfaces (C^1, C^2, or smooth continuous transformations). The distortion
+#'   metrics will be **spatially variable** and provide a rich, theoretically sound understanding of
+#'   how distortion changes continuously across the map.
+#'   \item \strong{`helmert` & `lm`}: Represent global affine transformations.
 #'   The distortion metrics will be **constant for every point**.
-#'   \item \strong{`rf`}: Creates a step-like surface. The local derivatives may
-#'    be effectively zero, resulting in metrics indicating no local distortion
-#'    (e.g.,  `area_scale` = 1, `max_shear` = 0).
+#'   \item \strong{`rf`}: Creates a piecewise-constant step surface. Because decision tree ensembles
+#'   are non-differentiable step functions, local numerical derivatives are zero almost everywhere or
+#'   erratic across partition boundaries, leading to uninformative metrics (e.g., `area_scale` = 1, `max_shear` = 0).
+#'   A warning is raised when analyzing an `rf` model.
 #' }
 #'
 #' @param pai_model A model object of class `pai_model` from
@@ -87,6 +87,15 @@ analyze_distortion <- function(pai_model,
 
   if (!inherits(points_to_analyze, c("sf", "SpatRaster"))) {
     stop("`points_to_analyze` must be an sf object or terra `SpatRaster`.", call. = FALSE)
+  }
+
+  if (pai_model$method == "rf") {
+    warning(
+      "Random Forest ('rf') models produce piecewise-constant step functions that lack C^1 differentiability. ",
+      "Local numerical derivatives and Tissot distortion metrics may be uninformative or degenerate. ",
+      "For meaningful differential distortion analysis, consider smooth learners such as 'gam', 'tps', 'gp', 'gamboost', 'torch', or 'svmRadial'.",
+      call. = FALSE
+    )
   }
 
   if (is_raster) {
