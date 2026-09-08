@@ -24,8 +24,9 @@ train_pai_model(
 
 - pai_method:
 
-  A character string specifying the algorithm. One of: "lm","tps",
-  "gam", "rf", "svmRadial", "svmLinear", or "helmert".
+  A character string specifying the algorithm. One of: "lm", "tps",
+  "gam", "rf", "svmRadial", "svmLinear", "gp", "gamboost", "torch", or
+  "helmert".
 
 - seed:
 
@@ -54,17 +55,16 @@ A trained model object of class `pai_model`.
 ## Details
 
 This function serves as a factory for creating transformation models. It
-supports machine learning methods ("lm", "gam", "rf", "svmRadial",
-"svmLinear") that learn the relationship between source coordinates and
-displacement vectors, as well as the analytical "helmert" method which
-solves for a global similarity transformation.
+supports geodetic similarity ("helmert"), regularized splines ("tps",
+"gam"), kernel methods ("svmRadial", "svmLinear", "gp"), boosting
+("gamboost"), deep learning ("torch"), and ensemble trees ("rf").
 
-**Important**: The more flexible machine learning models, `gam` and
-`rf`, require a sufficient number of data points to produce stable and
-reliable results. This function will prevent training these models with
-fewer than 60 homologous points to avoid overfitting. If you have a
-small number of points, please use the more robust "lm" or "helmert"
-methods.
+**Important**: The more flexible machine learning models, `gam`, `rf`,
+`gamboost`, and `torch`, require a sufficient number of data points to
+produce stable and reliable results. This function will prevent training
+these models with fewer than 60 homologous points to avoid overfitting.
+If you have a small number of points, please use more robust methods
+like "lm", "gp", or "helmert".
 
 ## Examples
 
@@ -82,9 +82,9 @@ summary(gam_model$model)
 #> 
 #> Formula:
 #> dx ~ s(source_x, source_y)
-#> <environment: 0x55d735603948>
+#> <environment: 0x55600ef52550>
 #> dy ~ s(source_x, source_y)
-#> <environment: 0x55d735603948>
+#> <environment: 0x55600ef52550>
 #> 
 #> Parametric coefficients:
 #>               Estimate Std. Error z value Pr(>|z|)    
@@ -96,7 +96,7 @@ summary(gam_model$model)
 #> Approximate significance of smooth terms:
 #>                           edf Ref.df Chi.sq p-value    
 #> s(source_x,source_y)   23.845  27.45  234.5  <2e-16 ***
-#> s.1(source_x,source_y)  7.624  10.63  156.8  <2e-16 ***
+#> s.1(source_x,source_y)  7.623  10.63  156.8  <2e-16 ***
 #> ---
 #> Signif. codes:  0 ‘***’ 0.001 ‘**’ 0.01 ‘*’ 0.05 ‘.’ 0.1 ‘ ’ 1
 #> 

@@ -25,6 +25,11 @@ apply_pai_model(pai_model, map, aoi = NULL, ...)
   An optional `sf` polygon object representing the Area of Interest. If
   provided, the transformation is only applied within this area.
 
+- ...:
+
+  Additional arguments passed on to the underlying predict methods
+  (e.g., `predict.lm`, `predict.gam`, `predict.svm`).
+
 ## Value
 
 A new `sf` object with the corrected geometry.

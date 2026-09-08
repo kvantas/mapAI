@@ -104,20 +104,20 @@ scale calculation. Defaults to <code>1</code> (no normalization).</p></dd>
 It implements a differential analysis by calculating the first partial
 derivatives of the spatial transformation learned by a <code>pai_model</code>. This is
 achieved using a  <strong>numerical differentiation</strong> (finite difference) method
-that is universally applicable to all models in the package (<code>helmert</code>,
-<code>tps</code>, <code>gam</code>, <code>lm</code>, <code>rf</code>,<code>svmRadial</code> and <code>svmLinear</code>).</p>
+that is applicable across models in the package.</p>
 <p>From these derivatives, it calculates key distortion metrics that describe
 how shape, area, and angles are warped at every point.</p>
 <p><strong>Interpreting Results by Model Type:</strong></p>
-<p>The nature of the output is <strong>highly dependent</strong> on the model used:</p><ul><li><p><strong><code>gam</code> &amp; <code>tps</code> (Recommended for this analysis)</strong>: Produce a
-smooth, differentiable surface. The distortion metrics will be
-<strong>spatially variable</strong> and provide a rich, meaningful understanding of
-how distortion changes across the map.</p></li>
-<li><p><strong><code>helmert</code> &amp; <code>lm</code></strong>: Represent global transformations.
+<p>The nature of the output is <strong>highly dependent</strong> on the model used:</p><ul><li><p><strong><code>gam</code>, <code>tps</code>, <code>gp</code>, <code>gamboost</code>, <code>torch</code>, &amp; <code>svmRadial</code> (Recommended for this analysis)</strong>:
+Produce smooth, continuously differentiable surfaces (C^1, C^2, or smooth continuous transformations). The distortion
+metrics will be <strong>spatially variable</strong> and provide a rich, theoretically sound understanding of
+how distortion changes continuously across the map.</p></li>
+<li><p><strong><code>helmert</code> &amp; <code>lm</code></strong>: Represent global affine transformations.
 The distortion metrics will be <strong>constant for every point</strong>.</p></li>
-<li><p><strong><code>rf</code></strong>: Creates a step-like surface. The local derivatives may
-be effectively zero, resulting in metrics indicating no local distortion
-(e.g.,  <code>area_scale</code> = 1, <code>max_shear</code> = 0).</p></li>
+<li><p><strong><code>rf</code></strong>: Creates a piecewise-constant step surface. Because decision tree ensembles
+are non-differentiable step functions, local numerical derivatives are zero almost everywhere or
+erratic across partition boundaries, leading to uninformative metrics (e.g., <code>area_scale</code> = 1, <code>max_shear</code> = 0).
+A warning is raised when analyzing an <code>rf</code> model.</p></li>
 </ul></div>
 
     <div class="section level2">

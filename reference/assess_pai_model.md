@@ -29,7 +29,8 @@ assess_pai_model(
 - pai_method:
 
   A character string specifying the algorithm to assess. One of:
-  `helmert`,`tps`, `gam`, `lm`, `rf`, `svmRadial` and `svmLinear`.
+  `helmert`, `tps`, `gam`, `lm`, `rf`, `svmRadial`, `svmLinear`, `gp`,
+  `gamboost`, or `torch`.
 
 - validation_type:
 

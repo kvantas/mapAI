@@ -47,8 +47,9 @@ function (e.g., `predict(my_model, ...)`).
 Key features of this method include:
 
 - **Automatic Model Handling:** It transparently handles the different
-  output structures of `helmert`,`tps`, `gam`, `lm`, `rf`, `svmRadial`
-  and `svmLinear` models, always returning a consistent `data.frame`.
+  output structures of `helmert`, `tps`, `gam`, `lm`, `rf`, `svmRadial`,
+  `svmLinear`, `gp`, `gamboost`, and `torch` models, always returning a
+  consistent `data.frame`.
 
 - **Robust NA Handling:** It correctly handles `NA` values in the
   `newdata` predictors. Rows with `NA` inputs will produce `NA` outputs,

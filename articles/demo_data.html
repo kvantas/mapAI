@@ -119,18 +119,18 @@ into R using the package’s reading functions.</p>
 <div class="sourceCode" id="cb2"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="co"># Create the shapefile, raster, and GCPs CSV in a temporary directory</span></span>
 <span><span class="va">demo_files</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/create_demo_data.html">create_demo_data</a></span><span class="op">(</span>type <span class="op">=</span> <span class="st">"complex"</span>, seed <span class="op">=</span> <span class="fl">123</span><span class="op">)</span></span>
-<span><span class="co">#&gt;    -&gt; Homologous points saved to: /tmp/RtmpjDzuXa/demo_gcps.csv</span></span>
-<span><span class="co">#&gt;    -&gt; Distorted map saved to: /tmp/RtmpjDzuXa/demo_map.shp</span></span>
-<span><span class="co">#&gt; Writing map to: /tmp/RtmpjDzuXa/demo_map.tif</span></span>
+<span><span class="co">#&gt;    -&gt; Homologous points saved to: /tmp/RtmpiCSr6e/demo_gcps.csv</span></span>
+<span><span class="co">#&gt;    -&gt; Distorted map saved to: /tmp/RtmpiCSr6e/demo_map.shp</span></span>
+<span><span class="co">#&gt; Writing map to: /tmp/RtmpiCSr6e/demo_map.tif</span></span>
 <span><span class="co">#&gt; Map successfully written.</span></span>
-<span><span class="co">#&gt;    -&gt; Distorted raster saved to: /tmp/RtmpjDzuXa/demo_map.tif</span></span>
+<span><span class="co">#&gt;    -&gt; Distorted raster saved to: /tmp/RtmpiCSr6e/demo_map.tif</span></span>
 <span></span>
 <span><span class="co"># Load the GCPs (homologous points) from the demo file</span></span>
 <span><span class="va">gcp_data</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/read_gcps.html">read_gcps</a></span><span class="op">(</span>gcp_path <span class="op">=</span> <span class="va">demo_files</span><span class="op">$</span><span class="va">gcp_path</span><span class="op">)</span></span>
 <span></span>
 <span><span class="co"># Load the vector map that needs correction from the demo file</span></span>
 <span><span class="va">map_to_correct</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/read_map.html">read_map</a></span><span class="op">(</span>shp_path <span class="op">=</span> <span class="va">demo_files</span><span class="op">$</span><span class="va">shp_path</span><span class="op">)</span></span>
-<span><span class="co">#&gt; Reading layer `demo_map' from data source `/tmp/RtmpjDzuXa/demo_map.shp' using driver `ESRI Shapefile'</span></span>
+<span><span class="co">#&gt; Reading layer `demo_map' from data source `/tmp/RtmpiCSr6e/demo_map.shp' using driver `ESRI Shapefile'</span></span>
 <span><span class="co">#&gt; Simple feature collection with 30 features and 1 field</span></span>
 <span><span class="co">#&gt; Geometry type: LINESTRING</span></span>
 <span><span class="co">#&gt; Dimension:     XY</span></span>
@@ -221,7 +221,7 @@ artifacts.</p>
 <span><span class="co"># Save the corrected raster to disk using write_map()</span></span>
 <span><span class="va">output_raster_path</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/file.path.html" class="external-link">file.path</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/tempfile.html" class="external-link">tempdir</a></span><span class="op">(</span><span class="op">)</span>, <span class="st">"corrected_demo_map.tif"</span><span class="op">)</span></span>
 <span><span class="fu"><a href="../reference/write_map.html">write_map</a></span><span class="op">(</span><span class="va">corrected_raster</span>, <span class="va">output_raster_path</span>, overwrite <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span></span>
-<span><span class="co">#&gt; Writing map to: /tmp/RtmpjDzuXa/corrected_demo_map.tif</span></span>
+<span><span class="co">#&gt; Writing map to: /tmp/RtmpiCSr6e/corrected_demo_map.tif</span></span>
 <span><span class="co">#&gt; Map successfully written.</span></span></code></pre></div>
 <hr>
 </div>
@@ -257,11 +257,11 @@ distortion metrics at each point.</p>
 <span><span class="co">#&gt; $ a                      <span style="color: #949494; font-style: italic;">&lt;dbl&gt;</span> 1.0201617<span style="color: #949494;">, </span>1.0132633<span style="color: #949494;">, </span>1.0082489<span style="color: #949494;">, </span>1.0056066<span style="color: #949494;">, </span>1.0…</span></span>
 <span><span class="co">#&gt; $ b                      <span style="color: #949494; font-style: italic;">&lt;dbl&gt;</span> 0.9378401<span style="color: #949494;">, </span>0.9356228<span style="color: #949494;">, </span>0.9331371<span style="color: #949494;">, </span>0.9299045<span style="color: #949494;">, </span>0.9…</span></span>
 <span><span class="co">#&gt; $ area_scale             <span style="color: #949494; font-style: italic;">&lt;dbl&gt;</span> 0.9567486<span style="color: #949494;">, </span>0.9480322<span style="color: #949494;">, </span>0.9408344<span style="color: #949494;">, </span>0.9351181<span style="color: #949494;">, </span>0.9…</span></span>
-<span><span class="co">#&gt; $ log2_area_scale        <span style="color: #949494; font-style: italic;">&lt;dbl&gt;</span> -0.06378823<span style="color: #949494;">, </span>-0.07699201<span style="color: #949494;">, </span>-0.08798727<span style="color: #949494;">, </span>-0.09677…</span></span>
+<span><span class="co">#&gt; $ log2_area_scale        <span style="color: #949494; font-style: italic;">&lt;dbl&gt;</span> -0.06378822<span style="color: #949494;">, </span>-0.07699201<span style="color: #949494;">, </span>-0.08798727<span style="color: #949494;">, </span>-0.09677…</span></span>
 <span><span class="co">#&gt; $ max_shear              <span style="color: #949494; font-style: italic;">&lt;dbl&gt;</span> 2.409636<span style="color: #949494;">, </span>2.283177<span style="color: #949494;">, </span>2.217313<span style="color: #949494;">, </span>2.241536<span style="color: #949494;">, </span>2.30422…</span></span>
-<span><span class="co">#&gt; $ max_angular_distortion <span style="color: #949494; font-style: italic;">&lt;dbl&gt;</span> 0.08411216<span style="color: #949494;">, </span>0.07969792<span style="color: #949494;">, </span>0.07739883<span style="color: #949494;">, </span>0.07824438<span style="color: #949494;">,</span>…</span></span>
+<span><span class="co">#&gt; $ max_angular_distortion <span style="color: #949494; font-style: italic;">&lt;dbl&gt;</span> 0.08411216<span style="color: #949494;">, </span>0.07969792<span style="color: #949494;">, </span>0.07739884<span style="color: #949494;">, </span>0.07824438<span style="color: #949494;">,</span>…</span></span>
 <span><span class="co">#&gt; $ airy_kavrayskiy        <span style="color: #949494; font-style: italic;">&lt;dbl&gt;</span> 0.002258491<span style="color: #949494;">, </span>0.002300784<span style="color: #949494;">, </span>0.002428281<span style="color: #949494;">, </span>0.002656…</span></span>
-<span><span class="co">#&gt; $ theta_a                <span style="color: #949494; font-style: italic;">&lt;dbl&gt;</span> -0.01012249<span style="color: #949494;">, </span>-4.08984269<span style="color: #949494;">, </span>-8.30682561<span style="color: #949494;">, </span>-11.7028…</span></span></code></pre></div>
+<span><span class="co">#&gt; $ theta_a                <span style="color: #949494; font-style: italic;">&lt;dbl&gt;</span> -0.01012332<span style="color: #949494;">, </span>-4.08984326<span style="color: #949494;">, </span>-8.30682585<span style="color: #949494;">, </span>-11.7028…</span></span></code></pre></div>
 </div>
 <div class="section level3">
 <h3 id="step-5-visualize-distortion-metrics">Step 5: Visualize Distortion Metrics<a class="anchor" aria-label="anchor" href="#step-5-visualize-distortion-metrics"></a>

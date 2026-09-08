@@ -68,8 +68,7 @@ This function is the core analytical engine of the `mapAI` package. It
 implements a differential analysis by calculating the first partial
 derivatives of the spatial transformation learned by a `pai_model`. This
 is achieved using a **numerical differentiation** (finite difference)
-method that is universally applicable to all models in the package
-(`helmert`, `tps`, `gam`, `lm`, `rf`,`svmRadial` and `svmLinear`).
+method that is applicable across models in the package.
 
 From these derivatives, it calculates key distortion metrics that
 describe how shape, area, and angles are warped at every point.
@@ -78,17 +77,21 @@ describe how shape, area, and angles are warped at every point.
 
 The nature of the output is **highly dependent** on the model used:
 
-- **`gam` & `tps` (Recommended for this analysis)**: Produce a smooth,
-  differentiable surface. The distortion metrics will be **spatially
-  variable** and provide a rich, meaningful understanding of how
-  distortion changes across the map.
+- **`gam`, `tps`, `gp`, `gamboost`, `torch`, & `svmRadial` (Recommended
+  for this analysis)**: Produce smooth, continuously differentiable
+  surfaces (C^1, C^2, or smooth continuous transformations). The
+  distortion metrics will be **spatially variable** and provide a rich,
+  theoretically sound understanding of how distortion changes
+  continuously across the map.
 
-- **`helmert` & `lm`**: Represent global transformations. The distortion
-  metrics will be **constant for every point**.
+- **`helmert` & `lm`**: Represent global affine transformations. The
+  distortion metrics will be **constant for every point**.
 
-- **`rf`**: Creates a step-like surface. The local derivatives may be
-  effectively zero, resulting in metrics indicating no local distortion
-  (e.g., `area_scale` = 1, `max_shear` = 0).
+- **`rf`**: Creates a piecewise-constant step surface. Because decision
+  tree ensembles are non-differentiable step functions, local numerical
+  derivatives are zero almost everywhere or erratic across partition
+  boundaries, leading to uninformative metrics (e.g., `area_scale` = 1,
+  `max_shear` = 0). A warning is raised when analyzing an `rf` model.
 
 ## Examples
 
