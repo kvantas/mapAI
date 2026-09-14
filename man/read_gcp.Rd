@@ -4,7 +4,7 @@
 \alias{read_gcp}
 \title{Read and Prepare Homologous Points (GCPs) to an \code{gcp} Object}
 \usage{
-read_gcp(source_x, source_y, target_x, target_y)
+read_gcp(source_x, source_y, target_x, target_y, crs = NULL)
 }
 \arguments{
 \item{source_x}{Numeric vector of approximate ('from') x coordinates.}
@@ -14,6 +14,9 @@ read_gcp(source_x, source_y, target_x, target_y)
 \item{target_x}{Numeric vector of actual ('to') x coordinates.}
 
 \item{target_y}{Numeric vector of actual ('to') y coordinates.}
+
+\item{crs}{Optional Coordinate Reference System (CRS) for the control points,
+acceptable by \code{sf::st_crs()}. Defaults to \code{NULL}.}
 }
 \value{
 An \code{gcp} object of the homologous points and calculated \code{dx} and \code{dy}

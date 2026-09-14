@@ -362,6 +362,37 @@ validate_demo_data_inputs <- function(type, noise_sd, n_points, seed,
 }
 
 
+#' Assert that spatial data uses a projected coordinate system
+#'
+#' Issues a warning if the coordinate reference system is geographic (degrees),
+#' since PAI transformations operate in planar Cartesian coordinate space.
+#'
+#' @keywords internal
+#' @noRd
+assert_projected_crs <- function(x, name = "map") {
+  if (inherits(x, c("sf", "sfc", "gcp"))) {
+    crs_val <- if (inherits(x, "gcp")) attr(x, "crs") else sf::st_crs(x)
+    if (is.null(crs_val) || is.na(crs_val)) {
+      return(invisible(NULL))
+    }
+    if (isTRUE(sf::st_is_longlat(crs_val))) {
+      warning(
+        sprintf("The CRS of `%s` is geographic (longitude/latitude in degrees). PAI transformations assume planar Cartesian units (e.g., meters); consider projecting using sf::st_transform().", name),
+        call. = FALSE
+      )
+    }
+  } else if (inherits(x, "SpatRaster")) {
+    crs_val <- terra::crs(x)
+    if (nzchar(crs_val) && isTRUE(terra::is.lonlat(x))) {
+      warning(
+        sprintf("The CRS of `%s` is geographic (longitude/latitude in degrees). PAI transformations assume planar Cartesian units (e.g., meters); consider projecting using terra::project().", name),
+        call. = FALSE
+      )
+    }
+  }
+  invisible(NULL)
+}
+
 #' Validate Inputs for the map_transform function
 #'
 #' This is an internal helper function that checks the validity of all arguments
@@ -380,6 +411,8 @@ validate_map_transform <- function(pai_model, map, aoi){
     stop("`map` must be a valid `sf` object.", call. = FALSE)
   }
 
+  assert_projected_crs(map, name = "map")
+
   if (!is.null(aoi)) {
     if (!inherits(aoi, "sf") || !any(sf::st_geometry_type(aoi) %in% c("POLYGON", "MULTIPOLYGON"))) {
       stop("`aoi` must be a valid `sf` object with POLYGON or MULTIPOLYGON geometry.", call. = FALSE)
@@ -389,6 +422,7 @@ validate_map_transform <- function(pai_model, map, aoi){
       aoi <- sf::st_transform(aoi, sf::st_crs(map))
       message("Transformed `aoi` CRS to match `map` CRS.")
     }
+    assert_projected_crs(aoi, name = "aoi")
   }
 
   # If all checks pass, return invisibly

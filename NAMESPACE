@@ -11,6 +11,8 @@ S3method(print,helmert)
 S3method(print,pai_assessment)
 S3method(print,pai_model)
 S3method(residuals,pai_model)
+S3method(sf::st_as_sf,gcp)
+S3method(sf::st_crs,gcp)
 S3method(summary,distortion)
 S3method(summary,gcp)
 S3method(surface,pai_model)
@@ -48,7 +50,9 @@ importFrom(sf,
   st_geometry,
   st_geometry_type,
   st_intersection,
+  st_is_valid,
   st_linestring,
+  st_make_valid,
   st_multilinestring,
   st_multipoint,
   st_multipolygon,

@@ -186,3 +186,49 @@ test_that("apply_pai_model works correctly with an AOI polygon", {
   # The coordinates of the points inside the AOI should have changed
   expect_false(identical(original_coords[inside_indices, ], corrected_coords[inside_indices, ]))
 })
+
+test_that("transform_map() warns when input has geographic (unprojected) CRS", {
+  gcps <- create_dummy_gcp_data(20)
+  mod <- train_pai_model(gcps, "lm")
+
+  df_geo <- data.frame(id = 1, x = 10, y = 20)
+  map_geo <- sf::st_as_sf(df_geo, coords = c("x", "y"), crs = 4326)
+
+  expect_warning(
+    transform_map(mod, map_geo),
+    "The CRS of `map` is geographic"
+  )
+})
+
+test_that("transform_map() validates and repairs topology when requested", {
+  gcps <- create_dummy_gcp_data(10)
+  # Model that causes polygon edges to cross (bowtie)
+  bowtie_model <- list(
+    label = "Bowtie Model",
+    library = NULL,
+    modelType = "bivariate",
+    fit = function(...) list(),
+    predict = function(modelFit, newdata, ...) {
+      dx <- rep(0, nrow(newdata))
+      dy <- ifelse(newdata[, 1] > 5 & newdata[, 2] < 5, 10,
+                   ifelse(newdata[, 1] > 5 & newdata[, 2] >= 5, -10, 0))
+      cbind(dx, dy)
+    }
+  )
+  mod <- train_pai_model(gcps, bowtie_model)
+
+  poly <- sf::st_polygon(list(matrix(
+    c(0, 0, 10, 0, 10, 10, 0, 10, 0, 0),
+    ncol = 2, byrow = TRUE
+  )))
+  map <- sf::st_sf(id = 1, geometry = sf::st_sfc(poly, crs = 3857))
+
+  # With repair_topology = FALSE, geometry is invalid
+  raw_res <- transform_map(mod, map, repair_topology = FALSE)
+  expect_false(all(sf::st_is_valid(raw_res)))
+
+  # With repair_topology = TRUE (default), geometry is automatically repaired
+  rep_res <- transform_map(mod, map, repair_topology = TRUE)
+  expect_true(all(sf::st_is_valid(rep_res)))
+})
+

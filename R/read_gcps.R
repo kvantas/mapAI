@@ -8,12 +8,15 @@
 #' @param source_y Numeric vector of approximate ('from') y coordinates.
 #' @param target_x Numeric vector of actual ('to') x coordinates.
 #' @param target_y Numeric vector of actual ('to') y coordinates.
+#' @param crs Optional Coordinate Reference System (CRS) for the control points,
+#'   acceptable by \code{sf::st_crs()}. Defaults to \code{NULL}.
 #'
 #' @return An `gcp` object of the homologous points and calculated `dx` and `dy`
 #'   displacement columns.
 #'
 #' @importFrom utils read.csv
 #' @importFrom rlang .data
+#' @importFrom sf st_crs st_as_sf
 #' @export
 #' @examples
 #' # Sample data
@@ -31,7 +34,7 @@
 #' print(gcp_data)
 #' summary(gcp_data)
 #' plot(gcp_data)
-read_gcp <- function(source_x, source_y, target_x, target_y) {
+read_gcp <- function(source_x, source_y, target_x, target_y, crs = NULL) {
 
   # ---  Input Validation ---
   input_validation(source_x, source_y, target_x, target_y)
@@ -47,6 +50,10 @@ read_gcp <- function(source_x, source_y, target_x, target_y) {
   gcp_df$dx <- gcp_df$target_x - gcp_df$source_x
   gcp_df$dy <- gcp_df$target_y - gcp_df$source_y
 
+  if (!is.null(crs)) {
+    attr(gcp_df, "crs") <- sf::st_crs(crs)
+  }
+
   # set the class to gcp
   class(gcp_df) <- c("gcp", "data.frame")
 
@@ -59,6 +66,11 @@ read_gcp <- function(source_x, source_y, target_x, target_y) {
 #' @export
 print.gcp <- function(x, ...) {
   cat("GCP Object with", nrow(x), "points\n")
+  if (!is.null(attr(x, "crs")) && !is.na(attr(x, "crs"))) {
+    crs_info <- attr(x, "crs")$input
+    if (is.null(crs_info)) crs_info <- attr(x, "crs")$wkt
+    cat("CRS:", crs_info, "\n")
+  }
   n <- nrow(x)
   if (n > 10) {
     cat("Displaying first 10 points:\n")
@@ -193,4 +205,52 @@ plot.gcp <- function(x,
 
   return(plt)
 }
+
+#' Convert a GCP Object to an sf Spatial Point Object
+#'
+#' Converts a `gcp` object containing homologous control points into an `sf`
+#' spatial point collection using either source or target coordinates.
+#'
+#' @param x An object of class `gcp`.
+#' @param coords A character string specifying which coordinates to use for
+#'   the spatial geometry: `"source"` (default) or `"target"`.
+#' @param crs Optional Coordinate Reference System. If `NULL` (default), uses
+#'   the `crs` attribute of the `gcp` object if present.
+#' @param ... Additional arguments passed to `sf::st_as_sf()`.
+#'
+#' @return An `sf` spatial point object containing the GCP coordinates and displacements.
+#' @exportS3Method sf::st_as_sf
+#' @examples
+#' gcp_data <- read_gcp(
+#'   source_x = c(10, 20, 30), source_y = c(15, 25, 35),
+#'   target_x = c(12, 22, 32), target_y = c(17, 27, 37),
+#'   crs = 3857
+#' )
+#' sf_pts <- sf::st_as_sf(gcp_data, coords = "source")
+#' print(sf_pts)
+st_as_sf.gcp <- function(x, coords = c("source", "target"), crs = NULL, ...) {
+  coords <- match.arg(coords)
+  coord_cols <- if (coords == "source") c("source_x", "source_y") else c("target_x", "target_y")
+  if (is.null(crs)) {
+    crs <- attr(x, "crs")
+  }
+  sf::st_as_sf(as.data.frame(x), coords = coord_cols, crs = crs, ...)
+}
+
+#' Get Coordinate Reference System of a GCP Object
+#'
+#' @param x An object of class `gcp`.
+#' @param ... Additional arguments (not used).
+#'
+#' @return A `crs` object or `NA`.
+#' @exportS3Method sf::st_crs
+st_crs.gcp <- function(x, ...) {
+  crs_attr <- attr(x, "crs")
+  if (is.null(crs_attr)) {
+    sf::st_crs(NA)
+  } else {
+    crs_attr
+  }
+}
+
 

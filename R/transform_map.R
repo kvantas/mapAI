@@ -8,6 +8,10 @@
 #' @param map An `sf` object representing the vector map, or a `terra`
 #'   `SpatRaster` representing a raster map to be corrected.
 #' @param aoi An optional `sf` polygon object representing the Area of Interest.
+#' @param repair_topology Logical; if `TRUE` (default), checks whether
+#'   non-linear warping produced invalid polygon topologies using
+#'   \code{sf::st_is_valid()} and automatically repairs them with
+#'   \code{sf::st_make_valid()}.
 #' @param ... Additional arguments passed to `apply_pai_raster()` when `map`
 #'   is a `SpatRaster`.
 #'
@@ -17,7 +21,7 @@
 #' @importFrom sf st_geometry st_geometry_type st_coordinates st_sfc
 #'   st_set_geometry st_intersection st_difference st_bbox st_as_sf st_area
 #'   st_crs st_point st_linestring st_polygon st_multipoint st_multilinestring
-#'   st_multipolygon
+#'   st_multipolygon st_is_valid st_make_valid
 #' @importFrom stats predict
 #' @export
 #' @examples
@@ -52,7 +56,7 @@
 #    title = "Positional Correction of a Distorted Grid",
 #     subtitle = "Overlay of original (dashed) and corrected (solid) geometries") +
 #   theme_minimal()
-transform_map <- function(pai_model, map, aoi = NULL, ...) {
+transform_map <- function(pai_model, map, aoi = NULL, repair_topology = TRUE, ...) {
 
   # If map is a SpatRaster, dispatch to apply_pai_raster
   if (inherits(map, "SpatRaster")) {
@@ -241,7 +245,21 @@ transform_map <- function(pai_model, map, aoi = NULL, ...) {
     corrected_map <- rbind(map_inside_aoi, map_outside_aoi)
   }
 
-  # --- 5. Update Area ---
+  # --- 5. Topology Validation and Repair ---
+  if (isTRUE(repair_topology) && inherits(corrected_map, "sf") && nrow(corrected_map) > 0) {
+    geom_types_check <- as.character(sf::st_geometry_type(corrected_map, by_geometry = TRUE))
+    if (any(geom_types_check %in% c("POLYGON", "MULTIPOLYGON"))) {
+      is_valid_geom <- sf::st_is_valid(corrected_map)
+      if (any(!is_valid_geom, na.rm = TRUE)) {
+        n_invalid <- sum(!is_valid_geom, na.rm = TRUE)
+        message(sprintf("Repairing %d invalid polygon %s resulting from non-linear transformation...",
+                        n_invalid, if (n_invalid == 1) "geometry" else "geometries"))
+        corrected_map <- sf::st_make_valid(corrected_map)
+      }
+    }
+  }
+
+  # --- 6. Update Area ---
   if (any(grepl("POLYGON",
                 sf::st_geometry_type(corrected_map, by_geometry = FALSE)))) {
     message("Recalculating polygon areas...")

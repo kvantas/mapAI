@@ -126,3 +126,32 @@ test_that("plot.gcp returns a valid ggplot object with correct data", {
   expect_equal(plot_data$yend, expected_yend)
 
 })
+
+test_that("read_gcp() supports crs parameter and sf conversion", {
+  gcp_data <- create_dummy_gcp_data(5)
+  gcps <- read_gcp(
+    source_x = gcp_data$source_x,
+    source_y = gcp_data$source_y,
+    target_x = gcp_data$source_x + gcp_data$dx,
+    target_y = gcp_data$source_y + gcp_data$dy,
+    crs = 3857
+  )
+
+  # Check CRS retrieval
+  expect_equal(sf::st_crs(gcps), sf::st_crs(3857))
+
+  # Check conversion to sf
+  sf_src <- sf::st_as_sf(gcps, coords = "source")
+  expect_s3_class(sf_src, "sf")
+  expect_equal(sf::st_crs(sf_src), sf::st_crs(3857))
+  expect_equal(sf::st_coordinates(sf_src)[, 1], gcps$source_x)
+
+  sf_tgt <- sf::st_as_sf(gcps, coords = "target")
+  expect_s3_class(sf_tgt, "sf")
+  expect_equal(sf::st_coordinates(sf_tgt)[, 1], gcps$target_x)
+
+  # Check print with CRS
+  output <- capture.output(print(gcps))
+  expect_true(any(grepl("CRS:", output)))
+})
+

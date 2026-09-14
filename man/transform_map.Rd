@@ -4,7 +4,7 @@
 \alias{transform_map}
 \title{Apply a Trained PAI Model to Correct a Map (Vector or Raster)}
 \usage{
-transform_map(pai_model, map, aoi = NULL, ...)
+transform_map(pai_model, map, aoi = NULL, repair_topology = TRUE, ...)
 }
 \arguments{
 \item{pai_model}{An object of class \code{pai_model} returned by
@@ -14,6 +14,11 @@ transform_map(pai_model, map, aoi = NULL, ...)
 \code{SpatRaster} representing a raster map to be corrected.}
 
 \item{aoi}{An optional \code{sf} polygon object representing the Area of Interest.}
+
+\item{repair_topology}{Logical; if \code{TRUE} (default), checks whether
+non-linear warping produced invalid polygon topologies using
+\code{sf::st_is_valid()} and automatically repairs them with
+\code{sf::st_make_valid()}.}
 
 \item{...}{Additional arguments passed to \code{apply_pai_raster()} when \code{map}
 is a \code{SpatRaster}.}
