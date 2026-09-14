@@ -246,3 +246,37 @@ test_that("apply_pai_raster() works with custom models provided as a list", {
   expect_equal(dim(corrected_rast), dim(r_cont))
 })
 
+test_that("apply_pai_raster() supports ext = 'auto' and custom ext", {
+  r_cont <- create_test_rast(nrows = 15, ncols = 15, type = "continuous")
+  gam_model <- train_pai_model(test_gcps, method = "gam_biv")
+
+  # Auto extent
+  corr_auto <- apply_pai_raster(gam_model, r_cont, ext = "auto")
+  expect_s4_class(corr_auto, "SpatRaster")
+  expect_false(identical(as.vector(terra::ext(corr_auto)), as.vector(terra::ext(r_cont))))
+
+  # Custom SpatExtent
+  cust_ext <- terra::ext(-10, 110, -10, 110)
+  corr_cust <- apply_pai_raster(gam_model, r_cont, ext = cust_ext)
+  expect_equal(as.vector(terra::ext(corr_cust)), as.vector(cust_ext))
+
+  # Numeric vector of length 4
+  corr_vec <- apply_pai_raster(gam_model, r_cont, ext = c(-5, 105, -5, 105))
+  expect_equal(unname(as.vector(terra::ext(corr_vec))), c(-5, 105, -5, 105))
+
+  # Error handling for invalid ext, max_iter, tol
+  expect_error(
+    apply_pai_raster(gam_model, r_cont, ext = "invalid_option"),
+    "`ext` must be 'auto'"
+  )
+  expect_error(
+    apply_pai_raster(gam_model, r_cont, max_iter = 0),
+    "`max_iter` must be a positive integer"
+  )
+  expect_error(
+    apply_pai_raster(gam_model, r_cont, tol = -1),
+    "`tol` must be a positive number"
+  )
+})
+
+

@@ -73,11 +73,19 @@
 #'   computed directly for each cell center.
 #' @param aoi An optional `sf` or `terra` `SpatVector` polygon object representing
 #'   an Area of Interest. If provided, cells outside the AOI are masked to `NA`.
+#' @param ext Target raster extent. Can be `NULL` (default, preserves source
+#'   raster extent), `"auto"` (automatically computes bounding extent from
+#'   forward-projected perimeter coordinates), a `terra::SpatExtent` object, or
+#'   a numeric vector of length 4 \code{c(xmin, xmax, ymin, ymax)}.
+#' @param max_iter Maximum number of iterations for the damped fixed-point
+#'   iterative coordinate inversion. Defaults to 15.
+#' @param tol Convergence tolerance in coordinate units (e.g., meters) for
+#'   the iterative coordinate inversion. Defaults to 1e-4.
 #' @param ... Additional arguments passed on to `predict.pai_model()`.
 #'
 #' @return An in-memory `terra` `SpatRaster` object with corrected spatial alignment.
 #'
-#' @importFrom terra rast res res<- crds values values<- nlyr extract resample mask project vect crs
+#' @importFrom terra rast res res<- crds values values<- nlyr extract resample mask project vect crs ext ext<-
 #' @importFrom stats predict
 #' @export
 #' @examples
@@ -106,6 +114,9 @@ apply_pai_raster <- function(pai_model,
                              res = NULL,
                              mesh_step = NULL,
                              aoi = NULL,
+                             ext = NULL,
+                             max_iter = 15,
+                             tol = 1e-4,
                              ...) {
 
   # --- 1. Input Validation ---
@@ -140,12 +151,61 @@ apply_pai_raster <- function(pai_model,
     }
   }
 
+  if (!is.null(ext)) {
+    if (!identical(ext, "auto") && !inherits(ext, "SpatExtent") &&
+        !(is.numeric(ext) && length(ext) == 4)) {
+      stop("`ext` must be 'auto', a terra SpatExtent, or a numeric vector of length 4 (xmin, xmax, ymin, ymax).",
+           call. = FALSE)
+    }
+  }
+
+  if (!is.numeric(max_iter) || max_iter < 1) {
+    stop("`max_iter` must be a positive integer.", call. = FALSE)
+  }
+  max_iter <- as.integer(max_iter)
+
+  if (!is.numeric(tol) || tol <= 0) {
+    stop("`tol` must be a positive number.", call. = FALSE)
+  }
+
   message("Applying PAI model to raster...")
 
   # --- 2. Define Target Raster Template (in memory) ---
   target_template <- terra::rast(raster)
-  if (!is.null(res)) {
-    terra::res(target_template) <- res
+  if (!is.null(ext)) {
+    if (identical(ext, "auto")) {
+      e <- terra::ext(raster)
+      xs <- seq(e$xmin, e$xmax, length.out = 10)
+      ys <- seq(e$ymin, e$ymax, length.out = 10)
+      perim <- data.frame(
+        source_x = c(xs, xs, rep(e$xmin, length(ys)), rep(e$xmax, length(ys))),
+        source_y = c(rep(e$ymin, length(xs)), rep(e$ymax, length(xs)), ys, ys)
+      )
+      pred_perim <- stats::predict(pai_model, newdata = perim, ...)
+      target_perim_x <- perim$source_x + pred_perim$dx
+      target_perim_y <- perim$source_y + pred_perim$dy
+      auto_ext <- terra::ext(
+        min(target_perim_x, na.rm = TRUE),
+        max(target_perim_x, na.rm = TRUE),
+        min(target_perim_y, na.rm = TRUE),
+        max(target_perim_y, na.rm = TRUE)
+      )
+      terra::ext(target_template) <- auto_ext
+      if (!is.null(res)) {
+        terra::res(target_template) <- res
+      } else {
+        terra::res(target_template) <- terra::res(raster)
+      }
+    } else {
+      terra::ext(target_template) <- terra::ext(ext)
+      if (!is.null(res)) {
+        terra::res(target_template) <- res
+      }
+    }
+  } else {
+    if (!is.null(res)) {
+      terra::res(target_template) <- res
+    }
   }
 
   # --- 3. Compute Inverse Mapping (Target -> Source Coordinates) ---
@@ -168,7 +228,11 @@ apply_pai_raster <- function(pai_model,
       sy <- ty + disp$dy
     } else {
       # Invert forward model
-      if (identical(pai_model$method, "helmert")) {
+      is_helmert <- identical(pai_model$method, "helmert") ||
+                    inherits(pai_model$model, "helmert") ||
+                    (is.list(pai_model$method) && identical(pai_model$method$label, "Helmert Model"))
+
+      if (is_helmert) {
         coefs <- pai_model$model$coefficients
         cents <- pai_model$model$centroids
         a <- coefs["a"]
@@ -184,13 +248,22 @@ apply_pai_raster <- function(pai_model,
         sx <- u + cents["u_mean"]
         sy <- v + cents["v_mean"]
       } else {
-        # Rapid iterative fixed-point backward mapping
-        curr_sx <- tx
-        curr_sy <- ty
-        for (iter in seq_len(2)) {
+        # Damped fixed-point iterative coordinate inversion:
+        # s^(k+1) = s^(k) - lambda * (s^(k) + d(s^(k)) - t)
+        p0 <- stats::predict(pai_model, newdata = data.frame(source_x = tx, source_y = ty), ...)
+        curr_sx <- tx - p0$dx
+        curr_sy <- ty - p0$dy
+        lambda <- 0.7
+        for (iter in seq_len(max_iter)) {
           d <- stats::predict(pai_model, newdata = data.frame(source_x = curr_sx, source_y = curr_sy), ...)
-          curr_sx <- tx - d$dx
-          curr_sy <- ty - d$dy
+          ex <- curr_sx + d$dx - tx
+          ey <- curr_sy + d$dy - ty
+          max_err <- max(sqrt(ex^2 + ey^2), na.rm = TRUE)
+          if (!is.finite(max_err) || max_err < tol) {
+            break
+          }
+          curr_sx <- curr_sx - lambda * ex
+          curr_sy <- curr_sy - lambda * ey
         }
         sx <- curr_sx
         sy <- curr_sy

@@ -11,6 +11,9 @@ apply_pai_raster(
   res = NULL,
   mesh_step = NULL,
   aoi = NULL,
+  ext = NULL,
+  max_iter = 15,
+  tol = 1e-04,
   ...
 )
 }
@@ -34,6 +37,17 @@ computed directly for each cell center.}
 
 \item{aoi}{An optional \code{sf} or \code{terra} \code{SpatVector} polygon object representing
 an Area of Interest. If provided, cells outside the AOI are masked to \code{NA}.}
+
+\item{ext}{Target raster extent. Can be \code{NULL} (default, preserves source
+raster extent), \code{"auto"} (automatically computes bounding extent from
+forward-projected perimeter coordinates), a \code{terra::SpatExtent} object, or
+a numeric vector of length 4 \code{c(xmin, xmax, ymin, ymax)}.}
+
+\item{max_iter}{Maximum number of iterations for the damped fixed-point
+iterative coordinate inversion. Defaults to 15.}
+
+\item{tol}{Convergence tolerance in coordinate units (e.g., meters) for
+the iterative coordinate inversion. Defaults to 1e-4.}
 
 \item{...}{Additional arguments passed on to \code{predict.pai_model()}.}
 }

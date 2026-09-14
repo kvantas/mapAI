@@ -69,10 +69,12 @@ importFrom(stats,
   sd
 )
 importFrom(terra,
+  "ext<-",
   "res<-",
   "values<-",
   crds,
   crs,
+  ext,
   extract,
   mask,
   nlyr,

@@ -4,7 +4,7 @@
 \alias{helmert}
 \title{Helmert 2D Transformation Solver}
 \usage{
-helmert(source_x, source_y, target_x, target_y)
+helmert(source_x, source_y, target_x, target_y, method = c("ols", "tls"))
 }
 \arguments{
 \item{source_x}{Numeric vector of approximate ('from') x coordinates.}
@@ -14,30 +14,65 @@ helmert(source_x, source_y, target_x, target_y)
 \item{target_x}{Numeric vector of actual ('to') x coordinates.}
 
 \item{target_y}{Numeric vector of actual ('to') y coordinates.}
+
+\item{method}{Estimation method: \code{"ols"} (Ordinary Least Squares, default) or
+\code{"tls"} (Total Least Squares / SVD Procrustes).}
 }
 \value{
-An object of class \code{helmert} containing the calculated coefficients
-and the original data centroids.
+An object of class \code{helmert} containing:
+\item{coefficients}{Calculated coefficients \eqn{a} and \eqn{b}.}
+\item{centroids}{Centroids of source and target coordinates.}
+\item{parameters}{Named vector of physical parameters: \code{scale}, \code{theta_deg},
+\code{theta_rad}, \code{tx}, \code{ty}.}
+\item{se}{Standard errors of \code{scale}, \code{theta_deg}, \code{tx}, and \code{ty}.}
+\item{sigma0}{Reference standard deviation (standard error of unit weight).}
+\item{df}{Degrees of freedom (\eqn{2n - 4}).}
+\item{residuals}{Data frame of coordinate residuals \eqn{(r_x, r_y)}.}
+\item{method}{Estimation method used (\code{"ols"} or \code{"tls"}).}
 }
 \description{
-Calculates the four parameters of a 2D similarity (Helmert)
-transformation using a standard, numerically stable least-squares solution
-based on centroids.
+Calculates the parameters of a 2D similarity (Helmert)
+transformation using either Ordinary Least Squares (OLS) or Total Least
+Squares (TLS / Procrustes Analysis). Calculates geodetic physical
+parameters (scale factor, rotation angle, translations), standard errors,
+and residual variance.
+}
+\details{
+The 2D conformal similarity (Helmert) transformation relates
+source coordinates \eqn{(u, v)} to target coordinates \eqn{(x, y)} through:
+\deqn{\begin{pmatrix} x \\ y \end{pmatrix} = \begin{pmatrix} t_x \\ t_y \end{pmatrix} + \begin{pmatrix} a & -b \\ b & a \end{pmatrix} \begin{pmatrix} u \\ v \end{pmatrix}}
+where the physical parameters are:
+\itemize{
+\item Scale factor: \eqn{s = \sqrt{a^2 + b^2}}
+\item Rotation angle: \eqn{\theta = \operatorname{atan2}(b, a)}
+\item Translation vector: \eqn{(t_x, t_y)}
+}
+
+When \code{method = "ols"}, errors are assumed only in the target coordinates.
+When \code{method = "tls"}, errors in both source and target coordinates are
+simultaneously minimized using Singular Value Decomposition (SVD),
+mitigating attenuation bias (regression dilution).
 }
 \examples{
-# Sample data
+# Sample homologous control points
 source_coords <- data.frame(source_x = c(10, 20, 30, 15),
-                           source_y = c(15, 25, 10, 5))
-
+                            source_y = c(15, 25, 10, 5))
 target_coords <- data.frame(target_x = c(110.5, 119.8, 131.2, 114.0),
-                         target_y = c(114.5, 125.2, 109.8, 104.9))
+                            target_y = c(114.5, 125.2, 109.8, 104.9))
 
-# Calculate Helmert transformation
+# Calculate Helmert transformation via OLS
 helmert_model <- helmert(
   source_x = source_coords$source_x,
   source_y = source_coords$source_y,
   target_x = target_coords$target_x,
-  target_y = target_coords$target_y
+  target_y = target_coords$target_y,
+  method = "ols"
 )
 print(helmert_model)
+}
+\references{
+\itemize{
+\item Wolf, P. R., & Ghilani, C. D. (2006). \emph{Adjustment Computations: Spatial Data Analysis} (4th ed.). John Wiley & Sons.
+\item Vantas, K., & Mirkopoulou, E. (2025). \emph{mapAI: An R Package for Positional Accuracy Improvement of Vector Maps}.
+}
 }
