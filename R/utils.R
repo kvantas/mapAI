@@ -118,8 +118,9 @@ plot_input_validation <- function(
     stop("`x` must be an object of class 'distortion'.", call. = FALSE)
   }
 
-  valid_metrics <- c("a", "b", "area_scale", "log2_area_scale", "max_shear",
-                     "max_angular_distortion", "theta_a", "airy_kavrayskiy")
+  valid_metrics <- c("a", "b", "area_scale", "signed_area_scale", "det_J", "is_inverted",
+                     "log2_area_scale", "max_shear", "max_angular_distortion",
+                     "theta_a", "airy_kavrayskiy")
   if (!metric %in% valid_metrics) {
     stop(paste("`metric` must be one of:",
                paste(valid_metrics, collapse = ", ")), call. = FALSE)

@@ -120,9 +120,30 @@ analyze_distortion <- function(pai_model,
   sqrt_term <- sqrt(pmax(0, (E - G)^2 + 4 * F_metric^2))
 
   a <- sqrt(0.5 * (E + G + sqrt_term))
-  b <- sqrt(0.5 * (E + G - sqrt_term))
+  b <- sqrt(0.5 * pmax(0, E + G - sqrt_term))
 
+  # Signed Jacobian determinant: det(J) = (dfx/dx)(dfy/dy) - (dfx/dy)(dfy/dx)
+  det_J <- dfx_dx * dfy_dy - dfx_dy * dfy_dx
   area_scale <- a * b
+  signed_area_scale <- det_J
+  is_inverted <- det_J <= 0
+
+  n_inverted <- sum(is_inverted, na.rm = TRUE)
+  if (n_inverted > 0) {
+    warning(
+      sprintf("Topological fold-over detected: %d location(s) have non-positive Jacobian determinant (det_J <= 0).",
+              n_inverted),
+      call. = FALSE
+    )
+  }
+
+  sum_ab <- a + b
+  diff_ab <- a - b
+  ratio_ab <- ifelse(sum_ab > 0, diff_ab / sum_ab, 0)
+  ratio_ab <- pmin(1, pmax(-1, ratio_ab))
+  max_shear <- asin(ratio_ab) * 180 / pi
+  max_angular_distortion <- 2 * asin(ratio_ab)
+  airy_kavrayskiy <- 0.5 * (log(pmax(1e-12, a))^2 + log(pmax(1e-12, b))^2)
 
   theta_xp <- atan2(dfy_dx, dfx_dx)
   alpha_p <- atan2(2 * F_metric, E - G) / 2
@@ -133,10 +154,13 @@ analyze_distortion <- function(pai_model,
       a = a,
       b = b,
       area_scale = area_scale,
-      log2_area_scale = log2(area_scale / (reference_scale^2)),
-      max_shear = asin((a - b) / (a + b)) * 180 / pi,
-      max_angular_distortion = 2 * asin((a - b) / (a + b)),
-      airy_kavrayskiy = 0.5 * (log(a)^2 + log(b)^2),
+      signed_area_scale = signed_area_scale,
+      det_J = det_J,
+      is_inverted = as.numeric(is_inverted),
+      log2_area_scale = log2(pmax(1e-12, area_scale) / (reference_scale^2)),
+      max_shear = max_shear,
+      max_angular_distortion = max_angular_distortion,
+      airy_kavrayskiy = airy_kavrayskiy,
       theta_a = theta_a
     )
     out_rast <- terra::rast(orig_raster, nlyrs = ncol(metrics_mat))
@@ -150,10 +174,13 @@ analyze_distortion <- function(pai_model,
     results$a <- a
     results$b <- b
     results$area_scale <- area_scale
-    results$log2_area_scale <- log2(area_scale / (reference_scale^2))
-    results$max_shear <- asin((a - b) / (a + b)) * 180 / pi
-    results$max_angular_distortion <- 2 * asin((a - b) / (a + b))
-    results$airy_kavrayskiy <- 0.5 * (log(a)^2 + log(b)^2)
+    results$signed_area_scale <- signed_area_scale
+    results$det_J <- det_J
+    results$is_inverted <- is_inverted
+    results$log2_area_scale <- log2(pmax(1e-12, area_scale) / (reference_scale^2))
+    results$max_shear <- max_shear
+    results$max_angular_distortion <- max_angular_distortion
+    results$airy_kavrayskiy <- airy_kavrayskiy
     results$theta_a <- theta_a
 
     class(results) <- c("distortion", "data.frame")
@@ -180,7 +207,10 @@ print.distortion <- function(x, ...) {
   cat("Metrics Included:\n")
   cat(" - a: Major axis length of Tissot's indicatrix\n")
   cat(" - b: Minor axis length of Tissot's indicatrix\n")
-  cat(" - area_scale: Area distortion factor\n")
+  cat(" - area_scale: Area distortion factor (a * b)\n")
+  cat(" - signed_area_scale: Signed area distortion (Jacobian determinant)\n")
+  cat(" - det_J: Jacobian determinant\n")
+  cat(" - is_inverted: Topological fold-over indicator (det_J <= 0)\n")
   cat(" - log2_area_scale: Log2 area distortion relative to reference scale\n")
   cat(" - max_shear: Maximum shear distortion (degrees)\n")
   cat(" - max_angular_distortion: Maximum angular distortion (radians)\n")
@@ -212,13 +242,13 @@ summary.distortion <- function(object, ...) {
     stop("`object` must be of class 'distortion'.", call. = FALSE)
   }
 
-  metrics <- c("a", "b", "area_scale", "log2_area_scale",
-               "max_shear", "max_angular_distortion", "airy_kavrayskiy",
-               "theta_a")
+  metrics <- c("a", "b", "area_scale", "signed_area_scale", "det_J", "is_inverted",
+               "log2_area_scale", "max_shear", "max_angular_distortion",
+               "airy_kavrayskiy", "theta_a")
 
   summary_list <- lapply(metrics, function(metric) {
     if (metric %in% names(object)) {
-      data <- object[[metric]]
+      data <- as.numeric(object[[metric]])
       c(
         Mean = mean(data, na.rm = TRUE),
         Median = median(data, na.rm = TRUE),
@@ -232,7 +262,7 @@ summary.distortion <- function(object, ...) {
   })
 
   summary_df <- do.call(rbind, summary_list)
-  rownames(summary_df) <- metrics
+  rownames(summary_df) <- metrics[metrics %in% names(object)]
   return(as.data.frame(summary_df))
 }
 

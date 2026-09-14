@@ -220,9 +220,10 @@ test_that("analyze_distortion() works with in-memory SpatRaster input", {
   dist_rast <- analyze_distortion(gam_model, newdata = r_cont)
 
   expect_s4_class(dist_rast, "SpatRaster")
-  expect_equal(terra::nlyr(dist_rast), 8)
-  expect_true(all(c("a", "b", "area_scale", "log2_area_scale", "max_shear",
-                    "max_angular_distortion", "airy_kavrayskiy", "theta_a") %in% names(dist_rast)))
+  expect_equal(terra::nlyr(dist_rast), 11)
+  expect_true(all(c("a", "b", "area_scale", "signed_area_scale", "det_J", "is_inverted",
+                    "log2_area_scale", "max_shear", "max_angular_distortion",
+                    "airy_kavrayskiy", "theta_a") %in% names(dist_rast)))
 })
 
 test_that("apply_pai_raster() works with custom models provided as a list", {

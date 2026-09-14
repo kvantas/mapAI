@@ -164,9 +164,36 @@ test_that("summary.distortion handles invalid input", {
 
   expect_equal(colnames(summary(res)), c("Mean", "Median", "SD", "Min", "Max" ))
 
-  expect_equal(rownames(summary(res)), c("a", "b", "area_scale", "log2_area_scale",
-                                         "max_shear", "max_angular_distortion",
+  expect_equal(rownames(summary(res)), c("a", "b", "area_scale", "signed_area_scale",
+                                         "det_J", "is_inverted",
+                                         "log2_area_scale", "max_shear",
+                                         "max_angular_distortion",
                                          "airy_kavrayskiy", "theta_a"))
+})
+
+test_that("analyze_distortion() detects topological fold-overs and negative Jacobian determinants", {
+  gcp <- create_dummy_gcp_data(10)
+  # Model with reflection: target_x = -source_x (det_J = -1)
+  refl_model <- list(
+    label = "Reflection Model",
+    modelType = "bivariate",
+    library = NULL,
+    fit = function(...) list(),
+    predict = function(modelFit, newdata, ...) {
+      cbind(-2 * newdata$source_x, rep(0, nrow(newdata)))
+    }
+  )
+  mod <- train_pai_model(gcp, refl_model)
+
+  expect_warning(
+    res <- analyze_distortion(mod, gcp),
+    "Topological fold-over detected"
+  )
+
+  expect_true(all(res$det_J < 0))
+  expect_true(all(res$is_inverted))
+  expect_equal(res$signed_area_scale, res$det_J)
+  expect_equal(res$area_scale, abs(res$det_J), tolerance = 1e-5)
 })
 
 # --- Tests for plot.distortion ---
