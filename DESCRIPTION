@@ -1,5 +1,5 @@
 Package: mapAI
-Title: An R Package for Positional Accuracy Improvement of Vector Maps
+Title: Positional Accuracy Improvement for Geospatial Vector and Raster Data
 Version: 1.0.0
 Authors@R: 
     person(given = "Konstantinos",
@@ -7,10 +7,21 @@ Authors@R:
            role = c("aut", "cre"),
            email = "kon.vantas@gmail.com",
            comment = c(ORCID = "0000-0001-6387-8791"))
-Description: An R package for Positional Accuracy  Improvement of Vector 
-    Maps that uses supervised learning algorithms. It uses as input a csv file
-    with homologous points and a vector map of the area of interest in order to
-    correct it.
+Description: A statistically rigorous, computationally efficient framework for
+    Positional Accuracy Improvement (PAI) and differential distortion analysis
+    of geospatial vector and raster datasets. Implements conformal similarity
+    (Helmert via Ordinary and Total Least Squares), general affine, Thin Plate
+    Splines (TPS), bivariate Generalized Additive Models (GAM) with thin plate
+    regression splines and adaptive basis dimensions, and an extensible plugin
+    architecture for custom machine learning algorithms. Features integrated
+    spatial cross-validation (random, spatial clustered, spatial block, spatial
+    buffered block, probability, and stratified) to prevent spatial autocorrelation
+    data leakage. Supports topology-preserving vector transformation across all
+    standard simple feature geometries with automated repair, in-memory raster
+    rectification via damped Picard-Mann iterative coordinate inversion, and
+    differential deformation diagnostics including Tissot's indicatrices,
+    Cauchy-Green metric tensor invariants, and signed Jacobian topological
+    inversion screening.
 URL: https://kvantas.github.io/mapAI/
 BugReports: https://github.com/kvantas/mapAI/issues
 License: MIT + file LICENSE

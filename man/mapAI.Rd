@@ -4,43 +4,61 @@
 \name{mapAI}
 \alias{mapAI}
 \alias{mapAI-package}
-\title{mapAI: Positional Accuracy Improvement for Vector Maps}
+\title{mapAI: Positional Accuracy Improvement for Geospatial Vector and Raster Data}
 \description{
-The \code{mapAI} package provides a cohesive, end-to-end toolkit in R
-for the Positional Accuracy Improvement (PAI) and distortion analysis of
-vector maps.
+The \code{mapAI} package provides a statistically rigorous,
+computationally efficient, and topology-resilient toolkit in R for the
+Positional Accuracy Improvement (PAI) and differential distortion analysis
+of geospatial vector and raster datasets.
 }
 \details{
-The package is designed for researchers and practitioners in
-geomatics and GIS, It provides a complete, modular workflow that guides the
-user from importing data to final analysis and visualization.
+Designed for researchers and practitioners in geodesy, geomatics,
+and GIS, \code{mapAI} bridges classical geodetic transformations with modern
+spatial non-parametric regression and machine learning.
 \subsection{The Core Workflow}{
 
-The main workflow follows a logical sequence:
+The workflow follows a structured sequence:
 \enumerate{
-\item \strong{Data Handling:} Imports spatial data and control points using
-\code{read_map()} and \code{read_gcp()}. The package also includes functions to
-generate synthetic data (\code{create_demo_data()}) and save results
-(\code{write_map()}).
-\item \strong{Model Training & Validation:} Train a correction model using
-\code{train_pai_model()} with a choice of methods \code{helmert},\code{tps}, \code{gam_biv}, \code{lm},
-or a completely custom model on the fly.
-\item Robustly evaluate model performance using spatial cross-validation with
-\code{cv_pai_model()}.
-\item \strong{Geometric Correction:} Apply the trained model to the full vector map
-to get a geometrically corrected version using \code{transform_map()}.
-\item \strong{Distortion Analysis & Visualization:} Go beyond correction to quantify
-and understand the distortion that learns a PAI model itself.
+\item \strong{Data Ingestion & Ground Control Points:} Import spatial data and homologous
+points using \code{read_gcp()} (with CRS support) and \code{read_map()}, or generate
+controlled synthetic benchmarks using \code{create_demo_data()}.
+\item \strong{Model Training & Integrated Validation:} Fit transformation models using
+\code{train_pai_model()} across a tiered algorithmic hierarchy:
 \itemize{
-\item Use \code{analyze_distortion()} to compute detailed metrics based on
-Tissot's indicatrix theory (e.g., areal scale, angular distortion).
-\item Use  \code{plot} to create publication-quality
-visualizations of the error and distortion patterns.
+\item \code{"helmert"}: 2D conformal similarity via Ordinary Least Squares (OLS)
+or Total Least Squares (TLS / SVD Procrustes) with analytical standard errors.
+\item \code{"lm"}: General affine bivariate linear regression.
+\item \code{"tps"}: Thin Plate Splines minimizing biharmonic bending energy.
+\item \code{"gam_biv"}: Bivariate Generalized Additive Models with thin plate
+regression splines and adaptive basis dimension \eqn{k}.
+\item Custom algorithms: Support Vector Machines, Random Forests, Neural Networks.
+}
+Integrated spatial cross-validation via \code{cv_pai_model()} or \code{train_pai_model(..., cv = TRUE)}
+supports six partition topologies (\code{"random"}, \code{"spatial"}, \code{"spatial_block"},
+\code{"spatial_buffered"}, \code{"probability"}, \code{"stratified"}) to guard against spatial
+autocorrelation data leakage (Roberts et al., 2017).
+\item \strong{Vector Transformation with Automated Topology Repair:} Apply the model to
+\code{sf} vector layers using \code{transform_map()}, preserving all OGC geometry types
+(including nested polygon rings), recalculating planar areas, and automatically
+repairing non-linear topological self-intersections via \code{sf::st_make_valid()}.
+\item \strong{In-Memory Raster Rectification:} Correct continuous or discrete \code{terra}
+\code{SpatRaster} objects using \code{apply_pai_raster()}, utilizing a damped Picard-Mann
+iterative fixed-point coordinate inversion solver with regular mesh interpolation,
+operating 100\% in RAM without temporary disk files.
+\item \strong{Differential Distortion Analysis & Inversion Screening:} Quantify deformation
+fields using \code{analyze_distortion()} based on Tissot's indicatrices, Cauchy-Green
+metric tensor invariants, and signed Jacobian determinant \eqn{\det(\mathbf{J})},
+automatically flagging local topological fold-overs (\eqn{\det(\mathbf{J}) \le 0}).
 }
 }
-
-The project's source code and issue tracker can be found on GitHub:
-\url{https://github.com/kvantas/mapAI}
+}
+\references{
+\itemize{
+\item Tissot, A. (1881). \emph{Mémoire sur la représentation des surfaces et les projections des cartes géographiques}. Gauthier-Villars.
+\item Bookstein, F. L. (1989). Principal warps: Thin-plate splines and the decomposition of deformations. \emph{IEEE TPAMI}, 11(6), 567-585.
+\item Wood, S. N. (2003). Thin plate regression splines. \emph{JRSS-B}, 65(1), 95-114.
+\item Roberts, D. R. et al. (2017). Cross-validation strategies for data with spatial, temporal, or phylogenetic dependence. \emph{Ecography}, 40(8), 913-929.
+\item Valente, R., Vantas, K., & Carrera-Hernández, J. (2021). Positional accuracy assessment and improvement of historical maps using non-linear spline models. \emph{IJGIS}.
 }
 }
 \seealso{
