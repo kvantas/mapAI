@@ -70,7 +70,8 @@ importFrom(stats,
   predict,
   quantile,
   rnorm,
-  sd
+  sd,
+  setNames
 )
 importFrom(terra,
   "ext<-",

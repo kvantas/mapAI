@@ -11,3 +11,4 @@
 ^docs$
 ^pkgdown$
 ^codemeta\.json$
+^mapAI_capabilities\.md$

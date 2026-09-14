@@ -51,7 +51,7 @@
 #' @return An object of class `pai_assessment` containing a summary data frame,
 #'   detailed prediction results, and validation parameters.
 #'
-#' @importFrom stats sd complete.cases quantile kmeans
+#' @importFrom stats sd complete.cases quantile kmeans setNames
 #' @export
 #' @examples
 #' \dontrun{
@@ -281,7 +281,7 @@ create_resampling_splits <- function(gcp_data, type, k, ratio, n_strata, seed, b
            block_id <- (row_idx - 1) * nx + col_idx
 
            unique_blocks <- unique(block_id)
-           block_fold_map <- setNames(
+           block_fold_map <- stats::setNames(
              sample(rep(1:k, length.out = length(unique_blocks))),
              as.character(unique_blocks)
            )
@@ -309,7 +309,7 @@ create_resampling_splits <- function(gcp_data, type, k, ratio, n_strata, seed, b
            block_id <- (row_idx - 1) * nx + col_idx
 
            unique_blocks <- unique(block_id)
-           block_fold_map <- setNames(
+           block_fold_map <- stats::setNames(
              sample(rep(1:k, length.out = length(unique_blocks))),
              as.character(unique_blocks)
            )
