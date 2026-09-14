@@ -73,7 +73,7 @@ interpolation method.
 the displacement from target to source coordinates in a single step.
 \item \strong{Helmert models (\code{direction = "forward"}):} Uses the exact
 closed-form analytical inverse of the 4-parameter similarity transformation.
-\item \strong{Non-linear models (\code{gam_biv}, \code{tps}, \code{rf}, \code{lm}):}
+\item \strong{Non-linear models (\code{gam_biv}, \code{tps}, \code{lm}, and custom models):}
 Employs a rapid iterative fixed-point backward mapping algorithm that
 converges to sub-millimeter precision within 2 iterations.
 }

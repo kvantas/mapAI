@@ -3,8 +3,8 @@ test_that("map_transform() returns valid sf object", {
   demo_data <- create_demo_data()
   gcp_data <- demo_data$gcp
   map_to_correct <- demo_data$map
-  model_rf <- train_pai_model(gcp_data, "rf")
-  corrected_map <- transform_map(pai_model = model_rf, map = map_to_correct)
+  model_lm <- train_pai_model(gcp_data, "lm")
+  corrected_map <- transform_map(pai_model = model_lm, map = map_to_correct)
 
   expect_s3_class(corrected_map, "sf")
   expect_equal(nrow(corrected_map), nrow(map_to_correct))

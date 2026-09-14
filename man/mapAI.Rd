@@ -23,8 +23,8 @@ The main workflow follows a logical sequence:
 generate synthetic data (\code{create_demo_data()}) and save results
 (\code{write_map()}).
 \item \strong{Model Training & Validation:} Train a correction model using
-\code{train_pai_model()} with a choice of methods \code{helmert},\code{tps}, \code{gam}, \code{lm},
-\code{rf},  or a completely custom model on the fly.
+\code{train_pai_model()} with a choice of methods \code{helmert},\code{tps}, \code{gam_biv}, \code{lm},
+or a completely custom model on the fly.
 \item Robustly evaluate model performance using spatial cross-validation with
 \code{cv_pai_model()}.
 \item \strong{Geometric Correction:} Apply the trained model to the full vector map

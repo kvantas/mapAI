@@ -4,7 +4,7 @@
 #'   algorithms.
 #' @details This function is the central training utility for the package. It
 #' uses a `method` argument that can be either a character string to call a
-#' built-in model (`"helmert"`, `"lm"`,  `"gam_biv"`, `"rf"`, `"tps"`), or a
+#' built-in model (`"helmert"`, `"lm"`,  `"gam_biv"`, `"tps"`), or a
 #' list to define a completely custom model on the fly.
 #'
 #' \strong{Using Custom Models}: To provide a custom model, the `method`

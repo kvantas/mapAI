@@ -21,20 +21,6 @@ lm_model <- list(
   }
 )
 
-# Define Model 2: Random Forest (rf)
-rf_model <- list(
-  label = "Random Forest",
-  library = "ranger",
-  modelType = "univariate",
-  fit = function(x, y, ...) {
-    dat <- cbind(y, x)
-    names(dat)[1] <- "outcome"
-    ranger::ranger(formula = outcome ~ ., data = dat, ...)
-  },
-  predict = function(modelFit, newdata, ...) {
-    stats::predict(modelFit, data = newdata, ...)$predictions
-  }
-)
 
 # Define Model 3: TPS
 tps_model <- list(
@@ -94,9 +80,9 @@ pai_model_list <- list(
   gam_biv = gam_biv_model,
   helmert = helmert_model,
   lm = lm_model,
-  rf = rf_model,
   tps = tps_model
 )
 
 # Save the list to the internal package data file
 usethis::use_data(pai_model_list, internal = TRUE, overwrite = TRUE)
+

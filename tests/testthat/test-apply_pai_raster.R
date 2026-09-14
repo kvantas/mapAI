@@ -141,7 +141,7 @@ test_that("apply_pai_raster() correctly handles multi-band rasters in memory", {
 test_that("apply_pai_raster() works across all supported model types", {
   r_cont <- create_test_rast(nrows = 20, ncols = 20, type = "continuous")
 
-  methods_to_test <- c("helmert", "lm", "tps", "gam_biv", "rf")
+  methods_to_test <- c("helmert", "lm", "tps", "gam_biv")
 
   for (m in methods_to_test) {
     mod <- train_pai_model(test_gcps, method = m)
@@ -224,3 +224,25 @@ test_that("analyze_distortion() works with in-memory SpatRaster input", {
   expect_true(all(c("a", "b", "area_scale", "log2_area_scale", "max_shear",
                     "max_angular_distortion", "airy_kavrayskiy", "theta_a") %in% names(dist_rast)))
 })
+
+test_that("apply_pai_raster() works with custom models provided as a list", {
+  custom_shift <- list(
+    label = "Custom Shift",
+    library = NULL,
+    modelType = "univariate",
+    fit = function(x, y, ...) {
+      mean(y)
+    },
+    predict = function(modelFit, newdata, ...) {
+      rep(modelFit, nrow(newdata))
+    }
+  )
+
+  custom_model <- train_pai_model(test_gcps, method = custom_shift)
+  r_cont <- create_test_rast(nrows = 10, ncols = 10, type = "continuous")
+  corrected_rast <- apply_pai_raster(custom_model, r_cont)
+
+  expect_s4_class(corrected_rast, "SpatRaster")
+  expect_equal(dim(corrected_rast), dim(r_cont))
+})
+

@@ -18,71 +18,293 @@ opts_chunk$set(
 
 ## Introduction
 
-This vignette demonstrates how to create and evaluate a custom model using the `mapAI` package. We will use the `create_demo_data` function to generate sample data, train a bivariate GAM model, and define a custom model for comparison.
+This vignette demonstrates how to define, tune, train, and evaluate custom models using the `mapAI` package. We illustrate how users can incorporate virtually any regression algorithm into `mapAI` by implementing three popular machine learning models:
 
-## Generating Demo Data
+1. **Support Vector Regression (SVR)** via `e1071`
+2. **Neural Network (NN)** via `nnet`
+3. **Random Forest (RF)** via `ranger`
 
-First, we generate demo data using the `create_demo_data` function:
+### Rigorous Machine Learning Evaluation
+
+To avoid data leakage and optimism bias, we follow standard ML evaluation practices:
+- **Data Splitting**: We split the ground control points (GCPs) into an 80% training set (`train_gcp`) and a 20% held-out test set (`test_gcp`).
+- **Hyperparameter Tuning on Training Data**: Cross-validation (`cv_pai_model`) is performed exclusively on the training set to identify optimal hyperparameters.
+- **Unbiased Test Set Evaluation**: Final models are fitted on the training set and evaluated on the unseen test set, reporting true out-of-sample 2D RMSE.
+- **Raster Rectification & Distortion Analysis**: The trained models are applied to correct a continuous raster map and evaluate spatial distortion fields across the domain.
+
+## Generating Demo Data and Train/Test Split
+
+We generate demo data using `create_demo_data(raster = TRUE)` to obtain both homologous control points (`gcp`) and an in-memory `terra` raster representing the distorted map grid:
 
 ```{r generate-demo-data}
 library(mapAI)
+library(terra)
 
-demo_data <- create_demo_data()
+demo_data <- create_demo_data(raster = TRUE, seed = 42)
+
+# Partition GCPs into an 80% training set and a 20% held-out test set
+set.seed(42)
+n_pts <- nrow(demo_data$gcp)
+train_idx <- sample(seq_len(n_pts), size = floor(0.8 * n_pts))
+
+train_gcp <- demo_data$gcp[train_idx, ]
+test_gcp  <- demo_data$gcp[-train_idx, ]
+
+cat(sprintf("Training points: %d | Held-out test points: %d\n", nrow(train_gcp), nrow(test_gcp)))
 ```
 
-## Training a Bivariate GAM Model
+## Defining Custom Models
 
-We train a bivariate GAM model using the `train_pai_model` function:
+In `mapAI`, a custom model is defined as a list containing the following elements:
 
-```{r train-gam-model}
-# fit a bivariate GAM model
-gam_model <- train_pai_model(gcp_data = demo_data$gcp, method = "gam_biv")
-```
+- `label`: A descriptive name for the model.
+- `library`: Name of the package (or packages) required by the model.
+- `modelType`: Either `"univariate"` (fitting separate models for `dx` and `dy`) or `"bivariate"` (fitting both simultaneously).
+- `fit`: A function with arguments `x`, `y`, and `...` that trains the model on source coordinates `x` and target displacement `y`.
+- `predict`: A function with arguments `modelFit`, `newdata`, and `...` that returns predicted displacement values.
 
-## Defining a Custom Model
+### Custom Model 1: Support Vector Regression (SVR)
 
-Next, we define a custom model. This model uses the `mgcv` package to fit a generalized additive model (GAM) with restricted maximum likelihood (REML):
-
-```{r define-custom-model}
-# create a custom model
-custom_model <- list(
-  label = "GAM Model using REML",
-  library = "mgcv",
+```{r define-svr-model}
+# Support Vector Regression custom model
+svr_model <- list(
+  label = "Support Vector Regression",
+  library = "e1071",
   modelType = "univariate",
-  fit = function(x, y, ...) {
-    dat <- cbind(y, x)
-    names(dat)[1] <- "outcome"
-
-    mgcv::gam(outcome ~ s(source_x) + s(source_y),
-            method = "REML",
-            data = dat,
-            ...)
+  fit = function(x, y, cost = 1, ...) {
+    dat <- cbind(outcome = y, x)
+    e1071::svm(outcome ~ source_x + source_y, data = dat, cost = cost, ...)
   },
   predict = function(modelFit, newdata, ...) {
-    stats::predict(modelFit, newdata = newdata, ...)
+    as.vector(stats::predict(modelFit, newdata = newdata, ...))
   }
 )
 ```
 
-## Training the Custom Model
+### Custom Model 2: Neural Network
 
-We use the `train_pai_model` function to train the custom model:
-
-```{r train-custom-model}
-# fit the custom model
-custom_fitted <- train_pai_model(gcp_data = demo_data$gcp, method = custom_model)
+```{r define-nn-model}
+# Neural Network custom model
+nn_model <- list(
+  label = "Neural Network",
+  library = "nnet",
+  modelType = "univariate",
+  fit = function(x, y, size = 5, linout = TRUE, trace = FALSE, ...) {
+    dat <- cbind(outcome = y, x)
+    nnet::nnet(
+      outcome ~ source_x + source_y,
+      data = dat,
+      size = size,
+      linout = linout,
+      trace = trace,
+      ...
+    )
+  },
+  predict = function(modelFit, newdata, ...) {
+    as.vector(stats::predict(modelFit, newdata = newdata, ...))
+  }
+)
 ```
 
-## Comparing Results
+### Custom Model 3: Random Forest
 
-Finally, we compare the results of the bivariate GAM model and the custom model using cross-validation:
-
-```{r compare-results}
-# compare results
-cv_gam <- cv_pai_model(demo_data$gcp, "gam_biv", seed = 1, k = 5)
-cv_custom <- cv_pai_model(demo_data$gcp, custom_model, seed = 1, k = 5)
-print(cv_gam)
-print(cv_custom)
+```{r define-rf-model}
+# Random Forest custom model
+rf_model <- list(
+  label = "Random Forest",
+  library = "ranger",
+  modelType = "univariate",
+  fit = function(x, y, num.trees = 100, ...) {
+    dat <- cbind(outcome = y, x)
+    ranger::ranger(formula = outcome ~ ., data = dat, num.trees = num.trees, ...)
+  },
+  predict = function(modelFit, newdata, ...) {
+    stats::predict(modelFit, data = newdata, ...)$predictions
+  }
+)
 ```
 
-This vignette demonstrates the flexibility of the `mapAI` package in training and evaluating custom models.
+## Hyperparameter Tuning on Training Data
+
+Because both `train_pai_model()` and `cv_pai_model()` accept `...` and forward extra arguments directly to the custom model's `fit()` function, we can evaluate candidate hyperparameters using 5-fold cross-validation strictly on the training partition.
+
+### Tuning SVR Regularization (`cost`)
+
+```{r tune-svr}
+costs <- c(0.1, 1, 10, 50)
+
+svr_cv_results <- vapply(costs, function(c_val) {
+  cv <- cv_pai_model(
+    gcp_data = train_gcp,
+    pai_method = svr_model,
+    cost = c_val,
+    seed = 1,
+    k_folds = 5
+  )
+  cv$summary$Mean_RMSE_2D
+}, numeric(1))
+
+best_cost <- costs[which.min(svr_cv_results)]
+cat(sprintf("Optimal SVR cost: %g (CV RMSE: %.3f)\n", best_cost, min(svr_cv_results)))
+```
+
+### Tuning Neural Network Hidden Units (`size`)
+
+```{r tune-nn}
+hidden_sizes <- c(3, 5, 8)
+
+nn_cv_results <- vapply(hidden_sizes, function(s) {
+  cv <- cv_pai_model(
+    gcp_data = train_gcp,
+    pai_method = nn_model,
+    size = s,
+    seed = 1,
+    k_folds = 5
+  )
+  cv$summary$Mean_RMSE_2D
+}, numeric(1))
+
+best_size <- hidden_sizes[which.min(nn_cv_results)]
+cat(sprintf("Optimal NN size: %d (CV RMSE: %.3f)\n", best_size, min(nn_cv_results)))
+```
+
+### Tuning Random Forest Ensemble Size (`num.trees`)
+
+```{r tune-rf}
+tree_counts <- c(50, 100, 200)
+
+rf_cv_results <- vapply(tree_counts, function(t) {
+  cv <- cv_pai_model(
+    gcp_data = train_gcp,
+    pai_method = rf_model,
+    num.trees = t,
+    seed = 1,
+    k_folds = 5
+  )
+  cv$summary$Mean_RMSE_2D
+}, numeric(1))
+
+best_trees <- tree_counts[which.min(rf_cv_results)]
+cat(sprintf("Optimal RF num.trees: %d (CV RMSE: %.3f)\n", best_trees, min(rf_cv_results)))
+```
+
+## Training Final Models on Training Data
+
+We train the final models on the entire training set using their respective optimal hyperparameters:
+
+```{r train-final-models}
+svr_fitted <- train_pai_model(train_gcp, method = svr_model, cost = best_cost)
+nn_fitted  <- train_pai_model(train_gcp, method = nn_model, size = best_size)
+rf_fitted  <- train_pai_model(train_gcp, method = rf_model, num.trees = best_trees)
+```
+
+## Out-of-Sample Evaluation on the Held-Out Test Set
+
+Now we assess the true generalization accuracy of each model by predicting on the unseen `test_gcp` data points. This guarantees an unbiased performance comparison:
+
+```{r evaluate-test-set}
+# Generate predictions on unseen test set
+pred_svr <- predict(svr_fitted, newdata = test_gcp)
+pred_nn  <- predict(nn_fitted, newdata = test_gcp)
+pred_rf  <- predict(rf_fitted, newdata = test_gcp)
+
+# Compute 2D RMSE
+calc_rmse_2d <- function(actual, predicted) {
+  sqrt(mean((actual$dx - predicted$dx)^2 + (actual$dy - predicted$dy)^2))
+}
+
+# Baseline error (untransformed test points)
+base_rmse <- sqrt(mean(test_gcp$dx^2 + test_gcp$dy^2))
+
+# Model test set errors
+test_rmse_svr <- calc_rmse_2d(test_gcp, pred_svr)
+test_rmse_nn  <- calc_rmse_2d(test_gcp, pred_nn)
+test_rmse_rf  <- calc_rmse_2d(test_gcp, pred_rf)
+
+# Compile comparison table
+comparison_table <- data.frame(
+  Model = c("Baseline (Uncorrected)", "Support Vector Regression", "Neural Network", "Random Forest"),
+  Optimal_Param = c("-", sprintf("cost = %g", best_cost), sprintf("size = %d", best_size), sprintf("num.trees = %d", best_trees)),
+  CV_RMSE_Train = c(NA, round(min(svr_cv_results), 3), round(min(nn_cv_results), 3), round(min(rf_cv_results), 3)),
+  Test_RMSE = round(c(base_rmse, test_rmse_svr, test_rmse_nn, test_rmse_rf), 3),
+  Improvement_Pct = round(c(
+    0,
+    (base_rmse - test_rmse_svr) / base_rmse * 100,
+    (base_rmse - test_rmse_nn) / base_rmse * 100,
+    (base_rmse - test_rmse_rf) / base_rmse * 100
+  ), 1)
+)
+
+knitr::kable(
+  comparison_table,
+  caption = "Table: Out-of-sample test set performance compared to training CV results."
+)
+```
+
+## Comparing Corrected Raster Maps
+
+We can apply each trained model to the distorted raster map (`demo_data$raster`) using `transform_map()`. This performs inverse coordinate mapping and resamples the raster pixel values into the corrected spatial frame:
+
+```{r transform-rasters, fig.width=10, fig.height=6}
+# Apply trained models to correct the raster map
+svr_raster <- transform_map(svr_fitted, demo_data$raster)
+nn_raster  <- transform_map(nn_fitted, demo_data$raster)
+rf_raster  <- transform_map(rf_fitted, demo_data$raster)
+
+# Compare original distorted raster and all three model corrections
+plot(
+  c(demo_data$raster, svr_raster, nn_raster, rf_raster),
+  main = c("Original Distorted Map", "SVR Corrected Map", "NN Corrected Map", "RF Corrected Map"),
+  col = c("white", "black"),
+  legend = FALSE
+)
+```
+
+## Comparing Model Distortions on Rasters
+
+To evaluate how each model alters geometry across continuous space, we pass the raster to `analyze_distortion()`. This calculates differential distortion metrics based on Tissot's indicatrix theory across all raster cells, returning a multi-layer `terra::SpatRaster`:
+
+```{r analyze-distortions}
+# Calculate distortion metrics across the raster
+dist_svr <- analyze_distortion(svr_fitted, newdata = demo_data$raster)
+dist_nn  <- analyze_distortion(nn_fitted, newdata = demo_data$raster)
+dist_rf  <- analyze_distortion(rf_fitted, newdata = demo_data$raster)
+
+# Summarize area scale and maximum shear distortion
+cat("=== SVR Distortion Summary ===\n")
+summary(dist_svr[[c("area_scale", "max_shear")]])
+
+cat("=== Neural Network Distortion Summary ===\n")
+summary(dist_nn[[c("area_scale", "max_shear")]])
+
+cat("=== Random Forest Distortion Summary ===\n")
+summary(dist_rf[[c("area_scale", "max_shear")]])
+```
+
+### Visualizing Distortion Surfaces
+
+We can plot and compare the distortion fields of the three models:
+
+```{r plot-distortions, fig.width=10, fig.height=6}
+# Compare area scale distortion surfaces
+plot(
+  c(dist_svr$area_scale, dist_nn$area_scale, dist_rf$area_scale),
+  main = c("SVR: Area Scale", "NN: Area Scale", "RF: Area Scale")
+)
+
+# Compare maximum shear distortion surfaces (degrees)
+plot(
+  c(dist_svr$max_shear, dist_nn$max_shear, dist_rf$max_shear),
+  main = c("SVR: Max Shear (deg)", "NN: Max Shear (deg)", "RF: Max Shear (deg)")
+)
+```
+
+## Conclusion
+
+This vignette demonstrates an end-to-end machine learning workflow for custom models in `mapAI`:
+- **Custom Model Flexibility**: Support Vector Regression, Neural Networks, and Random Forests can be seamlessly integrated into `mapAI`.
+- **Methodological Rigor**: Preventing data leakage by tuning hyperparameters exclusively on training data and reporting unbiased generalization performance on held-out test data.
+- **Multimodal Evaluation**: Evaluating spatial transformations through cross-validation, held-out test sets, raster map rectification, and continuous Tissot distortion analysis.
+
+
+

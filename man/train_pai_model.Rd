@@ -27,7 +27,7 @@ algorithms.
 \details{
 This function is the central training utility for the package. It
 uses a \code{method} argument that can be either a character string to call a
-built-in model (\code{"helmert"}, \code{"lm"},  \code{"gam_biv"}, \code{"rf"}, \code{"tps"}), or a
+built-in model (\code{"helmert"}, \code{"lm"},  \code{"gam_biv"}, \code{"tps"}), or a
 list to define a completely custom model on the fly.
 
 \strong{Using Custom Models}: To provide a custom model, the \code{method}

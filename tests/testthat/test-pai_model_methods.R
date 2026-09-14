@@ -89,14 +89,12 @@ test_that("predict.pai_model() correctly uses newdata for all model types", {
   new_gcp$source_x <- new_gcp$source_x + 10
 
   # --- Train one model of each type ---
-  model_rf <- train_pai_model(gcp, "rf")
   model_lm <- train_pai_model(gcp,  "lm")
   model_gam <- train_pai_model(gcp,  "gam_biv")
   model_tps <- train_pai_model(gcp, "tps")
   model_hlm <-train_pai_model(gcp,  "helmert")
 
   methods_to_test <- list(
-    rf = model_rf,
     lm = model_lm,
     gam = model_gam,
     tps = model_tps,

@@ -31,7 +31,7 @@
 #'     the displacement from target to source coordinates in a single step.
 #'   \item \strong{Helmert models (`direction = "forward"`):} Uses the exact
 #'     closed-form analytical inverse of the 4-parameter similarity transformation.
-#'   \item \strong{Non-linear models (`gam_biv`, `tps`, `rf`, `lm`):}
+#'   \item \strong{Non-linear models (`gam_biv`, `tps`, `lm`, and custom models):}
 #'     Employs a rapid iterative fixed-point backward mapping algorithm that
 #'     converges to sub-millimeter precision within 2 iterations.
 #' }
@@ -168,7 +168,7 @@ apply_pai_raster <- function(pai_model,
       sy <- ty + disp$dy
     } else {
       # Invert forward model
-      if (pai_model$method == "helmert") {
+      if (identical(pai_model$method, "helmert")) {
         coefs <- pai_model$model$coefficients
         cents <- pai_model$model$centroids
         a <- coefs["a"]

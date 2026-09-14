@@ -18,8 +18,8 @@
 #' (`write_map()`).
 #'
 #' 2.  **Model Training & Validation:** Train a correction model using
-#' `train_pai_model()` with a choice of methods `helmert`,`tps`, `gam`, `lm`,
-#' `rf`,  or a completely custom model on the fly.
+#' `train_pai_model()` with a choice of methods `helmert`,`tps`, `gam_biv`, `lm`,
+#' or a completely custom model on the fly.
 #'
 #' 3. Robustly evaluate model performance using spatial cross-validation with
 #'  `cv_pai_model()`.
