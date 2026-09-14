@@ -30,10 +30,20 @@
 #'   \item \strong{Models trained with `direction = "inverse"`:} Directly evaluate
 #'     the displacement from target to source coordinates in a single step.
 #'   \item \strong{Helmert models (`direction = "forward"`):} Uses the exact
-#'     closed-form analytical inverse of the 4-parameter similarity transformation.
+#'     closed-form analytical inverse of the 4-parameter conformal similarity transformation.
 #'   \item \strong{Non-linear models (`gam_biv`, `tps`, `lm`, and custom models):}
-#'     Employs a rapid iterative fixed-point backward mapping algorithm that
-#'     converges to sub-millimeter precision within 2 iterations.
+#'     Employs a damped fixed-point (Picard-Mann) iterative coordinate inversion solver:
+#'     \deqn{\mathbf{s}^{(k+1)} = \mathbf{s}^{(k)} - \lambda \left(\mathbf{s}^{(k)} + \mathbf{d}\left(\mathbf{s}^{(k)}\right) - \mathbf{t}\right)}
+#'     where \eqn{\mathbf{t}} is the target cell center, \eqn{\mathbf{d}} is the forward displacement
+#'     field, \eqn{\lambda = 0.7} is the damping parameter ensuring contraction stability, and
+#'     iteration halts when \eqn{\|\mathbf{s}^{(k)} + \mathbf{d}(\mathbf{s}^{(k)}) - \mathbf{t}\| < \epsilon}
+#'     (\code{tol = 1e-4}) or \code{max_iter} is reached.
+#' }
+#'
+#' @references
+#' \itemize{
+#'   \item Wolberg, G. (1990). \emph{Digital Image Warping}. IEEE Computer Society Press.
+#'   \item Vantas, K., & Mirkopoulou, E. (2025). \emph{mapAI: An R Package for Positional Accuracy Improvement of Vector Maps}.
 #' }
 #'
 #' **Interpolation Methods:**

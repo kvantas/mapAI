@@ -86,10 +86,41 @@ interpolation method.
 \item \strong{Models trained with \code{direction = "inverse"}:} Directly evaluate
 the displacement from target to source coordinates in a single step.
 \item \strong{Helmert models (\code{direction = "forward"}):} Uses the exact
-closed-form analytical inverse of the 4-parameter similarity transformation.
+closed-form analytical inverse of the 4-parameter conformal similarity transformation.
 \item \strong{Non-linear models (\code{gam_biv}, \code{tps}, \code{lm}, and custom models):}
-Employs a rapid iterative fixed-point backward mapping algorithm that
-converges to sub-millimeter precision within 2 iterations.
+Employs a damped fixed-point (Picard-Mann) iterative coordinate inversion solver:
+\deqn{\mathbf{s}^{(k+1)} = \mathbf{s}^{(k)} - \lambda \left(\mathbf{s}^{(k)} + \mathbf{d}\left(\mathbf{s}^{(k)}\right) - \mathbf{t}\right)}
+where \eqn{\mathbf{t}} is the target cell center, \eqn{\mathbf{d}} is the forward displacement
+field, \eqn{\lambda = 0.7} is the damping parameter ensuring contraction stability, and
+iteration halts when \eqn{\|\mathbf{s}^{(k)} + \mathbf{d}(\mathbf{s}^{(k)}) - \mathbf{t}\| < \epsilon}
+(\code{tol = 1e-4}) or \code{max_iter} is reached.
+}
+}
+\examples{
+\dontrun{
+library(terra)
+
+# Create demo data and train a model
+demo_data <- create_demo_data()
+gam_model <- train_pai_model(demo_data$gcp, method = "gam_biv")
+
+# Create an in-memory synthetic raster matching the GCP extent
+gcp_ext <- terra::ext(
+  min(demo_data$gcp$source_x), max(demo_data$gcp$source_x),
+  min(demo_data$gcp$source_y), max(demo_data$gcp$source_y)
+)
+demo_rast <- terra::rast(gcp_ext, nrows = 30, ncols = 30)
+terra::values(demo_rast) <- seq_len(terra::ncell(demo_rast))
+
+# Apply the model to correct the raster
+corrected_rast <- apply_pai_raster(gam_model, demo_rast, method = "bilinear")
+print(corrected_rast)
+}
+}
+\references{
+\itemize{
+\item Wolberg, G. (1990). \emph{Digital Image Warping}. IEEE Computer Society Press.
+\item Vantas, K., & Mirkopoulou, E. (2025). \emph{mapAI: An R Package for Positional Accuracy Improvement of Vector Maps}.
 }
 
 \strong{Interpolation Methods:}
@@ -114,25 +145,4 @@ This provides orders-of-magnitude speedups while maintaining sub-pixel accuracy.
 
 All operations are strictly conducted in memory and return an in-memory
 \code{terra::SpatRaster} object without creating temporary files or directories.
-}
-\examples{
-\dontrun{
-library(terra)
-
-# Create demo data and train a model
-demo_data <- create_demo_data()
-gam_model <- train_pai_model(demo_data$gcp, method = "gam_biv")
-
-# Create an in-memory synthetic raster matching the GCP extent
-gcp_ext <- terra::ext(
-  min(demo_data$gcp$source_x), max(demo_data$gcp$source_x),
-  min(demo_data$gcp$source_y), max(demo_data$gcp$source_y)
-)
-demo_rast <- terra::rast(gcp_ext, nrows = 30, ncols = 30)
-terra::values(demo_rast) <- seq_len(terra::ncell(demo_rast))
-
-# Apply the model to correct the raster
-corrected_rast <- apply_pai_raster(gam_model, demo_rast, method = "bilinear")
-print(corrected_rast)
-}
 }

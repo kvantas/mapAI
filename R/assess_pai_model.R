@@ -8,25 +8,27 @@
 #'
 #' \strong{Validation Strategies}:
 #'   \itemize{
-#'     \item \strong{`random`}: Standard k-fold cross-validation.
-#'     \item \strong{`spatial`}: Spatial k-fold cross-validation using k-means
-#'       clustering.
-#'     \item \strong{`spatial_block`}: Spatial regular grid block cross-validation,
-#'       partitioning space into independent geographic grid blocks.
-#'     \item \strong{`spatial_buffered`}: Buffered spatial block cross-validation.
-#'       Partitions space into blocks and introduces an exclusion buffer (dead zone)
-#'       around the test block, discarding training observations within the buffer
-#'       to prevent spatial autocorrelation data leakage (Roberts et al., 2017).
-#'     \item \strong{`probability`}: A single train/test split using simple
-#'       random sampling.
-#'     \item \strong{`stratified`}: Stratified k-fold cross-validation based on
-#'       the magnitude of distortion vectors.
+#'     \item \strong{`random`}: Standard k-fold cross-validation with random fold assignment.
+#'     \item \strong{`spatial`}: Spatial k-fold cross-validation clustering coordinates via k-means.
+#'     \item \strong{`spatial_block`}: Regular geographic grid block cross-validation,
+#'       partitioning space into independent rectangular spatial tiles.
+#'     \item \strong{`spatial_buffered`}: Buffered spatial cross-validation. Partitions
+#'       space into blocks and enforces a spatial exclusion dead-zone buffer \eqn{d_{\text{buffer}}}:
+#'       training observations satisfying \eqn{\min \|\mathbf{s}_{\text{train}} - \mathbf{s}_{\text{test}}\| \le d_{\text{buffer}}}
+#'       are omitted from the training set for each fold to eliminate spatial autocorrelation data leakage (Roberts et al., 2017).
+#'     \item \strong{`probability`}: Design-based single train/test split using simple random sampling.
+#'     \item \strong{`stratified`}: Stratified k-fold cross-validation binned by displacement vector magnitude.
 #'   }
+#'
+#' \strong{Performance Metrics Formulation}:
+#' Out-of-sample predictive accuracy is evaluated using 2D Root Mean Square Error:
+#' \deqn{\operatorname{RMSE}_{2D} = \sqrt{\frac{1}{n_{\text{val}}} \sum_{i=1}^{n_{\text{val}}} \left( (dx_i - \widehat{dx}_i)^2 + (dy_i - \widehat{dy}_i)^2 \right)}}
 #'
 #' @references
 #' \itemize{
 #'   \item Roberts et al. (2017). Cross-validation strategies for data with spatial,
 #'     temporal, or phylogenetic dependence. \emph{Ecography}, 40(8), 913-929.
+#'   \item Valavi, R., Elith, J., Lahoz-Monfort, J. J., & Guillera-Arroita, G. (2019). blockCV: An R package for generating spatially or environmentally separated folds for k-fold cross-validation of species distribution models. \emph{Methods in Ecology and Evolution}, 10(2), 225-232.
 #'   \item Vantas, K., & Mirkopoulou, E. (2025). \emph{mapAI: An R Package for Positional Accuracy Improvement of Vector Maps}.
 #' }
 #'

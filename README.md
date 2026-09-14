@@ -1,7 +1,7 @@
 
 <!-- README.md is generated from README.Rmd. Please edit that file -->
 
-# mapAI
+# mapAI: Positional Accuracy Improvement for Geospatial Data
 
 <!-- badges: start -->
 
@@ -12,212 +12,418 @@ stable](https://img.shields.io/badge/lifecycle-stable-brightgreen.svg)](https://
 [![R-CMD-check](https://github.com/kvantas/mapAI/actions/workflows/R-CMD-check.yaml/badge.svg)](https://github.com/kvantas/mapAI/actions/workflows/R-CMD-check.yaml)
 <!-- badges: end -->
 
-The `mapAI` package is designed to provide a comprehensive and
-accessible PAI (positional accuracy improvement) framework for vector
-and raster geospatial data.
+The **mapAI** package delivers an open-source, mathematically rigorous
+framework for **Positional Accuracy Improvement (PAI)** of vector (`sf`)
+and raster (`terra`) geospatial data. Grounded in geodetic science,
+spatial statistics, and differential geometry, `mapAI` unifies classical
+conformal transformations, bivariate thin plate regression splines,
+spatial cross-validation schemes, and differential distortion
+diagnostics into a cohesive pair of spatial engines.
 
-## Overview
+------------------------------------------------------------------------
 
-The `mapAI` package provides a comprehensive and accessible framework
-for Positional Accuracy Improvement (PAI) of both vector (`sf`) and
-raster (`terra::SpatRaster`) geospatial data. This package’s main
-contributions are:
+## Methodological Framework
 
-1)  the unification of a set of PAI methods from classical adjustments
-    to statistical and machine learning algorithms, within a framework
-    engineered to modify the geometry of vector features and spatial
-    alignment of raster maps;
+Positional accuracy improvement addresses the systematic discrepancies
+between an approximate source spatial dataset (e.g., historical maps,
+digitized cadastral boundaries, unrectified aerial imagery) and actual
+reference coordinates established by geodetic ground control points
+(GCPs).
 
-2)  the application of modern best practices regarding predictive
-    accuracy assessment using various validation methods, and;
+Given homologous point pairs with source coordinates
+$\mathbf{s} = (u, v)^T$ and true target coordinates
+$\mathbf{t} = (x, y)^T$, the objective is to estimate the vector
+displacement field:
 
-3)  the integration of distortion analysis into the PAI workflow for
-    both vector and raster data, providing powerful diagnostics.
+$$\mathbf{d}(\mathbf{s}) = \begin{pmatrix} d_x(u, v) \\ d_y(u, v) \end{pmatrix} = \mathbf{t} - \mathbf{s}$$
+
+Once trained, the model predicts continuous displacement vectors across
+space, allowing arbitrary vector geometries
+$\mathcal{G}_{\text{source}}$ and continuous or categorical raster grids
+$\mathcal{R}_{\text{source}}$ to be transformed into geometrically
+consistent spatial alignments.
+
+    +-----------------------------------------------------------------------------------+
+    |                              mapAI Architecture                                   |
+    +-----------------------------------------------------------------------------------+
+    |                                                                                   |
+    |   1. Data Ingestion & Georeferencing                                              |
+    |      read_gcp()  --->  Homologous points with optional CRS (sf / gcp S3)          |
+    |      read_map()  --->  Vector simple features (sf) or SpatRaster (terra)          |
+    |                                                                                   |
+    |   2. Model Training & Spatial Validation (Integrated)                             |
+    |      train_pai_model(gcp, method = ..., cv = list(...))                           |
+    |      * Methods: "helmert" (OLS / TLS), "lm", "tps", "gam_biv", Custom ML          |
+    |      * CV: random, spatial (k-means), spatial_block, spatial_buffered, etc.       |
+    |                                                                                   |
+    |   3. Dual-Engine Spatial Rectification                                            |
+    |      Vector Engine: transform_map(model, vector_map, repair_topology = TRUE)      |
+    |      Raster Engine: apply_pai_raster(model, raster, ext = "auto", mesh_step = 10) |
+    |                                                                                   |
+    |   4. Differential Diagnostics & Inversion Detection                               |
+    |      analyze_distortion()  ---> Metric tensor, singular values (a, b)             |
+    |      det(J) <= 0           ---> Topological fold-over & singularity detection     |
+    |      indicatrices()        ---> Tissot deformation ellipses                       |
+    +-----------------------------------------------------------------------------------+
+
+------------------------------------------------------------------------
+
+## Supported PAI Transformation Models
+
+`mapAI` includes a versatile hierarchy of models spanning from rigid
+geodetic adjustments to non-parametric splines and custom machine
+learning algorithms:
+
+### 1. Helmert 2D Similarity Transformation (`"helmert"`)
+
+A 4-parameter conformal transformation preserving local shape and
+angles:
+
+$$\begin{pmatrix} x \\ y \end{pmatrix} = \begin{pmatrix} t_x \\ t_y \end{pmatrix} + \begin{pmatrix} a & -b \\ b & a \end{pmatrix} \begin{pmatrix} u \\ v \end{pmatrix}$$
+
+Parameters include scale factor $s = \sqrt{a^2 + b^2}$, rotation angle
+$\theta = \operatorname{atan2}(b, a)$, and translation vector
+$(t_x, t_y)^T$. `mapAI` implements both: - **Ordinary Least Squares
+(`method = "ols"`):** Assumes measurement errors reside solely in target
+coordinates. - **Total Least Squares / SVD Procrustes
+(`method = "tls"`):** Minimizes orthogonal Euclidean errors in both
+source and target coordinates simultaneously, eliminating attenuation
+bias (regression dilution) (Wolf & Ghilani, 2006).
+
+### 2. First-Order Polynomial Affine (`"lm"`)
+
+Captures differential scale, uniform rotation, and linear affine shear
+along non-orthogonal axes:
+
+$$d_x(u, v) = \beta_{0x} + \beta_{1x} u + \beta_{2x} v, \quad d_y(u, v) = \beta_{0y} + \beta_{1y} u + \beta_{2y} v$$
+
+### 3. Thin Plate Splines (`"tps"`)
+
+Minimizes residual sum of squares subject to a physical bending energy
+penalty (Wahba, 1990):
+
+$$\mathcal{J}(f) = \sum_{i=1}^n \left(y_i - f(\mathbf{s}_i)\right)^2 + \lambda \iint_{\mathbb{R}^2} \left[ \left(\frac{\partial^2 f}{\partial u^2}\right)^2 + 2\left(\frac{\partial^2 f}{\partial u \partial v}\right)^2 + \left(\frac{\partial^2 f}{\partial v^2}\right)^2 \right] du\,dv$$
+
+### 4. Bivariate GAM with Adaptive Spline Dimension (`"gam_biv"`)
+
+A bivariate thin plate regression spline fitted via a multivariate
+Gaussian family (Wood, 2017):
+
+$$\begin{pmatrix} d_x \\ d_y \end{pmatrix} \sim \mathcal{N}_2\left(\begin{pmatrix} \mu_x(u, v) \\ \mu_y(u, v) \end{pmatrix}, \boldsymbol{\Sigma}\right)$$
+
+`mapAI` incorporates an **adaptive basis dimension formula**:
+
+$$k = \max\left(3, \min\left(29, \lfloor 0.6 \cdot n_{\text{unique}} \rfloor\right)\right)$$
+
+which prevents rank deficiency when training with small sample sizes
+while maximizing flexibility on dense control point networks.
+
+------------------------------------------------------------------------
+
+## Integrated Cross-Validation & Spatial Leakage Mitigation
+
+Standard random $k$-fold cross-validation suffers from **optimism bias**
+when applied to spatial data, because spatial autocorrelation between
+nearby training and testing points leaks geographic information (Roberts
+et al., 2017). `mapAI` integrates rigorous cross-validation directly
+into `train_pai_model()` and exports `cv_pai_model()` /
+`assess_pai_model()`, supporting six distinct schemes:
+
+1.  **`"spatial_block"`:** Partitions space into regular rectangular
+    geographic grid tiles, placing entire contiguous regions into
+    independent folds.
+
+2.  **`"spatial_buffered"`:** Imposes an exclusion dead-zone buffer
+    $d_{\text{buffer}}$ around validation blocks:
+
+    $$\min_{\mathbf{s}_i \in \text{Test}} \|\mathbf{s}_j - \mathbf{s}_i\| > d_{\text{buffer}} \quad \forall \mathbf{s}_j \in \text{Train}$$
+
+    Training points within the exclusion dead zone are pruned,
+    eliminating autocorrelation leakage.
+
+3.  **`"spatial"`:** Spatial clustering of coordinates via $k$-means.
+
+4.  **`"random"`:** Standard random $k$-fold cross-validation.
+
+5.  **`"probability"`:** Single design-based train/test split.
+
+6.  **`"stratified"`:** Stratified cross-validation partitioned across
+    displacement magnitude quantiles.
+
+------------------------------------------------------------------------
 
 ## Installation
 
-You can install the development version of `mapAI` from
-[GitHub](https://github.com/) using the `pak` package:
+Install the latest development version of `mapAI` from GitHub:
 
 ``` r
 # install.packages("pak")
 pak::pak("kvantas/mapAI")
 ```
 
-## Core Workflow: A Complete Example
+------------------------------------------------------------------------
 
-This example demonstrates the primary workflow. We will first generate a
-synthetic dataset representing a distorted map and then use the
-package’s functions to correct it.
+## Complete Hands-On Workflow
 
-### 1. Load Libraries and Create Demo Data
-
-We begin by using `create_demo_data()` to generate a test case with
-complex, noisy distortions.
+### 1. Data Ingestion and Visualizing GCPs
 
 ``` r
 library(mapAI)
 library(sf)
-#> Linking to GEOS 3.14.1, GDAL 3.12.1, PROJ 9.7.1; sf_use_s2() is TRUE
 library(ggplot2)
 
-# Generate a shapefile and a GCPs CSV with complex noisy distortions
-# The function returns a list containing the paths to these new files.
-demo_data <- create_demo_data(type = "complex", seed = 1)
+# Generate a synthetic demonstration dataset featuring complex non-linear distortion
+demo_data <- create_demo_data(type = "complex", seed = 42)
 
+# Homologous points object
+gcp_data <- demo_data$gcp
+map_to_correct <- demo_data$map
 
-# plot the distortion data
-plot(demo_data$gcp, main = "Homologous Points (GCPs)")
+# Inspect homologous points summary and plot displacement vectors
+summary(gcp_data)
+#> Summary of GCP Object:
+#> Number of points: 225 
+#> Source Coordinates Range:
+#>   X: -0.3737642 102.7303 
+#>   Y: -4.996873 115.3157 
+#> Target Coordinates Range:
+#>   X: 0 100 
+#>   Y: 0 100 
+#> Displacement Vectors Range:
+#>   dx: -4.534515 7.080819 
+#>   dy: -15.31573 4.996873 
+#> Mean Displacement:
+#>   Mean dx: 0.5565597 
+#>   Mean dy: -2.282656 
+#> Standard Deviation of Displacement:
+#>   SD dx: 2.307457 
+#>   SD dy: 4.248035 
+#> 2D RMSE of Displacement:
+#>   RMSE: 5.365312
+plot(gcp_data, title = "Ground Control Point Displacements")
 ```
 
 <img src="man/figures/README-data-creation-1.png" alt="" width="100%" />
 
-### 2. Read Data and Train a Model
+### 2. Training with Integrated Spatial Block Cross-Validation
 
-We load the generated files and train a **Generalized Additive Model
-(`gam`)**, which is ideal for capturing the smooth, non-linear
-distortions present in the demo data.
+We train a bivariate GAM model while simultaneously assessing its
+out-of-sample performance using 5-fold regular spatial block
+cross-validation:
 
 ``` r
-# Load the homologous points (GCPs) and the distorted vector map
-gcp_data <- demo_data$gcp
-map_to_correct <- demo_data$map
+# Train model with integrated spatial cross-validation
+gam_model <- train_pai_model(
+  gcp_data = gcp_data,
+  method = "gam_biv",
+  cv = list(validation_type = "spatial_block", k_folds = 5, seed = 42)
+)
 
-# Train a bivariate GAM model using the GCPs
-gam_model <- train_pai_model(gcp_data, "gam_biv")
-#> Training Bivariate GAM model...
+# Inspect model summary and cross-validation metrics
+print(gam_model)
+#> PAI Model - Bivariate GAM 
+#> Model Type: Bivariate
+#> 
+#> Family: Multivariate normal 
+#> Link function: 
+#> 
+#> Formula:
+#> dx ~ s(source_x, source_y)
+#> <environment: 0x000001b8d90749a0>
+#> dy ~ s(source_x, source_y)
+#> <environment: 0x000001b8d90749a0>
+#> 
+#> Parametric coefficients:
+#>               Estimate Std. Error z value Pr(>|z|)    
+#> (Intercept)    0.55656    0.03260   17.07   <2e-16 ***
+#> (Intercept).1 -2.28266    0.03057  -74.66   <2e-16 ***
+#> ---
+#> Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1
+#> 
+#> Approximate significance of smooth terms:
+#>                          edf Ref.df Chi.sq p-value    
+#> s(source_x,source_y)   19.92  24.68   4734  <2e-16 ***
+#> s.1(source_x,source_y) 23.45  27.22  18956  <2e-16 ***
+#> ---
+#> Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1
+#> 
+#> Deviance explained = 97.9%
+#> -REML = -25.002  Scale est. = 1         n = 225
 ```
 
-### 3. Apply Correction and Visualize
+The out-of-sample cross-validation results (`cv_rmse_2d`) are stored
+directly in `gam_model$cv$summary`, providing a realistic estimate of
+predictive accuracy without data leakage.
 
-We apply the trained model to our distorted grid. The resulting plot,
-which overlays the corrected grid on the original, provides a clear
-visual confirmation of what the model does to the distorted map.
+### 3. Vector Map Transformation with Topology Validation
+
+`transform_map()` extracts vertex coordinate matrices across all
+geometry types (`POINT`, `LINESTRING`, `POLYGON`, `MULTIPOINT`,
+`MULTILINESTRING`, `MULTIPOLYGON`), computes batch-vectorized
+predictions, reconstructs simple feature geometries, and automatically
+validates and repairs any self-intersections caused by non-linear
+warping (`repair_topology = TRUE`):
 
 ``` r
-# Apply the model to the distorted map
-corrected_map <- transform_map(gam_model, map_to_correct)
-#> Applying PAI model to map features...
-#> Correction complete.
+# Transform the distorted map
+corrected_map <- transform_map(gam_model, map_to_correct, repair_topology = TRUE)
 
-# For easy plotting, add a 'status' column and combine the maps
+# Combine original and corrected features for comparison
 map_to_correct$status <- "Original (Distorted)"
-corrected_map$status <- "Corrected"
+corrected_map$status <- "Corrected (PAI)"
 comparison_data <- rbind(map_to_correct[, "status"], corrected_map[, "status"])
 
-# Create the final comparison plot
+# Visualize overlay
 ggplot(comparison_data) +
   geom_sf(aes(color = status, linetype = status), fill = NA, linewidth = 0.7) +
-  scale_color_manual(name = "Map Status", values = c("Original (Distorted)" = "grey50", "Corrected" = "#e41a1c")) +
-  scale_linetype_manual(name = "Map Status", values = c("Original (Distorted)" = "dashed", "Corrected" = "solid")) +
-  labs(title = "Positional Correction of a Distorted Grid",
-       subtitle = "Overlay of original (dashed) and mapAI-corrected (solid) geometries") +
+  scale_color_manual(name = "Map Status", values = c("Original (Distorted)" = "grey50", "Corrected (PAI)" = "#e41a1c")) +
+  scale_linetype_manual(name = "Map Status", values = c("Original (Distorted)" = "dashed", "Corrected (PAI)" = "solid")) +
+  labs(
+    title = "Vector Positional Accuracy Improvement",
+    subtitle = "Overlay of original distorted (dashed) and corrected (solid) features"
+  ) +
   theme_minimal()
 ```
 
-<img src="man/figures/README-apply-and-visualize-1.png" alt="" width="100%" />
+<img src="man/figures/README-transform-vector-1.png" alt="" width="100%" />
 
-### 4. Correcting Raster Maps (In-Memory)
+### 4. Pure In-Memory Raster Rectification
 
-The same trained PAI model can also be applied directly to rectify
-continuous or categorical raster data (e.g., scanned historical paper
-maps, aerial photographs, or digital elevation models) using
-`terra::SpatRaster`.
+`apply_pai_raster()` brings PAI to raster imagery and scanned historical
+maps. Because raster warping requires **inverse (backward) mapping** to
+avoid raster gaps and collisions, `mapAI` implements a **damped
+fixed-point iterative coordinate inversion solver**:
 
-All raster transformations operate strictly in memory without creating
-temporary files:
+$$\mathbf{s}^{(k+1)} = \mathbf{s}^{(k)} - \lambda \left(\mathbf{s}^{(k)} + \mathbf{d}\left(\mathbf{s}^{(k)}\right) - \mathbf{t}\right)$$
+
+with damping factor $\lambda = 0.7$ and convergence tolerance
+$\epsilon = 10^{-4}$.
 
 ``` r
 library(terra)
 
-# Generate demo data including an in-memory raster map
-demo_raster_data <- create_demo_data(type = "complex", seed = 1, raster = TRUE)
+# Generate synthetic distorted raster matching the demonstration extent
+demo_raster_data <- create_demo_data(type = "complex", seed = 42, raster = TRUE)
 distorted_raster <- demo_raster_data$raster
 
-# Apply the trained model to correct the raster
-# Uses inverse mapping with bilinear interpolation
-corrected_raster <- transform_map(
+# Rectify raster using bilinear interpolation and automatic target extent calculation
+corrected_raster <- apply_pai_raster(
   gam_model,
   distorted_raster,
-  method = "bilinear"
+  method = "bilinear",
+  ext = "auto"
 )
 
-# Visualize original vs. corrected raster side-by-side
+# Visualize original vs. rectified raster side-by-side
 par(mfrow = c(1, 2))
 terra::plot(distorted_raster, main = "Original (Distorted) Raster", col = terrain.colors(50))
-terra::plot(corrected_raster, main = "mapAI-Corrected Raster", col = terrain.colors(50))
+terra::plot(corrected_raster, main = "Rectified Raster (mapAI)", col = terrain.colors(50))
 par(mfrow = c(1, 1))
 ```
 
-<img src="man/figures/README-raster-correction-1.png" alt="" width="100%" />
-
-Key raster capabilities: - **Inverse (Backward) Mapping**: Projects
-regular target grid cell centers backward into the source image space,
-eliminating holes and pixel collisions. - **Continuous & Categorical
-Support**: Uses `"bilinear"` interpolation for continuous surfaces and
-`"near"` (nearest neighbor) for discrete thematic layers. - **Fast Mesh
-Subsampling (`mesh_step`)**: Enables high-performance warping on large
-rasters with sub-pixel precision. - **Pure In-Memory Operations**:
-Entirely preserves RAM efficiency with zero disk overhead.
+<img src="man/figures/README-raster-rectification-1.png" alt="" width="100%" />
 
 ------------------------------------------------------------------------
 
-## From Correction to Explanation: Advanced Distortion Analysis
+## Differential Distortion Analysis & Topological Inversion Detection
 
-A key challenge with data-driven models is understanding *what* they
-have learned. `mapAI` directly addresses this by providing tools to
-“open the black box” and analyze the properties of the learned
-transformation.
+A key contribution of `mapAI` is its ability to diagnose and quantify
+local geometric deformations using differential geometry and Tissot’s
+indicatrix theory (Tissot, 1881; Snyder, 1987).
 
-### 5. Quantify and Visualize the Distortion Field
+Given numerical partial derivatives of the forward coordinate
+transformation:
 
-The `analyze_distortion()` function computes local distortion metrics
-across the map space. This allows us to move from a simple visual
-assessment to a quantitative map of the distortions that the model
-learns.
+$$\mathbf{J} = \begin{pmatrix} \frac{\partial f_x}{\partial x} & \frac{\partial f_x}{\partial y} \\ \frac{\partial f_y}{\partial x} & \frac{\partial f_y}{\partial y} \end{pmatrix}$$
 
-``` r
-# 1. Analyze the distortion using our trained GAM model on GCPs
-distortion_results <- analyze_distortion(gam_model, gcp_data)
+`analyze_distortion()` evaluates: - **Principal semi-axes ($a, b$):**
+The maximum and minimum local linear scale distortions (singular values
+of $\mathbf{J}$). - **Signed Jacobian Determinant
+($\det(\mathbf{J})$):**
 
-# 2. Plot the distortion surfaces interpolating the values on gcp's location
-plot(distortion_results,
-     metric = "area_scale",
-     diverging = TRUE) +
-  labs(title = "Areal Distortion")
-```
+$$\det(\mathbf{J}) = \frac{\partial f_x}{\partial x}\frac{\partial f_y}{\partial y} - \frac{\partial f_x}{\partial y}\frac{\partial f_y}{\partial x}$$
 
-<img src="man/figures/README-advanced-analysis-1.png" alt="" width="100%" />
+When $\det(\mathbf{J}) \le 0$, the mapping experiences **topological
+fold-over** or singular collapse. `mapAI` flags these conditions
+automatically via `is_inverted` and issues diagnostic warnings. -
+**Maximum Angular Distortion:**
+$2 \arcsin\left(\frac{a - b}{a + b}\right)$ - **Airy-Kavrayskiy
+Criterion:** $\frac{1}{2}\left((\ln a)^2 + (\ln b)^2\right)$
 
 ``` r
+# Evaluate distortion metrics across the training points
+distortion_field <- analyze_distortion(gam_model, gcp_data)
+summary(distortion_field)
+#>                                Mean       Median           SD           Min
+#> a                       1.039860051  1.030238558  0.029228361  9.836023e-01
+#> b                       0.904650415  0.899057771  0.035598782  8.476329e-01
+#> area_scale              0.940631656  0.944047484  0.043601603  8.641800e-01
+#> log2_area_scale        -0.089844373 -0.083068668  0.066978155 -2.105962e-01
+#> max_shear               3.996719807  4.353477672  1.419311693  1.367828e+00
+#> max_angular_distortion  0.139511840  0.151965039  0.049543324  4.774621e-02
+#> airy_kavrayskiy         0.006996574  0.007069882  0.004017419  5.725442e-04
+#> theta_a                -0.773472377 -1.115471513 10.238637247 -2.560541e+01
+#>                                Max
+#> a                       1.10133450
+#> b                       0.98286968
+#> area_scale              1.02223059
+#> log2_area_scale         0.03172067
+#> max_shear               6.79768657
+#> max_angular_distortion  0.23728402
+#> airy_kavrayskiy         0.01494303
+#> theta_a                21.35440010
 
-plot(
-  distortion_results, metric = "max_shear"
-) + 
-  labs(title = "Maximum Shear Distortion (°)")
+# Plot continuous areal distortion surface
+plot(distortion_field, metric = "area_scale", diverging = TRUE) +
+  labs(title = "Local Areal Distortion Scale")
 ```
 
-<img src="man/figures/README-advanced-analysis-2.png" alt="" width="100%" />
-
-`analyze_distortion()` also evaluates distortion directly on in-memory
-`terra::SpatRaster` objects, returning an 8-layer raster containing all
-Tissot indicatrix metrics:
+<img src="man/figures/README-distortion-analysis-1.png" alt="" width="100%" />
 
 ``` r
-# Evaluate distortion across all cell centers of the raster
-raster_distortion <- analyze_distortion(gam_model, newdata = distorted_raster)
 
-# Plot key distortion metric layers directly from the raster
-terra::plot(raster_distortion[[c("area_scale", "max_shear")]],
-            main = c("Raster Areal Distortion", "Raster Max Shear (°)"))
+# Plot Tissot's indicatrices showing local deformation ellipses
+indicatrices(distortion_field)
 ```
 
-<img src="man/figures/README-raster-distortion-1.png" alt="" width="100%" />
+<img src="man/figures/README-distortion-analysis-2.png" alt="" width="100%" />
+
+------------------------------------------------------------------------
+
+## References
+
+- Pebesma, E. (2018). Simple Features for R: Standardized Support for
+  Spatial Vector Data. *The R Journal*, 10(1), 439-446.
+  <https://doi.org/10.32614/RJ-2018-009>
+- Roberts, D. R., Bahn, V., Ciuti, S., Boyce, M. S., Elith, J.,
+  Guillera-Arroita, G., Hauenstein, S., Lahoz-Monfort, J. J., Schröder,
+  B., Thuiller, W., Warton, D. I., Wintle, B. A., Hartig, F., &
+  Dormann, C. F. (2017). Cross-validation strategies for data with
+  spatial, temporal, or phylogenetic dependence. *Ecography*, 40(8),
+  913-929. <https://doi.org/10.1111/ecog.02881>
+- Snyder, J. P. (1987). *Map Projections: A Working Manual*. U.S.
+  Geological Survey Professional Paper 1395.
+- Tissot, A. (1881). *Mémoire sur la représentation des surfaces et les
+  projections des cartes géographiques*. Gauthier-Villars.
+- Valavi, R., Elith, J., Lahoz-Monfort, J. J., & Guillera-Arroita, G.
+  (2019). blockCV: An R package for generating spatially or
+  environmentally separated folds for k-fold cross-validation of species
+  distribution models. *Methods in Ecology and Evolution*, 10(2),
+  225-232. <https://doi.org/10.1111/2041-210X.13107>
+- Vantas, K., & Mirkopoulou, E. (2025). *mapAI: An R Package for
+  Positional Accuracy Improvement of Vector Maps*.
+- Wahba, G. (1990). *Spline Models for Observational Data*. Society for
+  Industrial and Applied Mathematics.
+- Wolberg, G. (1990). *Digital Image Warping*. IEEE Computer Society
+  Press.
+- Wolf, P. R., & Ghilani, C. D. (2006). *Adjustment Computations:
+  Spatial Data Analysis* (4th ed.). John Wiley & Sons.
+- Wood, S. N. (2017). *Generalized Additive Models: An Introduction with
+  R* (2nd ed.). Chapman & Hall/CRC.
+
+------------------------------------------------------------------------
 
 ## Meta
 
-- Bug reports, suggestions, and code are welcome.
-
-- License:
-
-  - All code is licensed MIT.
+- Bug reports, suggestions, and code are welcome via GitHub Issues.
+- License: MIT.

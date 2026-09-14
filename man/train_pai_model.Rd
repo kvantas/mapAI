@@ -2,7 +2,7 @@
 % Please edit documentation in R/train_pai_model.R
 \name{train_pai_model}
 \alias{train_pai_model}
-\title{Train a PAI Model}
+\title{Train a Positional Accuracy Improvement (PAI) Model}
 \usage{
 train_pai_model(gcp_data, method, cv = NULL, seed = 123, ...)
 }
@@ -24,24 +24,56 @@ Defaults to \code{NULL} (no cross-validation).}
 }
 \value{
 A trained model object of class \code{pai_model}, optionally containing
-a \code{cv} component with full cross-validation assessment results.
+a \code{cv} component with full cross-validation assessment results and \code{cv_rmse_2d}.
 }
 \description{
-Trains a supervised learning model using a flexible plug-in
-architecture, allowing for easy extension with both built-in and custom
-algorithms.
+Trains a spatial transformation model to learn coordinate
+displacement fields between homologous points, using a flexible plug-in
+architecture supporting geodetic adjustments, thin-plate splines,
+multivariate GAMs, and custom machine learning algorithms.
 }
 \details{
-This function is the central training utility for the package. It
-uses a \code{method} argument that can be either a character string to call a
-built-in model (\code{"helmert"}, \code{"lm"},  \code{"gam_biv"}, \code{"tps"}), or a
-list to define a completely custom model on the fly.
+This function serves as the central training interface for the \code{mapAI} package.
+Given a set of ground control points (GCPs) with known source coordinates
+\eqn{\mathbf{s} = (u, v)} and target coordinates \eqn{\mathbf{t} = (x, y)},
+the model learns the spatial displacement field
+\eqn{\mathbf{d}(\mathbf{s}) = (d_x(\mathbf{s}), d_y(\mathbf{s})) = \mathbf{t} - \mathbf{s}}.
 
-\strong{Using Custom Models}: To provide a custom model, the \code{method}
-argument should be a list with four required elements: \code{label} (a string),
-\code{modelType} ("univariate" or "bivariate"), \code{fit} (a function), and \code{predict}
-(a function). This allows advanced users to integrate virtually any
-regression algorithm into the \code{mapAI} workflow.
+\strong{Mathematical Formulations of Built-In Models:}
+\itemize{
+\item \strong{\code{"helmert"} (4-Parameter Conformal Transformation):}
+A rigid similarity transformation preserving angles and shapes:
+\deqn{\begin{pmatrix} x \\ y \end{pmatrix} = \begin{pmatrix} t_x \\ t_y \end{pmatrix} + \begin{pmatrix} a & -b \\ b & a \end{pmatrix} \begin{pmatrix} u \\ v \end{pmatrix}}
+Estimated via Ordinary Least Squares (OLS) or Total Least Squares (TLS / SVD Procrustes)
+to mitigate regression dilution bias (Wolf & Ghilani, 2006).
+\item \strong{\code{"lm"} (First-Order Bivariate Polynomial Affine):}
+Fits independent linear surface trends for each displacement axis:
+\deqn{d_x = \beta_{0x} + \beta_{1x} u + \beta_{2x} v, \quad d_y = \beta_{0y} + \beta_{1y} u + \beta_{2y} v}
+Capturing uniform differential scale, rotation, translation, and affine shear.
+\item \strong{\code{"tps"} (Thin Plate Splines):}
+Minimizes a penalized sum of squares with a bending energy penalty:
+\deqn{\sum_{i=1}^n (y_i - f(\mathbf{s}_i))^2 + \lambda \iint_{\mathbb{R}^2} \left[ \left(\frac{\partial^2 f}{\partial u^2}\right)^2 + 2\left(\frac{\partial^2 f}{\partial u \partial v}\right)^2 + \left(\frac{\partial^2 f}{\partial v^2}\right)^2 \right] du dv}
+providing a smooth, interpolating or regularized physical deformation surface (Wahba, 1990).
+\item \strong{\code{"gam_biv"} (Multivariate Bivariate GAM with Adaptive Spline Dimension):}
+Models displacement components simultaneously using a bivariate thin plate regression
+spline with a joint multivariate normal error distribution:
+\deqn{\begin{pmatrix} d_x \\ d_y \end{pmatrix} \sim \mathcal{N}_2\left(\begin{pmatrix} \mu_x(u, v) \\ \mu_y(u, v) \end{pmatrix}, \boldsymbol{\Sigma}\right)}
+where the basis dimension \eqn{k} is adaptively tuned to sample size:
+\deqn{k = \max\left(3, \min\left(29, \lfloor 0.6 \cdot n_{\text{unique}} \rfloor\right)\right)}
+preventing rank-deficiency errors in small-sample control point sets (Wood, 2017).
+}
+
+\strong{Integrated Cross-Validation:}
+By setting \code{cv = TRUE} or supplying a configuration list (e.g.,
+\code{cv = list(validation_type = "spatial_block", k_folds = 5)}), spatial
+cross-validation is executed directly during training. This mitigates
+data leakage and spatial autocorrelation bias, storing out-of-sample
+validation metrics directly inside \code{pai_model$cv}.
+
+\strong{Extensible Custom Plugin Architecture:}
+Advanced users can supply a custom model list with elements \code{label},
+\code{modelType} (\code{"univariate"} or \code{"bivariate"}), \code{fit(x, y, ...)}, and
+\code{predict(modelFit, newdata, ...)}.
 }
 \examples{
 # Example using built-in models
@@ -62,4 +94,13 @@ residuals(gam_model)
 # plot the learned correction surfaces for dx and dy for the model
 surface(gam_model)
 
+}
+\references{
+\itemize{
+\item Wood, S. N. (2017). \emph{Generalized Additive Models: An Introduction with R} (2nd ed.). Chapman & Hall/CRC.
+\item Wahba, G. (1990). \emph{Spline Models for Observational Data}. Society for Industrial and Applied Mathematics.
+\item Wolf, P. R., & Ghilani, C. D. (2006). \emph{Adjustment Computations: Spatial Data Analysis} (4th ed.). John Wiley & Sons.
+\item Roberts et al. (2017). Cross-validation strategies for data with spatial, temporal, or phylogenetic dependence. \emph{Ecography}, 40(8), 913-929.
+\item Vantas, K., & Mirkopoulou, E. (2025). \emph{mapAI: An R Package for Positional Accuracy Improvement of Vector Maps}.
+}
 }

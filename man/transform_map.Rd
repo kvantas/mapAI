@@ -32,6 +32,39 @@ Applies a trained \code{pai_model} object to an \code{sf} vector map or a
 \code{terra} \code{SpatRaster}, correcting its spatial alignment based on the learned
 transformation.
 }
+\details{
+\code{transform_map} is the primary map rectification engine of the \code{mapAI} framework.
+It handles both simple features (\code{sf}) vector layers and \code{terra} rasters.
+
+\strong{Vector Rectification Pipeline:}
+\enumerate{
+\item \strong{CRS Validation:} Verifies that the input map uses a projected
+Cartesian Coordinate Reference System (e.g., UTM or National Grid in meters),
+issuing a warning if geographic coordinates (degrees) are supplied.
+\item \strong{AOI Partitioning:} If an Area of Interest (\code{aoi}) polygon is provided,
+the map is cleanly partitioned via spatial intersection and difference so that
+only features within the AOI are transformed.
+\item \strong{Batch Vectorized Vertex Extraction:} Deconstructs complex
+geometries (\code{POINT}, \code{LINESTRING}, \code{POLYGON} with interior rings/holes,
+\code{MULTIPOINT}, \code{MULTILINESTRING}, and \code{MULTIPOLYGON}) into padded coordinate
+matrices and evaluates displacements \eqn{\mathbf{d}(\mathbf{s})} in a single
+vectorized batch call for optimal performance.
+\item \strong{Topological Reconstruction:} Reconstructs the simple features
+geometry hierarchy, enforcing proper polygon ring closure.
+\item \strong{Topology Validation & Repair:} When \code{repair_topology = TRUE},
+the transformed geometries are checked with \code{sf::st_is_valid()}. Any
+invalid polygons (such as self-intersecting "bowties" or pinched rings
+induced by non-linear warping) are automatically repaired using
+\code{sf::st_make_valid()}.
+\item \strong{Area Recalculation:} Recomputes attribute \code{area_new} for all
+polygon features using \code{sf::st_area()}.
+}
+
+\strong{Raster Rectification Dispatch:}
+If \code{map} is a \code{terra::SpatRaster}, execution is automatically
+dispatched to \code{\link[=apply_pai_raster]{apply_pai_raster()}} using inverse coordinate mapping and
+in-memory resampling.
+}
 \examples{
 # This example demonstrates a full workflow
 
@@ -52,4 +85,10 @@ corrected_map$status <- "Corrected"
 comparison_data <- rbind(map_to_correct[, "status"], corrected_map[, "status"])
 
 # Create the final comparison plot
+}
+\references{
+\itemize{
+\item Pebesma, E. (2018). Simple Features for R: Standardized Support for Spatial Vector Data. \emph{The R Journal}, 10(1), 439-446.
+\item Vantas, K., & Mirkopoulou, E. (2025). \emph{mapAI: An R Package for Positional Accuracy Improvement of Vector Maps}.
+}
 }

@@ -3,6 +3,45 @@
 #'   `terra` `SpatRaster`, correcting its spatial alignment based on the learned
 #'   transformation.
 #'
+#' @details
+#' `transform_map` is the primary map rectification engine of the `mapAI` framework.
+#' It handles both simple features (`sf`) vector layers and `terra` rasters.
+#'
+#' **Vector Rectification Pipeline:**
+#' \enumerate{
+#'   \item \strong{CRS Validation:} Verifies that the input map uses a projected
+#'     Cartesian Coordinate Reference System (e.g., UTM or National Grid in meters),
+#'     issuing a warning if geographic coordinates (degrees) are supplied.
+#'   \item \strong{AOI Partitioning:} If an Area of Interest (`aoi`) polygon is provided,
+#'     the map is cleanly partitioned via spatial intersection and difference so that
+#'     only features within the AOI are transformed.
+#'   \item \strong{Batch Vectorized Vertex Extraction:} Deconstructs complex
+#'     geometries (`POINT`, `LINESTRING`, `POLYGON` with interior rings/holes,
+#'     `MULTIPOINT`, `MULTILINESTRING`, and `MULTIPOLYGON`) into padded coordinate
+#'     matrices and evaluates displacements \eqn{\mathbf{d}(\mathbf{s})} in a single
+#'     vectorized batch call for optimal performance.
+#'   \item \strong{Topological Reconstruction:} Reconstructs the simple features
+#'     geometry hierarchy, enforcing proper polygon ring closure.
+#'   \item \strong{Topology Validation & Repair:} When \code{repair_topology = TRUE},
+#'     the transformed geometries are checked with \code{sf::st_is_valid()}. Any
+#'     invalid polygons (such as self-intersecting "bowties" or pinched rings
+#'     induced by non-linear warping) are automatically repaired using
+#'     \code{sf::st_make_valid()}.
+#'   \item \strong{Area Recalculation:} Recomputes attribute \code{area_new} for all
+#'     polygon features using \code{sf::st_area()}.
+#' }
+#'
+#' **Raster Rectification Dispatch:**
+#' If \code{map} is a \code{terra::SpatRaster}, execution is automatically
+#' dispatched to [apply_pai_raster()] using inverse coordinate mapping and
+#' in-memory resampling.
+#'
+#' @references
+#' \itemize{
+#'   \item Pebesma, E. (2018). Simple Features for R: Standardized Support for Spatial Vector Data. \emph{The R Journal}, 10(1), 439-446.
+#'   \item Vantas, K., & Mirkopoulou, E. (2025). \emph{mapAI: An R Package for Positional Accuracy Improvement of Vector Maps}.
+#' }
+#'
 #' @param pai_model An object of class `pai_model` returned by
 #' `train_pai_model()`.
 #' @param map An `sf` object representing the vector map, or a `terra`

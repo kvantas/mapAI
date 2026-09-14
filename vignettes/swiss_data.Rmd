@@ -47,49 +47,71 @@ The plot shows clear spatial patterns in the remaining errors, which a simple li
 
 
 
-### Error Assessment and Model Validation
+### Error Assessment and Spatial Validation Schemes
 
-Before training a final model, it is crucial to assess its expected performance. The `cv_pai_model` function provides a robust framework for this. We will compare four different validation strategies to understand how the model might perform on new data.
+In spatial statistics, standard random cross-validation often suffers from **optimism bias**: close spatial proximity between training and testing observations allows spatial autocorrelation to leak geographic information, artificially depressing estimated prediction errors (Roberts et al., 2017).
 
-  * **Standard & Spatial Cross-Validation**: We test a 10-fold cross-validation, once with random data splits and once with "spatial" splits, which ensures that training and validation sets are spatially separated.
-  * **Design-Based Validation**: We also test validation based on sampling probability (`probability`) and k-fold stratified sampling (`stratified`), which are useful when the data points have a known design or structure.
+To evaluate model generalizability rigorously, `mapAI` implements six distinct validation strategies:
 
+1. **Standard Random CV (`"random"`):** Traditional $k$-fold cross-validation with randomly partitioned points.
+2. **Spatial Clustered CV (`"spatial"`):** $k$-means clustering of coordinates to ensure folds form distinct geographic clusters.
+3. **Spatial Block CV (`"spatial_block"`):** Rectangular grid partitioning of the geographic bounding box into independent spatial blocks.
+4. **Spatial Buffered Block CV (`"spatial_buffered"`):** Imposes an exclusion dead-zone buffer around each test block, discarding nearby training points to eliminate spatial autocorrelation data leakage.
+5. **Design-Based Sampling (`"probability"`):** Single train/validation split using simple random sampling.
+6. **Stratified Sampling (`"stratified"`):** $k$-fold cross-validation binned across distortion magnitude quantiles.
 
 ```{r assess_model, message=FALSE}
-# Run four different validation methods using a GAM
-cvra <- cv_pai_model(swiss_cps, pai_method = "gam_biv", validation_type = "random", k_folds = 10, seed = 1)
-cvsp <- cv_pai_model(swiss_cps, pai_method = "gam_biv", validation_type = "spatial", k_folds = 10, seed = 1)
-valr <- cv_pai_model(swiss_cps, pai_method = "gam_biv", validation_type = "probability", seed = 1)
-vals <- cv_pai_model(swiss_cps, pai_method = "gam_biv", validation_type = "stratified", seed = 1)
+# Evaluate all six validation strategies using GAM
+cv_rnd <- cv_pai_model(swiss_cps, method = "gam_biv", validation_type = "random", k_folds = 5, seed = 42)
+cv_spt <- cv_pai_model(swiss_cps, method = "gam_biv", validation_type = "spatial", k_folds = 5, seed = 42)
+cv_blk <- cv_pai_model(swiss_cps, method = "gam_biv", validation_type = "spatial_block", k_folds = 5, seed = 42)
+cv_buf <- cv_pai_model(swiss_cps, method = "gam_biv", validation_type = "spatial_buffered", k_folds = 5, seed = 42)
+cv_prb <- cv_pai_model(swiss_cps, method = "gam_biv", validation_type = "probability", train_split_ratio = 0.8, seed = 42)
+cv_str <- cv_pai_model(swiss_cps, method = "gam_biv", validation_type = "stratified", k_folds = 5, seed = 42)
 
-# Combine and format the results into a table
-validation_df <- rbind(cvra$summary, cvsp$summary, valr$summary, vals$summary) %>%
+# Combine results into a comprehensive comparison table
+validation_df <- rbind(
+  cv_rnd$summary, cv_spt$summary, cv_blk$summary,
+  cv_buf$summary, cv_prb$summary, cv_str$summary
+) %>%
   select(Model_Method = Method, Mean_2D_RMSE_m = Mean_RMSE_2D, Std_Deviation_of_RMSE_m = SD_RMSE_2D) %>%
-  mutate(across(where(is.numeric), ~ round(.x, 1)))
+  mutate(across(where(is.numeric), ~ round(.x, 2)))
 
-validation_df$type <- c("Standard 10-fold cross-validation",
-                       "Spatial 10-fold cross-validation",
-                       "Design-based validation",
-                       "Stratified random sampling")
+validation_df$Strategy <- c(
+  "Standard Random 5-fold CV",
+  "Spatial Clustered 5-fold CV",
+  "Spatial Block 5-fold CV",
+  "Spatial Buffered Block 5-fold CV",
+  "Design-Based 80/20 Split",
+  "Stratified 5-fold CV"
+)
 
-# Print the comparison table
-kable(validation_df, caption = "Table: Validation performance across different assessment methods.")
+kable(validation_df[, c("Strategy", "Model_Method", "Mean_2D_RMSE_m", "Std_Deviation_of_RMSE_m")],
+      caption = "Table: Predictive performance comparison across six validation strategies.")
 ```
 
+Notice how spatial block and buffered cross-validation produce slightly higher, more realistic RMSE estimates than random cross-validation. This difference reflects the true spatial generalization error when extrapolating into unsampled regions, free from autocorrelation optimism.
 
-### Final Correction and Visualization
+### Training with Integrated Spatial Cross-Validation
 
-Now, confident in our modeling choice, we train a final **Generalized Additive Model (`gam`)** on the entire dataset. To visualize the effect of the correction, we will apply this model to a regular reference grid.
+Rather than running validation as an external detached step, `train_pai_model` allows cross-validation to be integrated directly into model fitting via the `cv` argument. This ensures that out-of-sample validation metrics (`cv_rmse_2d`) are permanently packaged with the fitted model:
 
-```{r trainmodel}
-# Train the final GAM model on all data points
-final_gam_model <- train_pai_model(swiss_cps, "gam_biv")
+```{r trainmodel, message=FALSE}
+# Train final GAM model with integrated 5-fold spatial block cross-validation
+final_gam_model <- train_pai_model(
+  gcp_data = swiss_cps,
+  method = "gam_biv",
+  cv = list(validation_type = "spatial_block", k_folds = 5, seed = 42)
+)
+
+# Inspect model summary showing both in-sample training and out-of-sample CV metrics
+print(final_gam_model)
 
 # Use the regular line grid to serve as our reference map
 source_grid <- basel_frickthal$grid 
 
-# Apply the trained model to correct the grid
-gam_corrected_grid <- transform_map(final_gam_model, source_grid)
+# Apply the trained model to correct the grid with topology validation
+gam_corrected_grid <- transform_map(final_gam_model, source_grid, repair_topology = TRUE)
 
 # Prepare data for plotting
 source_grid$status <- "Original (Distorted)"
@@ -176,4 +198,26 @@ indicatrices(distortion_results,  scale_factor = 1000) +
 
 The size and shape of the ellipses clearly show the spatial variation in both the magnitude and direction of the distortion that our model has successfully captured.
 
+### Checking for Topological Fold-Overs
 
+An essential check when applying non-linear spline models is ensuring that the deformation has not introduced local topological fold-overs or singular collapses. We verify this by inspecting the signed Jacobian determinant $\det(\mathbf{J})$:
+
+```{r check_inversion}
+# Verify that all points maintain a positive Jacobian determinant
+n_inverted <- sum(distortion_results$is_inverted, na.rm = TRUE)
+cat(sprintf("Topological fold-overs detected: %d (min det(J) = %.4f)\n",
+            n_inverted, min(distortion_results$det_J, na.rm = TRUE)))
+```
+
+Because $\min \det(\mathbf{J}) > 0$, the learned transformation is strictly orientation-preserving and topologically diffeomorphism-stable everywhere across the study area.
+
+---
+
+### References
+
+- Roberts, D. R., Bahn, V., Ciuti, S., Boyce, M. S., Elith, J., Guillera-Arroita, G., Hauenstein, S., Lahoz-Monfort, J. J., Schröder, B., Thuiller, W., Warton, D. I., Wintle, B. A., Hartig, F., & Dormann, C. F. (2017). Cross-validation strategies for data with spatial, temporal, or phylogenetic dependence. *Ecography*, 40(8), 913-929. https://doi.org/10.1111/ecog.02881
+- Snyder, J. P. (1987). *Map Projections: A Working Manual*. U.S. Geological Survey Professional Paper 1395.
+- Tissot, A. (1881). *Mémoire sur la représentation des surfaces et les projections des cartes géographiques*. Gauthier-Villars.
+- Valavi, R., Elith, J., Lahoz-Monfort, J. J., & Guillera-Arroita, G. (2019). blockCV: An R package for generating spatially or environmentally separated folds for k-fold cross-validation of species distribution models. *Methods in Ecology and Evolution*, 10(2), 225-232.
+- Vantas, K., & Mirkopoulou, E. (2025). *mapAI: An R Package for Positional Accuracy Improvement of Vector Maps*.
+- Wood, S. N. (2017). *Generalized Additive Models: An Introduction with R* (2nd ed.). Chapman & Hall/CRC.

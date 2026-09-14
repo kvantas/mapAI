@@ -2,7 +2,7 @@
 % Please edit documentation in R/analyze_distortion.R
 \name{analyze_distortion}
 \alias{analyze_distortion}
-\title{Perform a Differential Distortion Analysis}
+\title{Perform Differential Distortion Analysis on a Spatial Transformation}
 \usage{
 analyze_distortion(pai_model, newdata = NULL, reference_scale = 1)
 }
@@ -18,30 +18,48 @@ are evaluated at each cell center and returned as a multi-layer \code{SpatRaster
 }
 \value{
 A \code{distortion} object (a data frame) or a \code{terra::SpatRaster} object
-with all calculated distortion metrics (e.g., \code{a}, \code{b},
-\code{log2_area_scale}, \code{max_shear}, \code{max_angular_distortion}, \code{airy_kavrayskiy},
-\code{theta_a}).
+with all calculated distortion metrics (\code{a}, \code{b}, \code{area_scale},
+\code{signed_area_scale}, \code{det_J}, \code{is_inverted}, \code{log2_area_scale},
+\code{max_shear}, \code{max_angular_distortion}, \code{airy_kavrayskiy}, \code{theta_a}).
 }
 \description{
-Computes a comprehensive set of detailed distortion metrics for
-a PAI model at specified locations, based on Tissot's indicatrix theory.
+Evaluates the local differential geometry and distortion metrics
+of a spatial transformation learned by a \code{pai_model}, based on Tissot's
+indicatrix theory, Cauchy-Green deformation analysis, and signed Jacobian
+determinants.
 }
 \details{
-This function is the core analytical engine of the package. It
-implements a differential analysis by calculating the first partial
-derivatives of the spatial transformation learned by a \code{pai_model} using
-numerical differentiation. From these derivatives, it calculates key
-distortion metrics that describe how shape, area, and angles are warped.
+This function forms the analytical diagnostic engine of the \code{mapAI} package.
+By numerically evaluating first-order partial derivatives of the coordinate
+transformation \eqn{\mathbf{f}(x, y) = (f_x(x, y), f_y(x, y)) = (x + d_x(x, y), y + d_y(x, y))},
+it computes the local Jacobian transformation matrix:
+\deqn{\mathbf{J} = \begin{pmatrix} \frac{\partial f_x}{\partial x} & \frac{\partial f_x}{\partial y} \\ \frac{\partial f_y}{\partial x} & \frac{\partial f_y}{\partial y} \end{pmatrix}}
 
-\strong{Interpreting Results by Model Type:}
-The nature of the output is highly dependent on the model used.
+\strong{Metric Tensor Elements:}
+\deqn{E = \left(\frac{\partial f_x}{\partial x}\right)^2 + \left(\frac{\partial f_y}{\partial x}\right)^2}
+\deqn{G = \left(\frac{\partial f_x}{\partial y}\right)^2 + \left(\frac{\partial f_y}{\partial y}\right)^2}
+\deqn{F = \frac{\partial f_x}{\partial x}\frac{\partial f_x}{\partial y} + \frac{\partial f_y}{\partial x}\frac{\partial f_y}{\partial y}}
+
+\strong{Tissot Indicatrix Semi-Axes (Singular Values):}
+The maximum and minimum local linear scale distortions \eqn{a} and \eqn{b}
+correspond to the singular values of \eqn{\mathbf{J}}:
+\deqn{a = \sqrt{\frac{1}{2}\left(E + G + \sqrt{(E - G)^2 + 4F^2}\right)}}
+\deqn{b = \sqrt{\frac{1}{2}\left(E + G - \sqrt{(E - G)^2 + 4F^2}\right)}}
+
+\strong{Signed Jacobian Determinant & Topological Inversion Detection:}
+While the classical area scale factor is \eqn{a \cdot b = |\det(\mathbf{J})|},
+\code{analyze_distortion} explicitly evaluates the signed Jacobian determinant:
+\deqn{\det(\mathbf{J}) = \frac{\partial f_x}{\partial x}\frac{\partial f_y}{\partial y} - \frac{\partial f_x}{\partial y}\frac{\partial f_y}{\partial x}}
+If \eqn{\det(\mathbf{J}) \le 0}, the transformation locally suffers a topological
+inversion (fold-over, self-intersection, or dimensional collapse). An automatic
+warning is issued when \code{det_J <= 0} is detected, and the flag \code{is_inverted}
+is recorded.
+
+\strong{Angular and Total Distortion Criteria:}
 \itemize{
-\item \strong{\code{gam} & \code{tps}}: Produce a smooth, differentiable surface,
-leading to spatially variable and meaningful distortion metrics.
-\item \strong{\code{helmert} & \code{lm}}: Represent global transformations,
-resulting in distortion metrics that are constant for every point.
-\item \strong{\code{rf}}: Creates a step-like surface where local derivatives
-may be zero, potentially showing no local distortion.
+\item Maximum Angular Distortion: \eqn{2 \arcsin\left(\frac{a - b}{a + b}\right)}
+\item Airy-Kavrayskiy Measure: \eqn{\frac{1}{2}\left((\ln a)^2 + (\ln b)^2\right)}
+\item Principal Axis Orientation: \eqn{\theta_a}
 }
 }
 \examples{
@@ -59,4 +77,11 @@ may be zero, potentially showing no local distortion.
 
 # Plot Tissot's indicatrices using automatic scale factor
  indicatrices(distortion_results)
+}
+\references{
+\itemize{
+\item Tissot, A. (1881). \emph{Mémoire sur la représentation des surfaces et les projections des cartes géographiques}. Gauthier-Villars.
+\item Snyder, J. P. (1987). \emph{Map Projections: A Working Manual}. U.S. Geological Survey Professional Paper 1395.
+\item Vantas, K., & Mirkopoulou, E. (2025). \emph{mapAI: An R Package for Positional Accuracy Improvement of Vector Maps}.
+}
 }
