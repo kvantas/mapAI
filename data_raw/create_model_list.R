@@ -43,8 +43,17 @@ gam_biv_model <- list(
   label = "Bivariate GAM",
   library = "mgcv",
   modelType = "bivariate",
-  fit = function(dat, ...) {
-    formula_list <- list(dx ~ s(source_x, source_y), dy ~ s(source_x, source_y))
+  fit = function(dat, k = NULL, ...) {
+    n_unique <- nrow(unique(dat[, c("source_x", "source_y")]))
+    if (is.null(k)) {
+      k_adaptive <- max(3, min(29, floor(n_unique * 0.6)))
+    } else {
+      k_adaptive <- min(k, n_unique - 1)
+    }
+    formula_list <- list(
+      stats::as.formula(sprintf("dx ~ s(source_x, source_y, k = %d)", k_adaptive)),
+      stats::as.formula(sprintf("dy ~ s(source_x, source_y, k = %d)", k_adaptive))
+    )
     mgcv::gam(formula_list, data = dat, family = mgcv::mvn(d = 2), ...)
   },
   predict = function(modelFit, newdata, ...) {
@@ -60,7 +69,7 @@ helmert_model <- list(
   modelType = "bivariate",
   fit = function(dat, ...) {
     helmert(dat$source_x, dat$source_y,
-            dat$target_x, dat$target_y)
+            dat$target_x, dat$target_y, ...)
 
   },
   predict = function(modelFit, newdata, ...) {

@@ -87,3 +87,16 @@ test_that("all models can fit and predict with simulated data", {
   }
 })
 
+test_that("gam_biv adapts basis dimension k for small sample sizes without error", {
+  small_data <- create_dummy_gcp_data(12)
+  gam_model_info <- mapAI:::pai_model_list$gam_biv
+
+  expect_no_error({
+    fit <- gam_model_info$fit(small_data)
+    preds <- gam_model_info$predict(fit, small_data)
+  })
+
+  expect_equal(nrow(preds), 12)
+  expect_equal(ncol(preds), 2)
+})
+
