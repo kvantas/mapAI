@@ -12,16 +12,18 @@ Description: A statistically rigorous, computationally efficient framework for
     of geospatial vector and raster datasets. Implements conformal similarity
     (Helmert via Ordinary and Total Least Squares), general affine, Thin Plate
     Splines (TPS), bivariate Generalized Additive Models (GAM) with thin plate
-    regression splines and adaptive basis dimensions, and an extensible plugin
-    architecture for custom machine learning algorithms. Features integrated
-    spatial cross-validation (random, spatial clustered, spatial block, spatial
-    buffered block, probability, and stratified) to prevent spatial autocorrelation
-    data leakage. Supports topology-preserving vector transformation across all
-    standard simple feature geometries with automated repair, in-memory raster
-    rectification via damped Picard-Mann iterative coordinate inversion, and
-    differential deformation diagnostics including Tissot's indicatrices,
-    Cauchy-Green metric tensor invariants, and signed Jacobian topological
-    inversion screening.
+    regression splines and adaptive basis dimensions, piecewise affine Delaunay
+    triangulation (TIN), Akima C1 triangulated bivariate splines, two-stage
+    hybrid models (conformal Helmert-TIN and affine-TIN with stable extrapolation),
+    and an extensible plugin architecture for custom machine learning algorithms.
+    Features integrated spatial cross-validation (random, spatial clustered,
+    spatial block, spatial buffered block, probability, and stratified) to
+    prevent spatial autocorrelation data leakage. Supports topology-preserving
+    vector transformation across all standard simple feature geometries with
+    automated repair, in-memory raster rectification via damped Picard-Mann
+    iterative coordinate inversion, and differential deformation diagnostics
+    including Tissot's indicatrices, Cauchy-Green metric tensor invariants, and
+    signed Jacobian topological inversion screening and facet analysis.
 URL: https://kvantas.github.io/mapAI/
 BugReports: https://github.com/kvantas/mapAI/issues
 License: MIT + file LICENSE

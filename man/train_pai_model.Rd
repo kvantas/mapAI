@@ -61,6 +61,27 @@ spline with a joint multivariate normal error distribution:
 where the basis dimension \eqn{k} is adaptively tuned to sample size:
 \deqn{k = \max\left(3, \min\left(29, \lfloor 0.6 \cdot n_{\text{unique}} \rfloor\right)\right)}
 preventing rank-deficiency errors in small-sample control point sets (Wood, 2017).
+\item \strong{\code{"tin_linear"} (Piecewise Affine Delaunay Triangulation):}
+Partitions the domain into triangular facets via 2D Delaunay triangulation (Sweep-Hull)
+and evaluates localized affine transformations via barycentric coordinates:
+\deqn{\mathbf{p}' = \lambda_1 \mathbf{t}_1 + \lambda_2 \mathbf{t}_2 + \lambda_3 \mathbf{t}_3}
+providing exact interpolation at control points (\eqn{\mathrm{RMSE} = 0}) while
+constraining adjustments locally. Includes automatic pre-flight screening for
+topological triangle inversions (\eqn{\det(\mathbf{J}) \le 0}) and seamless global
+Helmert fallback outside the convex hull (White & Griffin, 1985; Saalfeld, 1985).
+\item \strong{\code{"tin_akima"} (Akima \eqn{C^1} Triangulated Bivariate Spline):}
+Fits smooth 5th-degree bivariate polynomials on Delaunay triangles with continuous partial
+derivatives across facet edges, eliminating derivative kinks and ensuring smooth metric
+tensors and Tissot indicatrices (Akima, 1978, 1996).
+\item \strong{\code{"hybrid_helmert_tin"} (Two-Stage Conformal Trend + Triangulated Residuals):}
+Combines a global 4-parameter conformal Helmert similarity base with localized Delaunay
+triangulation on residual displacements. Outside the control network's convex hull,
+residuals default to zero, ensuring geodetically stable Helmert extrapolation
+(Doytsher & Gelbman, 1995).
+\item \strong{\code{"hybrid_affine_tin"} (Two-Stage Affine Trend + Triangulated Residuals):}
+Combines a global 6-parameter affine polynomial base (capturing uniform differential scale
+and shear) with localized Delaunay triangulation on residuals, achieving exact control
+point matching with stable affine extrapolation.
 }
 
 \strong{Integrated Cross-Validation:}
@@ -97,6 +118,10 @@ surface(gam_model)
 }
 \references{
 \itemize{
+\item White, M. S., & Griffin, P. (1985). Piecewise linear rubber-sheet map transformation. \emph{The American Cartographer}, 12(2), 123-131.
+\item Saalfeld, A. (1985). A fast rubber-sheeting algorithm based on Delaunay triangulation. \emph{The American Cartographer}, 12(2), 169-173.
+\item Akima, H. (1978). A Method of Bivariate Interpolation and Smooth Surface Fitting for Irregularly Distributed Data Points. \emph{ACM Transactions on Mathematical Software}, 4(2), 148-164.
+\item Doytsher, Y., & Gelbman, E. (1995). Rubber-sheeting algorithm for cadastral maps. \emph{Journal of Surveying Engineering}, 121(4), 145-162.
 \item Wood, S. N. (2017). \emph{Generalized Additive Models: An Introduction with R} (2nd ed.). Chapman & Hall/CRC.
 \item Wahba, G. (1990). \emph{Spline Models for Observational Data}. Society for Industrial and Applied Mathematics.
 \item Wolf, P. R., & Ghilani, C. D. (2006). \emph{Adjustment Computations: Spatial Data Analysis} (4th ed.). John Wiley & Sons.

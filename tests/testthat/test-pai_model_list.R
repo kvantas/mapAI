@@ -3,7 +3,9 @@ test_that("pai_model_list contains all expected models", {
   pai_model_list <- mapAI:::pai_model_list
 
   # Check if all expected models are present
-  expected_models <- c("gam_biv", "helmert", "lm", "tps")
+  expected_models <- c("gam_biv", "helmert", "hybrid_affine_tin",
+                       "hybrid_helmert_tin", "lm", "tin_akima",
+                       "tin_linear", "tps")
   expect_true(all(expected_models %in% names(pai_model_list)))
 
   # Check structure of each model

@@ -32,11 +32,11 @@ The **`mapAI`** package provides a statistically rigorous, computationally effic
 Historically, georeferencing and geometric correction have relied on global polynomial or similarity transformations. While sufficient for simple translations and rigid rotations, such models fail catastrophically when applied to historical cartography, scanned analog cadastre, or aerial imagery subject to complex, spatially continuous, non-linear deformations. 
 
 To address these challenges, `mapAI` establishes a complete end-to-end pipeline:
-1. **Algorithmic Diversity**: Implements conformal similarity (Helmert via Ordinary and Total Least Squares), general affine, Thin Plate Splines (TPS), Bivariate Generalized Additive Models (GAM) with Thin Plate Regression Splines, and an extensible interface for arbitrary machine learning algorithms (Support Vector Machines, Random Forests, Neural Networks).
+1. **Algorithmic Diversity**: Implements conformal similarity (Helmert via Ordinary and Total Least Squares), general affine, Thin Plate Splines (TPS), Bivariate Generalized Additive Models (GAM) with Thin Plate Regression Splines, Piecewise Affine Delaunay Triangulation (`tin_linear`), Akima $C^1$ Triangulated Bivariate Splines (`tin_akima`), Two-Stage Hybrid Models (`hybrid_helmert_tin`, `hybrid_affine_tin`), and an extensible interface for arbitrary machine learning algorithms (Support Vector Machines, Random Forests, Neural Networks).
 2. **Spatial Data Leakage Prevention**: Features an integrated spatial cross-validation framework supporting six distinct partition topologies (`random`, `spatial`, `spatial_block`, `spatial_buffered`, `probability`, `stratified`) to guard against spatial autocorrelation bias and overfitting.
 3. **Topology-Preserving Vector Transformation**: Offers a robust geometry reconstruction engine capable of processing all standard OGC simple feature types (`POINT`, `LINESTRING`, `POLYGON` with interior boundary rings, `MULTIPOINT`, `MULTILINESTRING`, `MULTIPOLYGON`), spatial AOI partitioning, and automated topological repair via `sf::st_make_valid()`.
 4. **In-Memory Raster Rectification**: Implements backward mapping with a damped Picard-Mann fixed-point iterative coordinate inversion solver and regular mesh interpolation, executing entirely in RAM via `terra::SpatRaster`.
-5. **Differential Distortion & Inversion Diagnostics**: Evaluates local deformation fields using Tissot's Indicatrix, the Cauchy-Green metric tensor, and the signed Jacobian determinant $\det(\mathbf{J})$, automatically flagging topological fold-overs and singular shears.
+5. **Differential Distortion & Inversion Diagnostics**: Evaluates local deformation fields using Tissot's Indicatrix, the Cauchy-Green metric tensor, and the signed Jacobian determinant $\det(\mathbf{J})$, automatically flagging topological fold-overs and singular shears, with facet-level topological inversion screening via `check_tin_inversion()`.
 
 ---
 
@@ -170,6 +170,59 @@ The smoothing parameters $\boldsymbol{\lambda} = (\lambda_x, \lambda_y)$ are est
 $$k = \max\left(3, \; \min\left(29, \; \lfloor 0.6 \times n_{\text{unique}} \rfloor \right)\right)$$
 
 guaranteeing numerical robustness across datasets ranging from sparse GCP sets ($N \approx 10$) to regional surveys ($N > 1000$).
+
+## Piecewise Affine Delaunay Triangulation (`tin_linear`)
+
+While global splines produce smoothly varying deformation fields, they can exhibit non-local influence—adjusting an anchor in one corner can induce minor deformations far away. In contrast, **Piecewise Affine Delaunay Triangulation** (White & Griffin, 1985; Saalfeld, 1985) partitions the source coordinate domain into localized triangular facets $\mathcal{T} = \{T_1, \dots, T_m\}$ using the Sweep-Hull algorithm (`interp::tri.mesh`).
+
+For any query coordinate $\mathbf{p} = (x_s, y_s)^T$ located inside triangle $T_k = (\mathbf{s}_1, \mathbf{s}_2, \mathbf{s}_3)$, its position is expressed via simplicial **barycentric coordinates** $\boldsymbol{\lambda} = (\lambda_1, \lambda_2, \lambda_3)^T$:
+
+$$\mathbf{p} = \sum_{j=1}^3 \lambda_j \mathbf{s}_j, \qquad \sum_{j=1}^3 \lambda_j = 1, \quad \lambda_j \ge 0$$
+
+The target position and displacement vector are evaluated by:
+
+$$\mathbf{p}' = \sum_{j=1}^3 \lambda_j \mathbf{t}_j, \qquad \mathbf{d}(\mathbf{p}) = \sum_{j=1}^3 \lambda_j \mathbf{d}_j$$
+
+### Key Mathematical & Geometric Properties:
+- **Exact Interpolation**: Matches homologous control points with machine-precision zero error ($\mathrm{RMSE} = 0$ at GCPs).
+- **Strict Locality**: Perturbing a control point only affects triangles incident to that vertex; distant regions are completely unaffected.
+- **Topological Inversion Screening**: Pre-computes the signed area ratio $\det(\mathbf{J}_k) = \operatorname{Area}(T'_k) / \operatorname{Area}(T_k)$ for all facets, warning if any facet is flipped ($\det(\mathbf{J}) \le 0$).
+- **Convex Hull Fallback**: Query points falling outside the control network's convex hull are automatically transformed via a global Helmert or affine model, avoiding unhandled `NA` values.
+
+## Akima $C^1$ Triangulated Bivariate Splines (`tin_akima`)
+
+Piecewise affine triangulation is $C^0$ continuous, meaning displacement derivatives are step functions that jump discontinuously across triangle edges (producing visible "kinks" or creases in linear features). 
+
+To achieve smooth derivatives while retaining triangular localization, `mapAI` implements Akima's $C^1$ bivariate quintic interpolation scheme on Delaunay triangles (Akima, 1978, 1996). Akima constructs a 5th-degree bivariate polynomial on each triangular patch with normal derivatives matching continuously across shared edges. This yields **continuous metric tensors, smooth Jacobian determinants, and seamless Tissot indicatrices across all facet boundaries**.
+
+## Two-Stage Hybrid Trend-Residual Triangulation
+
+To combine the geodetic stability of global parametric models with the exact local fidelity of triangulated networks, `mapAI` implements two-stage hybrid models (Doytsher & Gelbman, 1995):
+
+1. **`hybrid_helmert_tin` (Conformal Trend + Triangulated Residuals)**:
+   - *Stage 1*: Fits a global 4-parameter conformal Helmert similarity transformation $\mathbf{t}_{\text{global}} = H(\mathbf{s})$.
+   - *Stage 2*: Calculates residual discrepancies $\mathbf{r}_i = \mathbf{t}_i - H(\mathbf{s}_i)$ and constructs a Delaunay TIN over the residuals.
+   - *Extrapolation*: Outside the convex hull of the GCPs, the local residual field gracefully defaults to zero, meaning out-of-bounds coordinates cleanly follow the geodetically sound Helmert transformation.
+2. **`hybrid_affine_tin` (Affine Trend + Triangulated Residuals)**:
+   - *Stage 1*: Fits bivariate 1st-order affine polynomials (`lm`) capturing anisotropic axis scale differences and affine shear.
+   - *Stage 2*: Triangulates affine residual displacements, providing exact GCP interpolation with stable affine extrapolation.
+
+```{r triangulation-demo}
+# Load Swiss Basel-Frickthal GCP dataset
+data(basel_frickthal)
+swiss_cps <- basel_frickthal$gcp
+
+# Fit Piecewise Affine Delaunay and Hybrid Helmert-TIN models on the Swiss GCPs
+model_tin <- train_pai_model(gcp_data = swiss_cps, method = "tin_linear")
+model_hyb <- train_pai_model(gcp_data = swiss_cps, method = "hybrid_helmert_tin")
+
+# Inspect the trained triangulation model
+print(model_tin)
+
+# Check for topological triangle inversions across the mesh
+inversion_summary <- check_tin_inversion(model_tin)
+print(inversion_summary)
+```
 
 ---
 
@@ -453,10 +506,14 @@ historical_sheet_rectified <- apply_pai_raster(
 
 # References
 
-1. **Bookstein, F. L. (1989)**. Principal warps: Thin-plate splines and the decomposition of deformations. *IEEE Transactions on Pattern Analysis and Machine Intelligence*, 11(6), 567–585.
-2. **Golub, G. H., & Van Loan, C. F. (2013)**. *Matrix Computations* (4th ed.). Johns Hopkins University Press.
-3. **Roberts, D. R., Bahn, V., Ciuti, S., Boyce, M. S., Elith, J., Guillera-Arroita, G., ... & Dormann, C. F. (2017)**. Cross-validation strategies for data with temporal, spatial, hierarchical or phylogenetic structure. *Ecography*, 40(8), 913–929.
-4. **Tissot, A. (1881)**. *Mémoire sur la représentation des surfaces et les projections des cartes géographiques*. Gauthier-Villars.
-5. **Tobler, W. R. (1970)**. A computer movie simulating urban growth in the Detroit region. *Economic Geography*, 46(sup1), 234–240.
-6. **Valente, R., Vantas, K., & Carrera-Hernández, J. (2021)**. Positional accuracy assessment and improvement of historical maps using non-linear spline models. *International Journal of Geographical Information Science*.
-7. **Wood, S. N. (2003)**. Thin plate regression splines. *Journal of the Royal Statistical Society: Series B (Statistical Methodology)*, 65(1), 95–114.
+1. **Akima, H. (1978)**. A Method of Bivariate Interpolation and Smooth Surface Fitting for Irregularly Distributed Data Points. *ACM Transactions on Mathematical Software*, 4(2), 148–164.
+2. **Bookstein, F. L. (1989)**. Principal warps: Thin-plate splines and the decomposition of deformations. *IEEE Transactions on Pattern Analysis and Machine Intelligence*, 11(6), 567–585.
+3. **Doytsher, Y., & Gelbman, E. (1995)**. Rubber-sheeting algorithm for cadastral maps. *Journal of Surveying Engineering*, 121(4), 145–162.
+4. **Golub, G. H., & Van Loan, C. F. (2013)**. *Matrix Computations* (4th ed.). Johns Hopkins University Press.
+5. **Roberts, D. R., Bahn, V., Ciuti, S., Boyce, M. S., Elith, J., Guillera-Arroita, G., ... & Dormann, C. F. (2017)**. Cross-validation strategies for data with temporal, spatial, hierarchical or phylogenetic structure. *Ecography*, 40(8), 913–929.
+6. **Saalfeld, A. (1985)**. A fast rubber-sheeting algorithm based on Delaunay triangulation. *The American Cartographer*, 12(2), 169–173.
+7. **Tissot, A. (1881)**. *Mémoire sur la représentation des surfaces et les projections des cartes géographiques*. Gauthier-Villars.
+8. **Tobler, W. R. (1970)**. A computer movie simulating urban growth in the Detroit region. *Economic Geography*, 46(sup1), 234–240.
+9. **Valente, R., Vantas, K., & Carrera-Hernández, J. (2021)**. Positional accuracy assessment and improvement of historical maps using non-linear spline models. *International Journal of Geographical Information Science*.
+10. **White, M. S., & Griffin, P. (1985)**. Piecewise linear rubber-sheet map transformation. *The American Cartographer*, 12(2), 123–131.
+11. **Wood, S. N. (2003)**. Thin plate regression splines. *Journal of the Royal Statistical Society: Series B (Statistical Methodology)*, 65(1), 95–114.
