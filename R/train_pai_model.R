@@ -15,17 +15,28 @@
 #' @param gcp_data An `gcp` object of homologous points.
 #' @param method A character string specifying a built-in algorithm, OR a list
 #'   defining a custom model.
+#' @param cv Optional cross-validation specification. Can be `TRUE` (defaults to
+#'   5-fold spatial block CV: `list(validation_type = "spatial_block", k_folds = 5)`),
+#'   or a list specifying validation arguments for [assess_pai_model()] (e.g.,
+#'   `list(validation_type = "spatial_buffered", k_folds = 5, buffer_dist = 50)`).
+#'   Defaults to `NULL` (no cross-validation).
 #' @param seed An integer for reproducibility.
 #' @param ... Additional arguments passed to the model's `fit` function.
-#' @return A trained model object of class `pai_model`.
+#' @return A trained model object of class `pai_model`, optionally containing
+#'   a `cv` component with full cross-validation assessment results.
 #' @export
 #' @examples
 #' # Example using built-in models
 #'
 #' demo_data <- create_demo_data()
 #'
-#' # fit a bivariate GAM model
-#' gam_model <- train_pai_model(gcp_data = demo_data$gcp, method = "gam_biv")
+#' # fit a bivariate GAM model with integrated spatial block cross-validation
+#' gam_model <- train_pai_model(
+#'   gcp_data = demo_data$gcp,
+#'   method = "gam_biv",
+#'   cv = list(validation_type = "spatial_block", k_folds = 5)
+#' )
+#' print(gam_model)
 #'
 #' # plot the residuals of the GAM model
 #' residuals(gam_model)
@@ -33,7 +44,7 @@
 #' # plot the learned correction surfaces for dx and dy for the model
 #' surface(gam_model)
 #'
-train_pai_model <- function(gcp_data, method, seed = 123, ...) {
+train_pai_model <- function(gcp_data, method, cv = NULL, seed = 123, ...) {
   set.seed(seed)
 
   # Input validation
@@ -56,6 +67,37 @@ train_pai_model <- function(gcp_data, method, seed = 123, ...) {
              call. = FALSE)
       }
     }
+  }
+
+  # --- Optional Integrated Cross-Validation ---
+  cv_assessment <- NULL
+  if (!is.null(cv) && !identical(cv, FALSE)) {
+    cv_params <- if (isTRUE(cv)) {
+      list(validation_type = "spatial_block", k_folds = 5)
+    } else if (is.list(cv)) {
+      cv
+    } else {
+      stop("`cv` must be TRUE, FALSE, or a configuration list.", call. = FALSE)
+    }
+
+    val_type <- if (!is.null(cv_params$validation_type)) cv_params$validation_type else "spatial_block"
+    k_f <- if (!is.null(cv_params$k_folds)) cv_params$k_folds else 5
+    t_ratio <- if (!is.null(cv_params$train_split_ratio)) cv_params$train_split_ratio else 0.8
+    n_str <- if (!is.null(cv_params$n_strata)) cv_params$n_strata else 4
+    buf_d <- cv_params$buffer_dist
+
+    message(paste("Running integrated", val_type, "cross-validation..."))
+    cv_assessment <- assess_pai_model(
+      gcp_data = gcp_data,
+      method = method,
+      validation_type = val_type,
+      k_folds = k_f,
+      train_split_ratio = t_ratio,
+      n_strata = n_str,
+      buffer_dist = buf_d,
+      seed = seed,
+      ...
+    )
   }
 
   message(paste("Training", model_info$label, "model..."))
@@ -115,7 +157,9 @@ train_pai_model <- function(gcp_data, method, seed = 123, ...) {
     "model" = model_fit,
     "method" = method,
     "model_info" = model_info,
-    "gcp" = gcp_data
+    "gcp" = gcp_data,
+    "cv" = cv_assessment,
+    "cv_rmse_2d" = if (!is.null(cv_assessment)) cv_assessment$summary$Mean_RMSE_2D else NULL
   )
 
   class(output) <- c("pai_model", "list")
@@ -255,6 +299,15 @@ print.pai_model <- function(x, ...) {
     cat("Model Type: Bivariate\n")
     print(summary(x$model))
   }
+
+  if (!is.null(x$cv)) {
+    cat(sprintf("\n--- Cross-Validation Assessment (%s) ---\n", x$cv$summary$ValidationType))
+    cat(sprintf("  Mean 2D RMSE: %.4f\n", x$cv$summary$Mean_RMSE_2D))
+    if (!is.na(x$cv$summary$SD_RMSE_2D)) {
+      cat(sprintf("  SD of RMSE:   %.4f (across folds)\n", x$cv$summary$SD_RMSE_2D))
+    }
+  }
+
   invisible(x)
 }
 

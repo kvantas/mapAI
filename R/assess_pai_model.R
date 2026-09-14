@@ -1,33 +1,49 @@
 #' @title Assess PAI Model Performance
 #' @description Performs model validation to estimate a PAI model's predictive
-#'   performance using k-fold cross-validation or design-based probability
-#'   sampling.
+#'   performance using k-fold cross-validation, spatial block CV, buffered spatial
+#'   CV, or design-based probability sampling.
 #' @details Model validation is crucial for understanding how well a model will
-#' generalize to new data. This function automates this process.
+#' generalize to new spatial locations. This function automates this process
+#' across both non-spatial and spatial cross-validation strategies.
 #'
-#' \strong{Validation Types}:
+#' \strong{Validation Strategies}:
 #'   \itemize{
 #'     \item \strong{`random`}: Standard k-fold cross-validation.
 #'     \item \strong{`spatial`}: Spatial k-fold cross-validation using k-means
-#'      clustering.
+#'       clustering.
+#'     \item \strong{`spatial_block`}: Spatial regular grid block cross-validation,
+#'       partitioning space into independent geographic grid blocks.
+#'     \item \strong{`spatial_buffered`}: Buffered spatial block cross-validation.
+#'       Partitions space into blocks and introduces an exclusion buffer (dead zone)
+#'       around the test block, discarding training observations within the buffer
+#'       to prevent spatial autocorrelation data leakage (Roberts et al., 2017).
 #'     \item \strong{`probability`}: A single train/test split using simple
-#'      random sampling.
+#'       random sampling.
 #'     \item \strong{`stratified`}: Stratified k-fold cross-validation based on
-#'       the magnitude of distortion vectors. Ensures that each fold contains
-#'       a representative distribution of error magnitudes.
+#'       the magnitude of distortion vectors.
 #'   }
 #'
+#' @references
+#' \itemize{
+#'   \item Roberts et al. (2017). Cross-validation strategies for data with spatial,
+#'     temporal, or phylogenetic dependence. \emph{Ecography}, 40(8), 913-929.
+#'   \item Vantas, K., & Mirkopoulou, E. (2025). \emph{mapAI: An R Package for Positional Accuracy Improvement of Vector Maps}.
+#' }
+#'
 #' @param gcp_data An `gcp` object of homologous points.
-#' @param pai_method A character string or a custom model list for
-#'  `train_pai_model`.
-#' @param validation_type The validation strategy: "random", "spatial",
-#'  "probability", or "stratified".
-#' @param k_folds Number of folds for CV (used for "random", "spatial", and
-#'  "stratified"). Defaults to 5.
+#' @param method A character string or a custom model list for `train_pai_model`.
+#' @param validation_type The validation strategy: `"random"`, `"spatial"`,
+#'   `"spatial_block"`, `"spatial_buffered"`, `"probability"`, or `"stratified"`.
+#'   Defaults to `"random"`.
+#' @param k_folds Number of folds for CV (used for `"random"`, `"spatial"`,
+#'   `"spatial_block"`, `"spatial_buffered"`, and `"stratified"`). Defaults to 5.
 #' @param train_split_ratio Proportion of data for training (used for
-#'  "probability" only). Defaults to 0.8.
+#'   `"probability"` only). Defaults to 0.8.
 #' @param n_strata Number of strata for stratified CV. Defaults to 4.
+#' @param buffer_dist Numeric buffer distance for `"spatial_buffered"`. If `NULL`
+#'   (default), an automatic distance based on spatial extent is applied.
 #' @param seed An integer for reproducibility.
+#' @param pai_method Alias for `method` for backward compatibility.
 #' @param ... Additional arguments passed to `train_pai_model`.
 #'
 #' @return An object of class `pai_assessment` containing a summary data frame,
@@ -37,55 +53,40 @@
 #' @export
 #' @examples
 #' \dontrun{
-#' # --- 1. create a demo data set
 #' demo_data <- create_demo_data(seed = 1)
-#' gcp_data <-demo_data$gcp
+#' gcp_data <- demo_data$gcp
 #'
-#' # --- 2. Assess with RANDOM k-fold CV ---
-#' random_assessment <- cv_pai_model(
-#'   gcp_data, pai_method = "lm", validation_type = "random", k_folds = 5
-#' )
-#' print(random_assessment)
+#' # Assess with RANDOM k-fold CV
+#' assess_pai_model(gcp_data, method = "lm", validation_type = "random", k_folds = 5)
 #'
-#' # --- 3. Assess with SPATIAL k-fold CV ---
-#' spatial_assessment <- cv_pai_model(
-#'   gcp_data, pai_method = "lm",
-#'   validation_type = "spatial",
-#'   k_folds = 5
-#' )
-#' print(spatial_assessment)
-#'
-#' # --- 4. Assess with PROBABILITY (simple random) sampling ---
-#' prob_assessment <- cv_pai_model(
-#'   gcp_data, pai_method = "lm",
-#'   validation_type = "probability",
-#'   train_split_ratio = 0.75
-#' )
-#' print(prob_assessment)
-#'
-#' # --- 5. Assess with STRATIFIED probability sampling ---
-#' stratified_assessment <- cv_pai_model(
-#'   gcp_data,
-#'   pai_method = "lm",
-#'   validation_type = "stratified",
-#'   k_folds = 5,
-#'   n_strata = 4 # Use quartiles for stratification
-#' )
-#' print(stratified_assessment)
+#' # Assess with SPATIAL BUFFERED CV
+#' assess_pai_model(gcp_data, method = "lm", validation_type = "spatial_buffered", k_folds = 5)
 #' }
 #'
-cv_pai_model <- function(gcp_data, pai_method,
-                         validation_type = "random",
-                         k_folds = 5,
-                         train_split_ratio = 0.8,
-                         n_strata = 4,
-                         seed = 123, ...) {
+assess_pai_model <- function(gcp_data,
+                             method,
+                             validation_type = "random",
+                             k_folds = 5,
+                             train_split_ratio = 0.8,
+                             n_strata = 4,
+                             buffer_dist = NULL,
+                             seed = 123,
+                             pai_method = NULL,
+                             ...) {
+
+  # Backward compatibility: support pai_method
+  if (missing(method) && !is.null(pai_method)) {
+    method <- pai_method
+  }
+  if (missing(method) || is.null(method)) {
+    stop("`method` argument is required.", call. = FALSE)
+  }
 
   set.seed(seed)
 
   # --- 1. Input Validation ---
-  validate_assessment_inputs(gcp_data, pai_method, validation_type,
-                             k_folds, train_split_ratio)
+  validate_assessment_inputs(gcp_data, method, validation_type,
+                             k_folds, train_split_ratio, n_strata)
 
   # --- 2. Create Data Splits ---
   splits <- create_resampling_splits(gcp_data,
@@ -93,7 +94,8 @@ cv_pai_model <- function(gcp_data, pai_method,
                                      k_folds,
                                      train_split_ratio,
                                      n_strata,
-                                     seed)
+                                     seed,
+                                     buffer_dist)
 
   # --- 3. Run Validation Across All Splits ---
   message(paste("Starting", validation_type, "validation..."))
@@ -106,11 +108,11 @@ cv_pai_model <- function(gcp_data, pai_method,
       message(paste("  Processing Fold", i, "of", length(splits), "..."))
     }
     model <- train_pai_model(gcp_data = train_data,
-                             method = pai_method,
+                             method = method,
                              seed = seed + i, ...)
     predictions <- predict(model, newdata = test_data)
 
-    # Return a clean data frame with true and predicted values
+    # Return clean data frame with true and predicted values
     data.frame(
       fold = i,
       true_dx = test_data$dx,
@@ -122,7 +124,7 @@ cv_pai_model <- function(gcp_data, pai_method,
   all_predictions_df <- do.call(rbind, all_predictions)
 
   # --- 4. Calculate Final Metrics ---
-  if (validation_type %in% c("random", "spatial", "stratified")) {
+  if (validation_type %in% c("random", "spatial", "stratified", "spatial_block", "spatial_buffered")) {
     # For CV, calculate RMSE for each fold, then summarize
     fold_rmse <- vapply(
       split(all_predictions_df, all_predictions_df$fold), function(df) {
@@ -141,27 +143,23 @@ cv_pai_model <- function(gcp_data, pai_method,
 
   # --- 5. Structure and Return Output ---
   summary_df <- data.frame(
-    Method = if (is.character(pai_method)) pai_method else pai_method$label,
+    Method = if (is.character(method)) method else method$label,
     ValidationType = validation_type,
     Mean_RMSE_2D = mean_rmse,
     SD_RMSE_2D = sd_rmse
   )
 
-  # --- Sanitize non-applicable parameters using a lookup list ---
-
-  # 1. Define the rules for each validation type
   param_rules <- list(
-    random      = c("k_folds"),
-    spatial     = c("k_folds"),
-    probability = c("train_split_ratio"),
-    # Fixed: stratified is a CV method, so it needs k_folds AND n_strata
-    stratified  = c("k_folds", "n_strata")
+    random           = c("k_folds"),
+    spatial          = c("k_folds"),
+    probability      = c("train_split_ratio"),
+    stratified       = c("k_folds", "n_strata"),
+    spatial_block    = c("k_folds"),
+    spatial_buffered = c("k_folds", "buffer_dist")
   )
 
-  # 2. Get the list of parameters that are valid for the current type
   valid_params <- param_rules[[validation_type]]
 
-  # 3. If a parameter is NOT in the valid list, set it to NA
   if (!"k_folds" %in% valid_params) {
     k_folds <- NA_integer_
   }
@@ -171,10 +169,15 @@ cv_pai_model <- function(gcp_data, pai_method,
   if (!"n_strata" %in% valid_params) {
     n_strata <- NA_integer_
   }
+  if (!"buffer_dist" %in% valid_params) {
+    buffer_dist <- NA_real_
+  }
 
   details <- list(k_folds = k_folds,
                   train_split_ratio = train_split_ratio,
-                  n_strata = n_strata)
+                  n_strata = n_strata,
+                  buffer_dist = buffer_dist,
+                  splits = splits)
 
   result <- list(
     summary = summary_df,
@@ -187,12 +190,15 @@ cv_pai_model <- function(gcp_data, pai_method,
   return(result)
 }
 
+#' @rdname assess_pai_model
+#' @export
+cv_pai_model <- assess_pai_model
+
 #' Internal helper to create resampling splits
 #' @noRd
 #' @importFrom stats sd complete.cases quantile kmeans
-create_resampling_splits <- function(gcp_data, type, k, ratio, n_strata, seed) {
+create_resampling_splits <- function(gcp_data, type, k, ratio, n_strata, seed, buffer_dist = NULL) {
 
-  # set seed for reproducibility
   set.seed(seed)
 
   n_pts <- nrow(gcp_data)
@@ -239,15 +245,12 @@ create_resampling_splits <- function(gcp_data, type, k, ratio, n_strata, seed) {
                              include.lowest = TRUE,
                              labels = FALSE)
 
-           # Initialize a vector to hold the final fold assignment
            final_fold_ids <- vector("integer", n_pts)
 
-           # Loop through each stratum and assign its members to k folds
-           for(s in unique(strata_ids)) {
+           for (s in unique(strata_ids)) {
              idx_in_stratum <- which(strata_ids == s)
              n_in_stratum <- length(idx_in_stratum)
 
-             # Assign 1..k randomly within this stratum
              if (n_in_stratum > 0) {
                folds_for_stratum <- sample(rep(1:k, length.out = n_in_stratum))
                final_fold_ids[idx_in_stratum] <- folds_for_stratum
@@ -259,6 +262,88 @@ create_resampling_splits <- function(gcp_data, type, k, ratio, n_strata, seed) {
                train = which(final_fold_ids != i),
                test  = which(final_fold_ids == i)
              )
+           })
+         },
+         "spatial_block" = {
+           rx <- range(gcp_data$source_x)
+           ry <- range(gcp_data$source_y)
+           span_x <- max(1e-6, diff(rx))
+           span_y <- max(1e-6, diff(ry))
+
+           nx <- ceiling(sqrt(k))
+           ny <- ceiling(k / nx)
+
+           eps <- 1e-9 * max(1, span_x, span_y)
+           col_idx <- pmin(floor((gcp_data$source_x - rx[1]) / (span_x + eps) * nx) + 1, nx)
+           row_idx <- pmin(floor((gcp_data$source_y - ry[1]) / (span_y + eps) * ny) + 1, ny)
+           block_id <- (row_idx - 1) * nx + col_idx
+
+           unique_blocks <- unique(block_id)
+           block_fold_map <- setNames(
+             sample(rep(1:k, length.out = length(unique_blocks))),
+             as.character(unique_blocks)
+           )
+           fold_ids <- block_fold_map[as.character(block_id)]
+
+           lapply(1:k, function(i) {
+             list(
+               train = which(fold_ids != i),
+               test = which(fold_ids == i)
+             )
+           })
+         },
+         "spatial_buffered" = {
+           rx <- range(gcp_data$source_x)
+           ry <- range(gcp_data$source_y)
+           span_x <- max(1e-6, diff(rx))
+           span_y <- max(1e-6, diff(ry))
+
+           nx <- ceiling(sqrt(k))
+           ny <- ceiling(k / nx)
+
+           eps <- 1e-9 * max(1, span_x, span_y)
+           col_idx <- pmin(floor((gcp_data$source_x - rx[1]) / (span_x + eps) * nx) + 1, nx)
+           row_idx <- pmin(floor((gcp_data$source_y - ry[1]) / (span_y + eps) * ny) + 1, ny)
+           block_id <- (row_idx - 1) * nx + col_idx
+
+           unique_blocks <- unique(block_id)
+           block_fold_map <- setNames(
+             sample(rep(1:k, length.out = length(unique_blocks))),
+             as.character(unique_blocks)
+           )
+           fold_ids <- block_fold_map[as.character(block_id)]
+
+           if (is.null(buffer_dist) || is.na(buffer_dist) || buffer_dist <= 0) {
+             buffer_dist <- 0.05 * max(span_x, span_y)
+           }
+
+           lapply(1:k, function(i) {
+             test_idx <- which(fold_ids == i)
+             cand_train_idx <- which(fold_ids != i)
+
+             if (length(test_idx) == 0 || length(cand_train_idx) == 0) {
+               return(list(train = cand_train_idx, test = test_idx))
+             }
+
+             test_x <- gcp_data$source_x[test_idx]
+             test_y <- gcp_data$source_y[test_idx]
+
+             cand_x <- gcp_data$source_x[cand_train_idx]
+             cand_y <- gcp_data$source_y[cand_train_idx]
+
+             min_dist_to_test <- vapply(seq_along(cand_train_idx), function(ci) {
+               min(sqrt((cand_x[ci] - test_x)^2 + (cand_y[ci] - test_y)^2))
+             }, numeric(1))
+
+             train_keep <- cand_train_idx[min_dist_to_test > buffer_dist]
+
+             min_pts_needed <- min(3, length(cand_train_idx))
+             if (length(train_keep) < min_pts_needed) {
+               ord <- order(min_dist_to_test, decreasing = TRUE)
+               train_keep <- cand_train_idx[ord[seq_len(min_pts_needed)]]
+             }
+
+             list(train = train_keep, test = test_idx)
            })
          }
   )
@@ -281,9 +366,9 @@ print.pai_assessment <- function(x, ...) {
   cat("Validation Type:   ", x$summary$ValidationType, "\n")
 
   # compute identity model RMSE for comparison
-  rmse <-sqrt(mean(x$predictions$true_dx^2 + x$predictions$true_dy^2))
+  rmse <- sqrt(mean(x$predictions$true_dx^2 + x$predictions$true_dy^2))
 
-  if (x$summary$ValidationType %in% c("random", "spatial", "stratified")) {
+  if (x$summary$ValidationType %in% c("random", "spatial", "stratified", "spatial_block", "spatial_buffered")) {
     cat("Folds:             ", x$details$k_folds, "\n")
   }
 
@@ -293,6 +378,8 @@ print.pai_assessment <- function(x, ...) {
                (1 - x$details$train_split_ratio) * 100, "%\n"))
   } else if (x$summary$ValidationType == "stratified") {
     cat("Strata:            ", x$details$n_strata, "\n")
+  } else if (x$summary$ValidationType == "spatial_buffered") {
+    cat("Buffer Distance:   ", sprintf("%.2f", x$details$buffer_dist), "\n")
   }
 
   cat("\n--- Performance Metrics ---\n\n")

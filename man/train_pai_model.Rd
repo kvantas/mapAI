@@ -4,7 +4,7 @@
 \alias{train_pai_model}
 \title{Train a PAI Model}
 \usage{
-train_pai_model(gcp_data, method, seed = 123, ...)
+train_pai_model(gcp_data, method, cv = NULL, seed = 123, ...)
 }
 \arguments{
 \item{gcp_data}{An \code{gcp} object of homologous points.}
@@ -12,12 +12,19 @@ train_pai_model(gcp_data, method, seed = 123, ...)
 \item{method}{A character string specifying a built-in algorithm, OR a list
 defining a custom model.}
 
+\item{cv}{Optional cross-validation specification. Can be \code{TRUE} (defaults to
+5-fold spatial block CV: \code{list(validation_type = "spatial_block", k_folds = 5)}),
+or a list specifying validation arguments for \code{\link[=assess_pai_model]{assess_pai_model()}} (e.g.,
+\code{list(validation_type = "spatial_buffered", k_folds = 5, buffer_dist = 50)}).
+Defaults to \code{NULL} (no cross-validation).}
+
 \item{seed}{An integer for reproducibility.}
 
 \item{...}{Additional arguments passed to the model's \code{fit} function.}
 }
 \value{
-A trained model object of class \code{pai_model}.
+A trained model object of class \code{pai_model}, optionally containing
+a \code{cv} component with full cross-validation assessment results.
 }
 \description{
 Trains a supervised learning model using a flexible plug-in
@@ -41,8 +48,13 @@ regression algorithm into the \code{mapAI} workflow.
 
 demo_data <- create_demo_data()
 
-# fit a bivariate GAM model
-gam_model <- train_pai_model(gcp_data = demo_data$gcp, method = "gam_biv")
+# fit a bivariate GAM model with integrated spatial block cross-validation
+gam_model <- train_pai_model(
+  gcp_data = demo_data$gcp,
+  method = "gam_biv",
+  cv = list(validation_type = "spatial_block", k_folds = 5)
+)
+print(gam_model)
 
 # plot the residuals of the GAM model
 residuals(gam_model)

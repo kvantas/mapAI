@@ -193,7 +193,7 @@ indicatrices_validation <- function(object,
 #' @keywords internal
 #' @noRd
 validate_assessment_inputs <- function(gcp_data, pai_method, validation_type,
-                                       k_folds, train_split_ratio) {
+                                       k_folds, train_split_ratio, n_strata = 4) {
 
   # --- 1. gcp_data Validation ---
   if (!inherits(gcp_data, "gcp")) {
@@ -222,7 +222,8 @@ validate_assessment_inputs <- function(gcp_data, pai_method, validation_type,
 
 
   # --- 3. validation_type Validation ---
-  supported_validation <- c("random", "spatial", "probability", "stratified")
+  supported_validation <- c("random", "spatial", "probability", "stratified",
+                            "spatial_block", "spatial_buffered")
   if (!validation_type %in% supported_validation) {
     stop(paste0("Invalid `validation_type`. Must be one of: '",
                 paste(supported_validation, collapse = "', '"), "'."),
@@ -230,7 +231,7 @@ validate_assessment_inputs <- function(gcp_data, pai_method, validation_type,
   }
 
   # --- 4. Contextual Validation for k_folds and train_split_ratio ---
-  if (validation_type %in% c("random", "spatial")) {
+  if (validation_type %in% c("random", "spatial", "stratified", "spatial_block", "spatial_buffered")) {
     # Validate k_folds
     if (!is.numeric(k_folds) || length(k_folds) != 1 || k_folds < 2 || k_folds %% 1 != 0) {
       stop(
@@ -242,7 +243,12 @@ validate_assessment_inputs <- function(gcp_data, pai_method, validation_type,
         "The number of data points must be greater than or equal to `k_folds`.",
         call. = FALSE)
     }
-  } else if (validation_type %in% c("probability", "stratified")) {
+    if (validation_type == "stratified") {
+      if (!is.numeric(n_strata) || length(n_strata) != 1 || n_strata < 2 || n_strata %% 1 != 0) {
+        stop("`n_strata` must be a single integer greater than or equal to 2.", call. = FALSE)
+      }
+    }
+  } else if (validation_type == "probability") {
     # Validate train_split_ratio
     if (!is.numeric(train_split_ratio) || length(train_split_ratio) != 1 ||
         train_split_ratio <= 0 || train_split_ratio >= 1) {

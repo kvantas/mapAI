@@ -145,3 +145,51 @@ test_that("print method for stratified results is correct", {
   expect_true(any(grepl("Strata:", output)))
   expect_true(any(grepl("Std Dev of RMSE:", output)))
 })
+
+test_that("spatial_block and spatial_buffered CV work as expected", {
+  test_gcp <- create_dummy_gcp_data(60)
+
+  # Spatial block CV
+  res_block <- cv_pai_model(test_gcp, method = "lm", validation_type = "spatial_block", k_folds = 4)
+  expect_equal(res_block$summary$ValidationType, "spatial_block")
+  expect_equal(res_block$details$k_folds, 4)
+  expect_false(is.na(res_block$summary$Mean_RMSE_2D))
+  expect_false(is.na(res_block$summary$SD_RMSE_2D))
+
+  # Spatial buffered CV
+  res_buf <- assess_pai_model(test_gcp, method = "lm", validation_type = "spatial_buffered", k_folds = 4, buffer_dist = 50)
+  expect_equal(res_buf$summary$ValidationType, "spatial_buffered")
+  expect_equal(res_buf$details$k_folds, 4)
+  expect_equal(res_buf$details$buffer_dist, 50)
+  expect_false(is.na(res_buf$summary$Mean_RMSE_2D))
+
+  # Check print for spatial_buffered
+  output <- capture.output(print(res_buf))
+  expect_true(any(grepl("Buffer Distance:", output)))
+})
+
+test_that("integrated cross-validation in train_pai_model works seamlessly", {
+  test_gcp <- create_dummy_gcp_data(50)
+
+  # With cv = TRUE (defaults to spatial_block)
+  m1 <- train_pai_model(test_gcp, method = "lm", cv = TRUE)
+  expect_s3_class(m1, "pai_model")
+  expect_false(is.null(m1$cv))
+  expect_s3_class(m1$cv, "pai_assessment")
+  expect_equal(m1$cv$summary$ValidationType, "spatial_block")
+  expect_false(is.null(m1$cv_rmse_2d))
+
+  # With custom cv list using buffered CV
+  m2 <- train_pai_model(
+    test_gcp,
+    method = "lm",
+    cv = list(validation_type = "spatial_buffered", k_folds = 3, buffer_dist = 40)
+  )
+  expect_equal(m2$cv$summary$ValidationType, "spatial_buffered")
+  expect_equal(m2$cv$details$k_folds, 3)
+
+  # Check print method displays CV summary
+  out_m <- capture.output(print(m2))
+  expect_true(any(grepl("Cross-Validation Assessment", out_m)))
+})
+
