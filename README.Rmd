@@ -22,17 +22,17 @@ knitr::opts_chunk$set(
 [![R-CMD-check](https://github.com/kvantas/mapAI/actions/workflows/R-CMD-check.yaml/badge.svg)](https://github.com/kvantas/mapAI/actions/workflows/R-CMD-check.yaml)
 <!-- badges: end -->
 
-The `mapAI` package is designed to provide a comprehensive and accessible PAI (positional accuracy improvement) framework for vector geospatial data.
+The `mapAI` package is designed to provide a comprehensive and accessible PAI (positional accuracy improvement) framework for vector and raster geospatial data.
 
 ## Overview
 
-The `mapAI` package provides a comprehensive and accessible framework for Positional Accuracy Improvement (PAI) of vector geospatial data. This package’s main contributions  are: 
+The `mapAI` package provides a comprehensive and accessible framework for Positional Accuracy Improvement (PAI) of both vector (`sf`) and raster (`terra::SpatRaster`) geospatial data. This package’s main contributions are: 
 
-(a) the unification of a set of PAI methods from classical adjustments to statistical and machine learning algorithms, within a framework engineered to modify the geometry of spatial features; 
+(a) the unification of a set of PAI methods from classical adjustments to statistical and machine learning algorithms, within a framework engineered to modify the geometry of vector features and spatial alignment of raster maps; 
 
 (b) the application of modern best practices regarding predictive accuracy assessment using various validation methods, and;
 
-(c) the integration of distortion analysis into the PAI workflow, providing powerful diagnostics.
+(c) the integration of distortion analysis into the PAI workflow for both vector and raster data, providing powerful diagnostics.
 
 ## Installation
 
@@ -102,18 +102,52 @@ ggplot(comparison_data) +
   theme_minimal()
 ```
 
+### 4. Correcting Raster Maps (In-Memory)
+
+The same trained PAI model can also be applied directly to rectify continuous or categorical raster data (e.g., scanned historical paper maps, aerial photographs, or digital elevation models) using `terra::SpatRaster`.
+
+All raster transformations operate strictly in memory without creating temporary files:
+
+```{r raster-correction, message=FALSE, warning=FALSE, fig.show='hold'}
+library(terra)
+
+# Generate demo data including an in-memory raster map
+demo_raster_data <- create_demo_data(type = "complex", seed = 1, raster = TRUE)
+distorted_raster <- demo_raster_data$raster
+
+# Apply the trained model to correct the raster
+# Uses inverse mapping with bilinear interpolation
+corrected_raster <- transform_map(
+  gam_model,
+  distorted_raster,
+  method = "bilinear"
+)
+
+# Visualize original vs. corrected raster side-by-side
+par(mfrow = c(1, 2))
+terra::plot(distorted_raster, main = "Original (Distorted) Raster", col = terrain.colors(50))
+terra::plot(corrected_raster, main = "mapAI-Corrected Raster", col = terrain.colors(50))
+par(mfrow = c(1, 1))
+```
+
+Key raster capabilities:
+- **Inverse (Backward) Mapping**: Projects regular target grid cell centers backward into the source image space, eliminating holes and pixel collisions.
+- **Continuous & Categorical Support**: Uses `"bilinear"` interpolation for continuous surfaces and `"near"` (nearest neighbor) for discrete thematic layers.
+- **Fast Mesh Subsampling (`mesh_step`)**: Enables high-performance warping on large rasters with sub-pixel precision.
+- **Pure In-Memory Operations**: Entirely preserves RAM efficiency with zero disk overhead.
+
 ---
 
 ## From Correction to Explanation: Advanced Distortion Analysis
 
 A key challenge with data-driven models is understanding *what* they have learned. `mapAI` directly addresses this by providing tools to "open the black box" and analyze the properties of the learned transformation.
 
-### 4. Quantify and Visualize the Distortion Field
+### 5. Quantify and Visualize the Distortion Field
 
 The `analyze_distortion()` function computes local distortion metrics across the map space. This allows us to move from a simple visual assessment to a quantitative map of the distortions that the model learns.
 
 ```{r advanced-analysis, message=FALSE, warning=FALSE}
-# 1. Analyze the distortion using our trained GAM model
+# 1. Analyze the distortion using our trained GAM model on GCPs
 distortion_results <- analyze_distortion(gam_model, gcp_data)
 
 # 2. Plot the distortion surfaces interpolating the values on gcp's location
@@ -126,8 +160,17 @@ plot(
   distortion_results, metric = "max_shear"
 ) + 
   labs(title = "Maximum Shear Distortion (°)")
+```
 
+`analyze_distortion()` also evaluates distortion directly on in-memory `terra::SpatRaster` objects, returning an 8-layer raster containing all Tissot indicatrix metrics:
 
+```{r raster-distortion, message=FALSE, warning=FALSE}
+# Evaluate distortion across all cell centers of the raster
+raster_distortion <- analyze_distortion(gam_model, newdata = distorted_raster)
+
+# Plot key distortion metric layers directly from the raster
+terra::plot(raster_distortion[[c("area_scale", "max_shear")]],
+            main = c("Raster Areal Distortion", "Raster Max Shear (°)"))
 ```
 
 ## Meta
