@@ -228,27 +228,31 @@ print(gam_model)
 #> Link function: 
 #> 
 #> Formula:
-#> dx ~ s(source_x, source_y)
-#> <environment: 0x000001b8d90749a0>
-#> dy ~ s(source_x, source_y)
-#> <environment: 0x000001b8d90749a0>
+#> dx ~ s(source_x, source_y, k = 29)
+#> <environment: 0x000001ddd8706388>
+#> dy ~ s(source_x, source_y, k = 29)
+#> <environment: 0x000001ddd8706388>
 #> 
 #> Parametric coefficients:
 #>               Estimate Std. Error z value Pr(>|z|)    
 #> (Intercept)    0.55656    0.03260   17.07   <2e-16 ***
-#> (Intercept).1 -2.28266    0.03057  -74.66   <2e-16 ***
+#> (Intercept).1 -2.28266    0.03085  -74.00   <2e-16 ***
 #> ---
 #> Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1
 #> 
 #> Approximate significance of smooth terms:
 #>                          edf Ref.df Chi.sq p-value    
-#> s(source_x,source_y)   19.92  24.68   4734  <2e-16 ***
-#> s.1(source_x,source_y) 23.45  27.22  18956  <2e-16 ***
+#> s(source_x,source_y)   19.65  24.17   4733  <2e-16 ***
+#> s.1(source_x,source_y) 22.73  26.34  18620  <2e-16 ***
 #> ---
 #> Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1
 #> 
-#> Deviance explained = 97.9%
-#> -REML = -25.002  Scale est. = 1         n = 225
+#> Deviance explained = 97.8%
+#> -REML = -24.261  Scale est. = 1         n = 225
+#> 
+#> --- Cross-Validation Assessment (spatial_block) ---
+#>   Mean 2D RMSE: 1.0462
+#>   SD of RMSE:   0.2812 (across folds)
 ```
 
 The out-of-sample cross-validation results (`cv_rmse_2d`) are stored
@@ -355,23 +359,29 @@ Criterion:** $\frac{1}{2}\left((\ln a)^2 + (\ln b)^2\right)$
 distortion_field <- analyze_distortion(gam_model, gcp_data)
 summary(distortion_field)
 #>                                Mean       Median           SD           Min
-#> a                       1.039860051  1.030238558  0.029228361  9.836023e-01
-#> b                       0.904650415  0.899057771  0.035598782  8.476329e-01
-#> area_scale              0.940631656  0.944047484  0.043601603  8.641800e-01
-#> log2_area_scale        -0.089844373 -0.083068668  0.066978155 -2.105962e-01
-#> max_shear               3.996719807  4.353477672  1.419311693  1.367828e+00
-#> max_angular_distortion  0.139511840  0.151965039  0.049543324  4.774621e-02
-#> airy_kavrayskiy         0.006996574  0.007069882  0.004017419  5.725442e-04
-#> theta_a                -0.773472377 -1.115471513 10.238637247 -2.560541e+01
+#> a                       1.039837121  1.030184760  0.029233391  9.823135e-01
+#> b                       0.904517598  0.899478905  0.035140534  8.400142e-01
+#> area_scale              0.940467735  0.942917624  0.043110605  8.639429e-01
+#> signed_area_scale       0.940467735  0.942917624  0.043110605  8.639429e-01
+#> det_J                   0.940467735  0.942917624  0.043110605  8.639429e-01
+#> is_inverted             0.000000000  0.000000000  0.000000000  0.000000e+00
+#> log2_area_scale        -0.090061373 -0.084796357  0.066223913 -2.109922e-01
+#> max_shear               3.999757354  4.331540333  1.412336347  1.293299e+00
+#> max_angular_distortion  0.139617870  0.151199281  0.049299839  4.514464e-02
+#> airy_kavrayskiy         0.006990655  0.007137686  0.004010886  5.210556e-04
+#> theta_a                -0.807958551 -1.282925063 10.230238005 -2.552826e+01
 #>                                Max
-#> a                       1.10133450
-#> b                       0.98286968
-#> area_scale              1.02223059
-#> log2_area_scale         0.03172067
-#> max_shear               6.79768657
-#> max_angular_distortion  0.23728402
-#> airy_kavrayskiy         0.01494303
-#> theta_a                21.35440010
+#> a                       1.10085878
+#> b                       0.98099388
+#> area_scale              1.01466082
+#> signed_area_scale       1.01466082
+#> det_J                   1.01466082
+#> is_inverted             0.00000000
+#> log2_area_scale         0.02099754
+#> max_shear               6.81247811
+#> max_angular_distortion  0.23780035
+#> airy_kavrayskiy         0.01559106
+#> theta_a                20.92916327
 
 # Plot continuous areal distortion surface
 plot(distortion_field, metric = "area_scale", diverging = TRUE) +
@@ -420,6 +430,23 @@ indicatrices(distortion_field)
   Spatial Data Analysis* (4th ed.). John Wiley & Sons.
 - Wood, S. N. (2017). *Generalized Additive Models: An Introduction with
   R* (2nd ed.). Chapman & Hall/CRC.
+
+------------------------------------------------------------------------
+
+## Documentation & Vignettes
+
+Comprehensive guides and articles are available: \* [A Rigorous
+Methodological and Computational Framework for Positional Accuracy
+Improvement](docs/articles/mapAI_capabilities.md): In-depth treatise
+detailing theoretical foundations, mathematical formulations, spatial
+cross-validation schemes, vector/raster transformation engines, and
+differential distortion diagnostics. \* [Advanced Analysis with Basel
+and Frickthal Data](docs/articles/swiss_data.md): Case study on
+historical map georeferencing and residual error modeling using the 1798
+Meyer-Weiss map series. \* [Custom Model Training with
+mapAI](docs/articles/custom_model_training.md): Tutorial on integrating
+custom machine learning regression models (SVR, Random Forest, Neural
+Networks) into `mapAI`.
 
 ------------------------------------------------------------------------
 

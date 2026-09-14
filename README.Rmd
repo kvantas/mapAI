@@ -271,6 +271,15 @@ indicatrices(distortion_field)
 
 ---
 
+## Documentation & Vignettes
+
+Comprehensive guides and articles are available:
+* [A Rigorous Methodological and Computational Framework for Positional Accuracy Improvement](docs/articles/mapAI_capabilities.md): In-depth treatise detailing theoretical foundations, mathematical formulations, spatial cross-validation schemes, vector/raster transformation engines, and differential distortion diagnostics.
+* [Advanced Analysis with Basel and Frickthal Data](docs/articles/swiss_data.md): Case study on historical map georeferencing and residual error modeling using the 1798 Meyer-Weiss map series.
+* [Custom Model Training with mapAI](docs/articles/custom_model_training.md): Tutorial on integrating custom machine learning regression models (SVR, Random Forest, Neural Networks) into `mapAI`.
+
+---
+
 ## Meta
 
 * Bug reports, suggestions, and code are welcome via GitHub Issues.
