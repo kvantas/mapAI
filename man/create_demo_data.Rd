@@ -12,7 +12,8 @@ create_demo_data(
   grid_limits = c(0, 100, 0, 100),
   helmert_params = list(s = 1.005, angle_deg = 1, tx = 2, ty = -3),
   poly_params = list(cE1 = 2e-05, cE2 = -8e-04, cN1 = 2e-04, cN2 = 0.0015),
-  gauss_params = list(A = 4, Ec = 50, Nc = 0, sigma2 = 20)
+  gauss_params = list(A = 4, Ec = 50, Nc = 0, sigma2 = 20),
+  raster = FALSE
 )
 }
 \arguments{
@@ -38,17 +39,20 @@ and \code{ty} (translation in y). Defaults to
 \code{list(s = 1.005, angle_deg = 1, tx = 2, ty = -3)}.}
 
 \item{poly_params}{A list of coefficients (\code{cE1}, \code{cE2}, \code{cN1}, \code{cN2}) for
-the polynomial warp. Defaults to
-\code{list(cE1 = 0.00002, cE2 = -0.0008, cN1 = 0.0002, cN2 = 0.0015)}.}
+the polynomial warp. Defaults to}
 
 \item{gauss_params}{A list of parameters for the Gaussian warp: \code{A}
 (amplitude), \code{Ec}, \code{Nc} (center coordinates), and \code{sigma2} (variance).
 Defaults to \code{list(A = 4, Ec = 50, Nc = 0, sigma2 = 20)}.}
+
+\item{raster}{A logical value indicating whether to also generate and return
+an in-memory \code{terra::SpatRaster} representing the distorted map. Defaults to \code{FALSE}.}
 }
 \value{
 A list containing the generated data:
-\item{gcp}{The homologous data }
+\item{gcp}{The homologous data (\code{gcp} object)}
 \item{map}{The distorted map grid lines as an \code{sf} object}
+\item{raster}{The distorted map as an in-memory \code{terra::SpatRaster} object (when \code{raster = TRUE})}
 }
 \description{
 Generates a simulated dataset representing a distorted

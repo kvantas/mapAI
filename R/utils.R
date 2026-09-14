@@ -394,8 +394,9 @@ validate_map_transform <- function(pai_model, map, aoi){
 validate_write_map <- function(map, file_path, overwrite) {
 
   # --- Input Validation ---
-  if (!inherits(map, "sf")) stop("`map` must be a valid `sf` object.",
-                                 call. = FALSE)
+  if (!inherits(map, c("sf", "SpatRaster"))) {
+    stop("`map` must be a valid `sf` or `SpatRaster` object.", call. = FALSE)
+  }
   if (!is.character(file_path) || length(file_path) != 1) {
     stop("`file_path` must be a single character string.", call. = FALSE)
   }

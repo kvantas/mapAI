@@ -65,11 +65,31 @@ test_that("write_map handles invalid inputs gracefully", {
   temp_dir <- withr::local_tempdir()
   temp_path <- file.path(temp_dir, "parcels.gpkg")
   expect_error(write_map(as.data.frame(sample_map), temp_path, overwrite = "a"),
-               "`map` must be a valid `sf` object.")
+               "`map` must be a valid `sf` or `SpatRaster` object.")
   expect_error(write_map(as.data.frame(sample_map), temp_path),
-               "`map` must be a valid `sf` object.")
+               "`map` must be a valid `sf` or `SpatRaster` object.")
   expect_error(write_map(sample_map, file_path = 12345),
                "`file_path` must be a single character string.")
   temp_path_xxx <- file.path(temp_dir, "parcels.xxx")
   expect_error(suppressWarnings( write_map(sample_map, temp_path_xxx)) )
+})
+
+test_that("write_map writes SpatRaster objects correctly", {
+  r <- terra::rast(nrows = 10, ncols = 10, vals = 1:100)
+  temp_dir <- withr::local_tempdir()
+  temp_tif <- file.path(temp_dir, "test.tif")
+
+  write_map(r, temp_tif)
+  expect_true(file.exists(temp_tif))
+
+  # Test overwrite = FALSE stops
+  expect_error(write_map(r, temp_tif, overwrite = FALSE), "File already exists")
+
+  # Test overwrite = TRUE succeeds
+  expect_no_error(write_map(r, temp_tif, overwrite = TRUE))
+
+  # Read back
+  r_back <- terra::rast(temp_tif)
+  expect_s4_class(r_back, "SpatRaster")
+  expect_equal(terra::values(r_back)[, 1], 1:100)
 })

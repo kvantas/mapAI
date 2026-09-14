@@ -15,6 +15,7 @@ S3method(summary,distortion)
 S3method(summary,gcp)
 S3method(surface,pai_model)
 export(analyze_distortion)
+export(apply_pai_raster)
 export(create_demo_data)
 export(cv_pai_model)
 export(helmert)
@@ -27,39 +28,63 @@ export(transform_map)
 export(write_map)
 import(ggplot2)
 importFrom(ggforce,geom_ellipse)
-importFrom(grid,arrow)
-importFrom(grid,unit)
+importFrom(grid,
+  arrow,
+  unit
+)
 importFrom(interp,interp)
-importFrom(rlang,.data)
-importFrom(rlang,sym)
-importFrom(sf,st_area)
-importFrom(sf,st_as_sf)
-importFrom(sf,st_bbox)
-importFrom(sf,st_coordinates)
-importFrom(sf,st_crs)
-importFrom(sf,st_difference)
-importFrom(sf,st_geometry)
-importFrom(sf,st_geometry_type)
-importFrom(sf,st_intersection)
-importFrom(sf,st_linestring)
-importFrom(sf,st_multilinestring)
-importFrom(sf,st_multipoint)
-importFrom(sf,st_multipolygon)
-importFrom(sf,st_point)
-importFrom(sf,st_polygon)
-importFrom(sf,st_read)
-importFrom(sf,st_set_geometry)
-importFrom(sf,st_sfc)
-importFrom(sf,st_write)
-importFrom(stats,complete.cases)
-importFrom(stats,kmeans)
-importFrom(stats,median)
-importFrom(stats,predict)
-importFrom(stats,quantile)
-importFrom(stats,rnorm)
-importFrom(stats,sd)
+importFrom(rlang,
+  .data,
+  sym
+)
+importFrom(sf,
+  st_area,
+  st_as_sf,
+  st_bbox,
+  st_coordinates,
+  st_crs,
+  st_difference,
+  st_geometry,
+  st_geometry_type,
+  st_intersection,
+  st_linestring,
+  st_multilinestring,
+  st_multipoint,
+  st_multipolygon,
+  st_point,
+  st_polygon,
+  st_read,
+  st_set_geometry,
+  st_sfc,
+  st_write
+)
+importFrom(stats,
+  complete.cases,
+  kmeans,
+  median,
+  predict,
+  quantile,
+  rnorm,
+  sd
+)
+importFrom(terra,
+  "res<-",
+  "values<-",
+  crds,
+  crs,
+  extract,
+  mask,
+  nlyr,
+  project,
+  rast,
+  rasterize,
+  res,
+  resample,
+  values,
+  vect,
+  writeRaster
+)
 importFrom(tools,file_ext)
 importFrom(units,set_units)
 importFrom(utils,read.csv)
-importFrom(utils,write.csv)
 importFrom(viridis,scale_fill_viridis)

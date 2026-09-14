@@ -2,24 +2,29 @@
 % Please edit documentation in R/transform_map.R
 \name{transform_map}
 \alias{transform_map}
-\title{Apply a Trained PAI Model to Correct a Vector Map (Optimized)}
+\title{Apply a Trained PAI Model to Correct a Map (Vector or Raster)}
 \usage{
-transform_map(pai_model, map, aoi = NULL)
+transform_map(pai_model, map, aoi = NULL, ...)
 }
 \arguments{
 \item{pai_model}{An object of class \code{pai_model} returned by
 \code{train_pai_model()}.}
 
-\item{map}{An \code{sf} object representing the vector map to be corrected.}
+\item{map}{An \code{sf} object representing the vector map, or a \code{terra}
+\code{SpatRaster} representing a raster map to be corrected.}
 
 \item{aoi}{An optional \code{sf} polygon object representing the Area of Interest.}
+
+\item{...}{Additional arguments passed to \code{apply_pai_raster()} when \code{map}
+is a \code{SpatRaster}.}
 }
 \value{
-A new \code{sf} object with the corrected geometry.
+A new \code{sf} object (for vector maps) or \code{terra::SpatRaster} object
+(for raster maps) with corrected spatial alignment.
 }
 \description{
-Applies a trained \code{pai_model} object to an \code{sf} vector map,
-correcting the position of all its vertices based on the learned
+Applies a trained \code{pai_model} object to an \code{sf} vector map or a
+\code{terra} \code{SpatRaster}, correcting its spatial alignment based on the learned
 transformation.
 }
 \examples{

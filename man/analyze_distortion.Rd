@@ -9,15 +9,16 @@ analyze_distortion(pai_model, newdata = NULL, reference_scale = 1)
 \arguments{
 \item{pai_model}{A model object of class \code{pai_model}.}
 
-\item{newdata}{A data frame with \code{source_x} and \code{source_y} columns.
-If \code{NULL} (default),
-the GCPs used to train the model will be used.}
+\item{newdata}{A data frame with \code{source_x} and \code{source_y} columns, or a
+\code{terra} \code{SpatRaster} object. If \code{NULL} (default), the GCPs used to train
+the model will be used. If a \code{SpatRaster} is provided, distortion metrics
+are evaluated at each cell center and returned as a multi-layer \code{SpatRaster}.}
 
 \item{reference_scale}{A single numeric value to normalize area scale.}
 }
 \value{
-An \code{distortion} object (a data frame) with the original points and
-new columns for all calculated distortion metrics (e.g., \code{a}, \code{b},
+A \code{distortion} object (a data frame) or a \code{terra::SpatRaster} object
+with all calculated distortion metrics (e.g., \code{a}, \code{b},
 \code{log2_area_scale}, \code{max_shear}, \code{max_angular_distortion}, \code{airy_kavrayskiy},
 \code{theta_a}).
 }

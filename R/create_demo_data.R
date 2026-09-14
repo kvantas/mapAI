@@ -37,18 +37,20 @@
 #'    `list(s = 1.005, angle_deg = 1, tx = 2, ty = -3)`.
 #' @param poly_params A list of coefficients (`cE1`, `cE2`, `cN1`, `cN2`) for
 #'  the polynomial warp. Defaults to
-#'  `list(cE1 = 0.00002, cE2 = -0.0008, cN1 = 0.0002, cN2 = 0.0015)`.
 #' @param gauss_params A list of parameters for the Gaussian warp: `A`
 #'  (amplitude), `Ec`, `Nc` (center coordinates), and `sigma2` (variance).
 #'  Defaults to `list(A = 4, Ec = 50, Nc = 0, sigma2 = 20)`.
+#' @param raster A logical value indicating whether to also generate and return
+#'   an in-memory `terra::SpatRaster` representing the distorted map. Defaults to `FALSE`.
 #'
 #' @return A list containing the generated data:
-#'   \item{gcp}{The homologous data }
+#'   \item{gcp}{The homologous data (`gcp` object)}
 #'   \item{map}{The distorted map grid lines as an `sf` object}
+#'   \item{raster}{The distorted map as an in-memory `terra::SpatRaster` object (when `raster = TRUE`)}
 #'
 #' @importFrom sf st_linestring st_sfc st_as_sf
+#' @importFrom terra vect rast rasterize
 #' @importFrom stats predict rnorm
-#' @importFrom utils write.csv
 #' @export
 #' @examples
 #' \dontrun{
@@ -70,7 +72,8 @@ create_demo_data <- function(type = "complex",
                              poly_params = list(cE1 = 0.00002, cE2 = -0.0008,
                                                 cN1 = 0.0002, cN2 = 0.0015),
                              gauss_params = list(A = 4, Ec = 50, Nc = 0,
-                                                 sigma2 = 20)) {
+                                                 sigma2 = 20),
+                             raster = FALSE) {
 
   # --- Parameter validation (assuming this function is defined externally)
   validate_demo_data_inputs(
@@ -199,6 +202,14 @@ create_demo_data <- function(type = "complex",
   grid_sfc <- sf::st_sfc(c(horiz_lines, vert_lines), crs = 3857)
   map_sf <- sf::st_as_sf(data.frame(id = seq_along(grid_sfc)), geom = grid_sfc)
 
-  # --- Return Results ---
+  # --- Return Results (strictly in-memory) ---
+  if (isTRUE(raster)) {
+    map_vect <- terra::vect(map_sf)
+    rast_template <- terra::rast(map_vect, nrows = 150, ncols = 150)
+    r_map <- terra::rasterize(map_vect, rast_template, field = 1, background = 0, touches = TRUE)
+    names(r_map) <- "grid_lines"
+    return(list(gcp = gcp, map = map_sf, raster = r_map))
+  }
+
   return(list(gcp = gcp, map = map_sf))
 }

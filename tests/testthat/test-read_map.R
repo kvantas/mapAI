@@ -74,3 +74,14 @@ test_that("read_map does not calculate area_old for non-polygon geometries", {
   map <- read_map(shp_file)
   expect_false("area_old" %in% names(map))
 })
+
+test_that("read_map correctly reads raster datasets into SpatRaster", {
+  temp_dir <- withr::local_tempdir()
+  tif_file <- file.path(temp_dir, "sample.tif")
+  r <- terra::rast(nrows = 10, ncols = 10, vals = 1:100)
+  terra::writeRaster(r, tif_file)
+
+  read_r <- read_map(tif_file)
+  expect_s4_class(read_r, "SpatRaster")
+  expect_equal(terra::values(read_r)[, 1], 1:100)
+})

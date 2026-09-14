@@ -1,19 +1,23 @@
-#' @title Apply a Trained PAI Model to Correct a Vector Map (Optimized)
-#' @description Applies a trained `pai_model` object to an `sf` vector map,
-#'   correcting the position of all its vertices based on the learned
+#' @title Apply a Trained PAI Model to Correct a Map (Vector or Raster)
+#' @description Applies a trained `pai_model` object to an `sf` vector map or a
+#'   `terra` `SpatRaster`, correcting its spatial alignment based on the learned
 #'   transformation.
 #'
 #' @param pai_model An object of class `pai_model` returned by
 #' `train_pai_model()`.
-#' @param map An `sf` object representing the vector map to be corrected.
+#' @param map An `sf` object representing the vector map, or a `terra`
+#'   `SpatRaster` representing a raster map to be corrected.
 #' @param aoi An optional `sf` polygon object representing the Area of Interest.
+#' @param ... Additional arguments passed to `apply_pai_raster()` when `map`
+#'   is a `SpatRaster`.
 #'
-#' @return A new `sf` object with the corrected geometry.
+#' @return A new `sf` object (for vector maps) or `terra::SpatRaster` object
+#'   (for raster maps) with corrected spatial alignment.
 #'
 #' @importFrom sf st_geometry st_geometry_type st_coordinates st_sfc
-#' st_set_geometry st_intersection st_difference st_bbox st_as_sf st_area
-#' st_crs st_point st_linestring st_polygon st_multipoint st_multilinestring
-#' st_multipolygon
+#'   st_set_geometry st_intersection st_difference st_bbox st_as_sf st_area
+#'   st_crs st_point st_linestring st_polygon st_multipoint st_multilinestring
+#'   st_multipolygon
 #' @importFrom stats predict
 #' @export
 #' @examples
@@ -48,7 +52,12 @@
 #    title = "Positional Correction of a Distorted Grid",
 #     subtitle = "Overlay of original (dashed) and corrected (solid) geometries") +
 #   theme_minimal()
-transform_map <- function(pai_model, map, aoi = NULL) {
+transform_map <- function(pai_model, map, aoi = NULL, ...) {
+
+  # If map is a SpatRaster, dispatch to apply_pai_raster
+  if (inherits(map, "SpatRaster")) {
+    return(apply_pai_raster(pai_model = pai_model, raster = map, aoi = aoi, ...))
+  }
 
   # --- 1. Input Validation ---
   validate_map_transform(pai_model, map, aoi)

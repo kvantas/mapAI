@@ -19,16 +19,18 @@
 #' }
 #'
 #' @param pai_model A model object of class `pai_model`.
-#' @param newdata A data frame with `source_x` and `source_y` columns.
-#' If `NULL` (default),
-#'   the GCPs used to train the model will be used.
+#' @param newdata A data frame with `source_x` and `source_y` columns, or a
+#'   `terra` `SpatRaster` object. If `NULL` (default), the GCPs used to train
+#'   the model will be used. If a `SpatRaster` is provided, distortion metrics
+#'   are evaluated at each cell center and returned as a multi-layer `SpatRaster`.
 #' @param reference_scale A single numeric value to normalize area scale.
 #'
-#' @return An `distortion` object (a data frame) with the original points and
-#'  new columns for all calculated distortion metrics (e.g., `a`, `b`,
-#'  `log2_area_scale`, `max_shear`, `max_angular_distortion`, `airy_kavrayskiy`,
-#'  `theta_a`).
+#' @return A `distortion` object (a data frame) or a `terra::SpatRaster` object
+#'   with all calculated distortion metrics (e.g., `a`, `b`,
+#'   `log2_area_scale`, `max_shear`, `max_angular_distortion`, `airy_kavrayskiy`,
+#'   `theta_a`).
 #'
+#' @importFrom terra crds rast values<-
 #' @export
 #' @examples
 #'   # Create data and train a model
@@ -52,7 +54,14 @@ analyze_distortion <- function(pai_model,
   # --- Input validation ---
   an_dist_validation(pai_model, reference_scale)
 
-  if (!is.null(newdata)) {
+  is_raster <- inherits(newdata, "SpatRaster")
+
+  if (is_raster) {
+    orig_raster <- newdata
+    coords_mat <- terra::crds(newdata)
+    newdata <- data.frame(source_x = coords_mat[, 1],
+                          source_y = coords_mat[, 2])
+  } else if (!is.null(newdata)) {
     new_data_validation(newdata)
   } else {
     newdata <- pai_model$gcp
@@ -115,24 +124,43 @@ analyze_distortion <- function(pai_model,
 
   area_scale <- a * b
 
-  # Add results to a new data frame to avoid modifying the input object directly
-  results <- newdata
-  results$a <- a
-  results$b <- b
-  results$area_scale <- area_scale
-  results$log2_area_scale <- log2(area_scale / (reference_scale^2))
-  results$max_shear <- asin((a - b) / (a + b)) * 180 / pi
-  results$max_angular_distortion <- 2 * asin((a - b) / (a + b))
-  results$airy_kavrayskiy <- 0.5 * (log(a)^2 + log(b)^2)
-
   theta_xp <- atan2(dfy_dx, dfx_dx)
   alpha_p <- atan2(2 * F_metric, E - G) / 2
-  results$theta_a <- (theta_xp - alpha_p) * 180 / pi
+  theta_a <- (theta_xp - alpha_p) * 180 / pi
 
-  class(results) <- c("distortion", "data.frame")
+  if (is_raster) {
+    metrics_mat <- cbind(
+      a = a,
+      b = b,
+      area_scale = area_scale,
+      log2_area_scale = log2(area_scale / (reference_scale^2)),
+      max_shear = asin((a - b) / (a + b)) * 180 / pi,
+      max_angular_distortion = 2 * asin((a - b) / (a + b)),
+      airy_kavrayskiy = 0.5 * (log(a)^2 + log(b)^2),
+      theta_a = theta_a
+    )
+    out_rast <- terra::rast(orig_raster, nlyrs = ncol(metrics_mat))
+    names(out_rast) <- colnames(metrics_mat)
+    terra::values(out_rast) <- metrics_mat
+    message("Distortion analysis complete.")
+    return(out_rast)
+  } else {
+    # Add results to a new data frame to avoid modifying the input object directly
+    results <- newdata
+    results$a <- a
+    results$b <- b
+    results$area_scale <- area_scale
+    results$log2_area_scale <- log2(area_scale / (reference_scale^2))
+    results$max_shear <- asin((a - b) / (a + b)) * 180 / pi
+    results$max_angular_distortion <- 2 * asin((a - b) / (a + b))
+    results$airy_kavrayskiy <- 0.5 * (log(a)^2 + log(b)^2)
+    results$theta_a <- theta_a
 
-  message("Distortion analysis complete.")
-  return(results)
+    class(results) <- c("distortion", "data.frame")
+
+    message("Distortion analysis complete.")
+    return(results)
+  }
 }
 
 
