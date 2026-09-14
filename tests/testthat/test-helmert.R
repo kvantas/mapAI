@@ -107,3 +107,42 @@ test_that("helmert model returns error for co-located points", {
   )
 
 })
+
+test_that("helmert model supports TLS and returns geodetic parameters and diagnostics", {
+  # Synthetic data with known transformation:
+  # scale = 1.05, theta = 30 deg, tx = 15, ty = -25
+  theta_true <- 30 * pi / 180
+  s_true <- 1.05
+  tx_true <- 15
+  ty_true <- -25
+
+  a_true <- s_true * cos(theta_true)
+  b_true <- s_true * sin(theta_true)
+
+  sx <- c(10, 50, 80, 20, 90)
+  sy <- c(15, 25, 75, 85, 30)
+
+  tx <- tx_true + a_true * sx - b_true * sy
+  ty <- ty_true + b_true * sx + a_true * sy
+
+  # Test OLS
+  model_ols <- helmert(sx, sy, tx, ty, method = "ols")
+  expect_equal(unname(model_ols$parameters["scale"]), s_true, tolerance = 1e-6)
+  expect_equal(unname(model_ols$parameters["theta_deg"]), 30, tolerance = 1e-6)
+  expect_equal(unname(model_ols$parameters["tx"]), tx_true, tolerance = 1e-6)
+  expect_equal(unname(model_ols$parameters["ty"]), ty_true, tolerance = 1e-6)
+  expect_equal(model_ols$df, 2 * length(sx) - 4)
+  expect_true(is.data.frame(model_ols$residuals))
+  expect_equal(nrow(model_ols$residuals), length(sx))
+
+  # Test TLS
+  model_tls <- helmert(sx, sy, tx, ty, method = "tls")
+  expect_equal(model_tls$method, "tls")
+  expect_equal(unname(model_tls$parameters["scale"]), s_true, tolerance = 1e-6)
+  expect_equal(unname(model_tls$parameters["theta_deg"]), 30, tolerance = 1e-6)
+
+  # Check print for TLS
+  expect_output(print(model_tls), "TLS / Procrustes")
+  expect_output(print(model_tls), "Scale Factor")
+})
+
