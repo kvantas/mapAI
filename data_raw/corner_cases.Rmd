@@ -1,0 +1,1030 @@
+---
+title: "mapAI Corner Case Behaviour Report"
+subtitle: "Synthetic stress tests for the vector and raster engines"
+date: "`r Sys.Date()`"
+output:
+  html_document:
+    toc: true
+    toc_depth: 3
+    toc_float: true
+    df_print: kable
+---
+
+```{r setup, include = FALSE}
+knitr::opts_chunk$set(
+  collapse = TRUE,
+  comment  = "#>",
+  warning  = FALSE,
+  message  = FALSE,
+  fig.width = 7,
+  fig.height = 4.5
+)
+```
+
+## What this document is
+
+A behaviour probe, not a unit test suite. Every case below is deliberately
+awkward — degenerate, empty, out-of-domain, or numerically nasty — and the
+question is always the same: **does `mapAI` do the right thing, and does it say
+so?**
+
+The distinction that matters is between the three outcomes:
+
+| Outcome | Meaning |
+|---|---|
+| **ok** | Completed with no error and no warning |
+| **warning** | Completed, but told the user something was off |
+| **error** | Refused to proceed |
+
+For a corner case, `ok` is not automatically good. A function that quietly
+returns a plausible-looking wrong answer is worse than one that errors. Each case
+below therefore declares what it *expects*, and the summary flags any mismatch.
+
+All data is synthetic and generated in this document; nothing is read from disk.
+
+```{r libs}
+library(mapAI)
+library(sf)
+library(terra)
+```
+
+## Harness
+
+```{r harness}
+cc <- new.env()
+cc$rows <- list()
+
+#' Run one corner case, capturing its outcome without aborting the report.
+#'
+#' @param case    short description of what is being probed
+#' @param expr    the expression to evaluate
+#' @param expect  "ok", "warning" or "error" -- the defensible behaviour
+#' @param section grouping label
+#' @param probe   optional function(value) returning a one-line string used to
+#'                inspect the result beyond its mere existence
+check <- function(case, expr, expect = c("ok", "warning", "error"),
+                  section = "", probe = NULL) {
+  expect <- match.arg(expect)
+  warns <- character(0)
+  err <- NULL
+
+  val <- withCallingHandlers(
+    tryCatch(expr, error = function(e) { err <<- conditionMessage(e); NULL }),
+    warning = function(w) {
+      warns <<- c(warns, conditionMessage(w))
+      invokeRestart("muffleWarning")
+    },
+    message = function(m) invokeRestart("muffleMessage")
+  )
+
+  observed <- if (!is.null(err)) "error" else if (length(warns)) "warning" else "ok"
+
+  detail <- if (!is.null(err)) {
+    err
+  } else if (length(warns)) {
+    warns[1]
+  } else if (!is.null(probe)) {
+    tryCatch(probe(val), error = function(e) paste("probe failed:", conditionMessage(e)))
+  } else {
+    ""
+  }
+
+  # A warning where only "ok" was expected is still acceptable if it is
+  # informative; the verdict flags the cases worth looking at.
+  verdict <- if (observed == expect) {
+    "as expected"
+  } else if (expect == "ok" && observed == "warning") {
+    "extra warning"
+  } else if (expect %in% c("warning", "error") && observed == "ok") {
+    "SILENT"
+  } else {
+    "MISMATCH"
+  }
+
+  cc$rows[[length(cc$rows) + 1L]] <- data.frame(
+    section  = section,
+    case     = case,
+    expected = expect,
+    observed = observed,
+    verdict  = verdict,
+    detail   = substr(gsub("\\s+", " ", detail), 1, 130),
+    stringsAsFactors = FALSE
+  )
+
+  invisible(val)
+}
+
+report <- function(section) {
+  df <- do.call(rbind, cc$rows)
+  df <- df[df$section == section, c("case", "expected", "observed", "verdict", "detail")]
+  rownames(df) <- NULL
+  knitr::kable(df)
+}
+```
+
+## Synthetic data generators
+
+```{r generators}
+# A regular GCP grid with a chosen smooth warp. Coordinates are deliberately
+# large (Swiss-grid magnitude) for the numerical-precision cases.
+make_gcp <- function(n = 8, span = 1000, origin = c(0, 0),
+                     warp = c("smooth", "identity", "fold", "tiny"),
+                     noise = 0) {
+  warp <- match.arg(warp)
+  g <- expand.grid(
+    source_x = seq(origin[1], origin[1] + span, length.out = n),
+    source_y = seq(origin[2], origin[2] + span, length.out = n)
+  )
+  u <- (g$source_x - origin[1]) / span
+  v <- (g$source_y - origin[2]) / span
+
+  d <- switch(warp,
+    identity = list(dx = rep(0, nrow(g)), dy = rep(0, nrow(g))),
+    smooth   = list(dx = span * (0.02 * u + 0.015 * u * v),
+                    dy = span * (0.018 * v - 0.012 * u * v)),
+    # Strong enough to reverse orientation over part of the domain.
+    fold     = list(dx = -1.8 * span * u, dy = rep(0, nrow(g))),
+    tiny     = list(dx = rep(1e-9, nrow(g)), dy = rep(1e-9, nrow(g)))
+  )
+
+  if (noise > 0) {
+    d$dx <- d$dx + rnorm(nrow(g), 0, noise)
+    d$dy <- d$dy + rnorm(nrow(g), 0, noise)
+  }
+
+  out <- data.frame(
+    source_x = g$source_x,
+    source_y = g$source_y,
+    target_x = g$source_x + d$dx,
+    target_y = g$source_y + d$dy,
+    dx = d$dx,
+    dy = d$dy
+  )
+  class(out) <- c("gcp", "data.frame")
+  out
+}
+
+set.seed(1)
+gcp_ok    <- make_gcp(8, warp = "smooth", noise = 0.5)
+gcp_ident <- make_gcp(8, warp = "identity")
+gcp_fold  <- make_gcp(8, warp = "fold")
+gcp_big   <- make_gcp(8, span = 60000, origin = c(2600000, 1200000), warp = "smooth")
+
+model_ok   <- train_pai_model(gcp_ok,   method = "lm")
+model_gam  <- train_pai_model(gcp_ok,   method = "gam_biv")
+model_tin  <- train_pai_model(gcp_ok,   method = "tin_linear")
+model_ident <- train_pai_model(gcp_ident, method = "lm")
+
+# Bounding box of the control network, used to place geometries inside/outside.
+hull <- c(xmin = min(gcp_ok$source_x), xmax = max(gcp_ok$source_x),
+          ymin = min(gcp_ok$source_y), ymax = max(gcp_ok$source_y))
+hull
+```
+
+---
+
+# 1. Model training
+
+Degenerate control networks. The recurring question: does a network that cannot
+support a model produce a clear refusal, or a fitted object that looks fine?
+
+```{r sec-model}
+sec <- "1. Model training"
+
+# --- too few points for the model's parameter count ---
+# Note rows 1:3 of the grid share a y value, so pick a genuine triangle.
+gcp_1 <- gcp_ok[1, ]
+gcp_2 <- gcp_ok[1:2, ]
+gcp_3 <- gcp_ok[c(1, 2, 9), ]
+class(gcp_3) <- c("gcp", "data.frame")
+
+# Probe the fitted coefficients: a rank-deficient lm returns NA slopes, and a
+# model with NA coefficients predicts NA. "Trained successfully" is not enough.
+coef_probe <- function(m) {
+  cf <- c(stats::coef(m$model$model_dx), stats::coef(m$model$model_dy))
+  sprintf("%d of %d coefficients are NA", sum(is.na(cf)), length(cf))
+}
+
+check("1 GCP, lm (3 params per axis)", train_pai_model(gcp_1, "lm"),
+      expect = "error", section = sec, probe = coef_probe)
+check("2 GCPs, helmert (4 params)", train_pai_model(gcp_2, "helmert"),
+      expect = "ok", section = sec,
+      probe = function(m) sprintf("scale = %.4f, df = %d",
+                                  m$model$parameters["scale"], m$model$df))
+check("3 non-collinear GCPs, lm (exactly determined, 0 residual df)",
+      train_pai_model(gcp_3, "lm"), expect = "ok", section = sec)
+check("3 GCPs, gam_biv (below the basis dimension)",
+      train_pai_model(gcp_3, "gam_biv"), expect = "error", section = sec)
+check("3 non-collinear GCPs, tin_linear (1 triangle)",
+      train_pai_model(gcp_3, "tin_linear"), expect = "ok", section = sec)
+
+# --- collinear control points: no 2D information at all ---
+gcp_line <- gcp_ok[gcp_ok$source_y == gcp_ok$source_y[1], ]
+check(sprintf("collinear GCPs (n = %d, all same y), lm", nrow(gcp_line)),
+      train_pai_model(gcp_line, "lm"), expect = "error", section = sec,
+      probe = coef_probe)
+check("collinear GCPs, helmert", train_pai_model(gcp_line, "helmert"),
+      expect = "ok", section = sec)
+check("collinear GCPs, tin_linear (no valid triangulation)",
+      train_pai_model(gcp_line, "tin_linear"), expect = "error", section = sec)
+
+# --- all control points at one location ---
+gcp_dup <- gcp_ok[rep(1, 10), ]
+check("10 identical GCPs, helmert", train_pai_model(gcp_dup, "helmert"),
+      expect = "error", section = sec)
+check("10 identical GCPs, lm", train_pai_model(gcp_dup, "lm"),
+      expect = "error", section = sec, probe = coef_probe)
+
+# --- duplicated coordinates mixed with valid ones ---
+gcp_partdup <- rbind(gcp_ok, gcp_ok[1:5, ])
+class(gcp_partdup) <- c("gcp", "data.frame")
+check("GCPs with 5 exact duplicates, gam_biv",
+      train_pai_model(gcp_partdup, "gam_biv"), expect = "ok", section = sec)
+check("GCPs with 5 exact duplicates, tin_akima",
+      train_pai_model(gcp_partdup, "tin_akima"), expect = "ok", section = sec)
+
+# --- NA in the control network ---
+gcp_na <- gcp_ok
+gcp_na$dx[3] <- NA_real_
+gcp_na$target_x[3] <- NA_real_
+check("GCP with NA displacement, lm", train_pai_model(gcp_na, "lm"),
+      expect = "error", section = sec,
+      probe = function(m) sprintf("fitted on %d of %d GCPs (row silently dropped)",
+                                  stats::nobs(m$model$model_dx), nrow(gcp_na)))
+# assess_pai_model() rejects the same data outright, so the two entry points
+# disagree about whether an NA control point is acceptable.
+check("GCP with NA displacement, assess_pai_model",
+      assess_pai_model(gcp_na, "lm", validation_type = "random", k_folds = 3),
+      expect = "error", section = sec)
+
+# --- zero displacement everywhere ---
+# A map needing no correction is a legitimate input, and the response has zero
+# variance. mgcv::mvn cannot estimate a residual covariance from it.
+check("identity warp (all displacements 0), lm",
+      train_pai_model(gcp_ident, "lm"), expect = "ok", section = sec)
+check("identity warp (all displacements 0), helmert",
+      train_pai_model(gcp_ident, "helmert"), expect = "ok", section = sec)
+check("identity warp (all displacements 0), gam_biv",
+      train_pai_model(gcp_ident, "gam_biv"), expect = "error", section = sec)
+check("near-identity warp (displacements 1e-9), gam_biv",
+      train_pai_model(make_gcp(8, warp = "tiny"), "gam_biv"),
+      expect = "ok", section = sec)
+
+# A map offset by a constant shift is an ordinary real-world case: the
+# displacement is non-zero but has zero variance in both components.
+gcp_shift <- gcp_ident
+gcp_shift$dx <- 25; gcp_shift$dy <- -10
+gcp_shift$target_x <- gcp_shift$source_x + 25
+gcp_shift$target_y <- gcp_shift$source_y - 10
+class(gcp_shift) <- c("gcp", "data.frame")
+
+check("pure translation (constant dx/dy), helmert",
+      train_pai_model(gcp_shift, "helmert"), expect = "ok", section = sec,
+      probe = function(m) sprintf("tx = %.2f, ty = %.2f (true 25, -10)",
+                                  m$model$parameters["tx"],
+                                  m$model$parameters["ty"]))
+check("pure translation (constant dx/dy), lm",
+      train_pai_model(gcp_shift, "lm"), expect = "ok", section = sec)
+check("pure translation (constant dx/dy), gam_biv",
+      train_pai_model(gcp_shift, "gam_biv"), expect = "ok", section = sec)
+check("pure translation (constant dx/dy), tps",
+      train_pai_model(gcp_shift, "tps"), expect = "ok", section = sec)
+
+# --- orientation-reversing warp ---
+check("fold-inducing warp, tin_linear (should flag inverted facets)",
+      train_pai_model(gcp_fold, "tin_linear"), expect = "warning", section = sec)
+
+# --- very large coordinates: numerical conditioning ---
+check("Swiss-grid magnitude coordinates (~2.6e6), helmert",
+      train_pai_model(gcp_big, "helmert"), expect = "ok", section = sec,
+      probe = function(m) sprintf("scale = %.10f (true 1.0 + warp)",
+                                  m$model$parameters["scale"]))
+
+report(sec)
+```
+
+---
+
+# 2. Vector transformation
+
+## 2.1 Geometry type coverage
+
+Every OGC simple-feature type the package claims to support, plus the empty and
+degenerate forms of each.
+
+```{r sec-vec-types}
+sec <- "2.1 Geometry types"
+
+crs_l <- 3857  # a projected CRS, so assert_projected_crs() is satisfied
+inside <- function(fx, fy) {
+  # map unit-square coordinates into the control network footprint
+  c(hull["xmin"] + fx * (hull["xmax"] - hull["xmin"]),
+    hull["ymin"] + fy * (hull["ymax"] - hull["ymin"]))
+}
+
+p1 <- inside(0.2, 0.2); p2 <- inside(0.8, 0.3); p3 <- inside(0.6, 0.8)
+
+mk <- function(g) st_sf(id = seq_along(st_sfc(g)), geometry = st_sfc(g, crs = crs_l))
+
+sf_point  <- mk(st_point(p1))
+sf_mpoint <- mk(st_multipoint(rbind(p1, p2, p3)))
+sf_line   <- mk(st_linestring(rbind(p1, p2, p3)))
+sf_mline  <- mk(st_multilinestring(list(rbind(p1, p2), rbind(p2, p3))))
+
+ring <- function(cx, cy, r) {
+  th <- seq(0, 2 * pi, length.out = 33)
+  m <- unname(cbind(cx + r * cos(th), cy + r * sin(th)))
+  m[nrow(m), ] <- m[1, ]   # close the ring exactly; 2*pi != 0 in floating point
+  m
+}
+ctr <- inside(0.5, 0.5); rad <- 0.2 * (hull["xmax"] - hull["xmin"])
+sf_poly  <- mk(st_polygon(list(ring(ctr[1], ctr[2], rad))))
+sf_hole  <- mk(st_polygon(list(ring(ctr[1], ctr[2], rad),
+                               ring(ctr[1], ctr[2], rad / 3)[33:1, ])))
+sf_mpoly <- mk(st_multipolygon(list(
+  list(ring(p1[1], p1[2], rad / 2)),
+  list(ring(p2[1], p2[2], rad / 2))
+)))
+
+for (nm in c("POINT", "MULTIPOINT", "LINESTRING", "MULTILINESTRING",
+             "POLYGON", "POLYGON with hole", "MULTIPOLYGON")) {
+  obj <- switch(nm,
+    "POINT" = sf_point, "MULTIPOINT" = sf_mpoint, "LINESTRING" = sf_line,
+    "MULTILINESTRING" = sf_mline, "POLYGON" = sf_poly,
+    "POLYGON with hole" = sf_hole, "MULTIPOLYGON" = sf_mpoly)
+  check(nm, transform_map(model_ok, obj), expect = "ok", section = sec,
+        probe = function(x) sprintf("%d feature(s), valid = %s",
+                                    nrow(x), all(st_is_valid(x))))
+}
+
+# Interior ring must survive as an interior ring, not be dropped or merged.
+check("POLYGON with hole keeps its interior ring",
+      transform_map(model_ok, sf_hole), expect = "ok", section = sec,
+      probe = function(x) sprintf("n rings after = %d (input 2)",
+                                  length(st_geometry(x)[[1]])))
+
+# --- empty and degenerate geometries ---
+sf_empty_pt   <- mk(st_point())
+sf_empty_poly <- mk(st_polygon())
+sf_zero_len   <- mk(st_linestring(rbind(p1, p1)))
+sf_zero_area  <- mk(st_polygon(list(rbind(p1, p2, p1, p1))))
+
+check("empty POINT (no finite coordinates)", transform_map(model_ok, sf_empty_pt),
+      expect = "error", section = sec)
+check("empty POLYGON", transform_map(model_ok, sf_empty_poly),
+      expect = "ok", section = sec)
+check("zero-length LINESTRING (two identical vertices)",
+      transform_map(model_ok, sf_zero_len), expect = "ok", section = sec)
+check("zero-area POLYGON (collapsed sliver)",
+      transform_map(model_ok, sf_zero_area), expect = "ok", section = sec,
+      probe = function(x) sprintf("area_new = %s",
+                                  format(as.numeric(st_area(x)), digits = 3)))
+
+# --- zero-row layer ---
+check("sf object with 0 features",
+      transform_map(model_ok, sf_poly[0, ]), expect = "ok", section = sec,
+      probe = function(x) sprintf("nrow = %d", nrow(x)))
+
+# --- mixed geometry types in one layer ---
+sf_mixed <- rbind(
+  st_sf(id = 1, geometry = st_sfc(st_point(p1), crs = crs_l)),
+  st_sf(id = 2, geometry = st_sfc(st_polygon(list(ring(ctr[1], ctr[2], rad))),
+                                  crs = crs_l))
+)
+check("mixed POINT + POLYGON in one layer (area_new must still appear)",
+      transform_map(model_ok, sf_mixed), expect = "ok", section = sec,
+      probe = function(x) sprintf("has area_new = %s", "area_new" %in% names(x)))
+
+report(sec)
+```
+
+## 2.2 Topology
+
+```{r sec-vec-topo}
+sec <- "2.2 Topology"
+
+# Already-invalid input: a bow-tie.
+bow <- st_sf(id = 1, geometry = st_sfc(st_polygon(list(rbind(
+  inside(0.3, 0.3), inside(0.7, 0.7), inside(0.7, 0.3),
+  inside(0.3, 0.7), inside(0.3, 0.3)
+))), crs = crs_l))
+
+check("self-intersecting input, repair_topology = TRUE",
+      transform_map(model_ok, bow, repair_topology = TRUE),
+      expect = "ok", section = sec,
+      probe = function(x) sprintf("valid after = %s", all(st_is_valid(x))))
+check("self-intersecting input, repair_topology = FALSE",
+      transform_map(model_ok, bow, repair_topology = FALSE),
+      expect = "ok", section = sec,
+      probe = function(x) sprintf("valid after = %s (repair off)",
+                                  all(st_is_valid(x))))
+
+# A warp strong enough to fold the domain: does the vector engine notice?
+model_fold <- suppressWarnings(train_pai_model(gcp_fold, "lm"))
+check("fold-inducing model applied to a polygon",
+      transform_map(model_fold, sf_poly, repair_topology = TRUE),
+      expect = "ok", section = sec,
+      probe = function(x) {
+        a <- as.numeric(st_area(x))
+        sprintf("area %.1f -> %.1f, valid = %s",
+                as.numeric(st_area(sf_poly)), a, all(st_is_valid(x)))
+      })
+
+report(sec)
+```
+
+## 2.3 Domain: inside, outside, and across the hull
+
+The TIN family interpolates inside the convex hull and extrapolates outside it
+with a different rule. A geometry that straddles the hull boundary crosses that
+seam.
+
+```{r sec-vec-domain}
+sec <- "2.3 Domain and extrapolation"
+
+far <- function(mult) {
+  w <- hull["xmax"] - hull["xmin"]
+  st_sf(id = 1, geometry = st_sfc(st_polygon(list(rbind(
+    c(hull["xmax"] + mult * w,       hull["ymin"]),
+    c(hull["xmax"] + (mult + 0.3) * w, hull["ymin"]),
+    c(hull["xmax"] + (mult + 0.3) * w, hull["ymin"] + 0.3 * w),
+    c(hull["xmax"] + mult * w,       hull["ymin"] + 0.3 * w),
+    c(hull["xmax"] + mult * w,       hull["ymin"])
+  ))), crs = crs_l))
+}
+
+disp_of <- function(x, src) {
+  cs <- st_coordinates(src)[1, 1:2]; ct <- st_coordinates(x)[1, 1:2]
+  sprintf("corner moved %.2f units", sqrt(sum((ct - cs)^2)))
+}
+
+check("polygon just outside the hull, gam_biv",
+      transform_map(model_gam, far(0.1)), expect = "ok", section = sec,
+      probe = function(x) disp_of(x, far(0.1)))
+check("polygon 10x the hull width away, gam_biv (extrapolation)",
+      transform_map(model_gam, far(10)), expect = "ok", section = sec,
+      probe = function(x) disp_of(x, far(10)))
+check("polygon 10x away, tin_linear (Helmert fallback)",
+      transform_map(model_tin, far(10)), expect = "ok", section = sec,
+      probe = function(x) disp_of(x, far(10)))
+
+# A line crossing the hull boundary samples both sides of the TIN seam.
+crossing <- st_sf(id = 1, geometry = st_sfc(st_linestring(rbind(
+  inside(0.5, 0.5),
+  c(hull["xmax"] + 0.5 * (hull["xmax"] - hull["xmin"]), inside(0.5, 0.5)[2])
+)), crs = crs_l))
+
+check("line crossing the TIN convex hull boundary",
+      transform_map(model_tin, crossing), expect = "ok", section = sec,
+      probe = function(x) {
+        d <- st_coordinates(x)[, 1:2] - st_coordinates(crossing)[, 1:2]
+        sprintf("endpoint displacements: %.2f and %.2f",
+                sqrt(sum(d[1, ]^2)), sqrt(sum(d[nrow(d), ]^2)))
+      })
+
+report(sec)
+```
+
+## 2.4 CRS handling
+
+```{r sec-vec-crs}
+sec <- "2.4 CRS"
+
+sf_nocrs <- st_sf(id = 1, geometry = st_sfc(st_polygon(list(
+  ring(ctr[1], ctr[2], rad)))))
+check("map with no CRS", transform_map(model_ok, sf_nocrs),
+      expect = "warning", section = sec)
+
+# Geographic coordinates: the model is planar Cartesian, so degrees are wrong.
+sf_lonlat <- st_sf(id = 1, geometry = st_sfc(st_polygon(list(
+  rbind(c(8.0, 47.0), c(8.1, 47.0), c(8.1, 47.1), c(8.0, 47.1), c(8.0, 47.0))
+)), crs = 4326))
+check("map in geographic (lon/lat) coordinates",
+      transform_map(model_ok, sf_lonlat), expect = "warning", section = sec)
+
+# AOI in a different CRS: must be reprojected, and the reprojection must be used.
+aoi_other <- st_transform(
+  st_sf(id = 1, geometry = st_sfc(st_polygon(list(
+    ring(ctr[1], ctr[2], rad * 3))), crs = crs_l)), 4326)
+check("AOI supplied in a different CRS than the map",
+      transform_map(model_ok, sf_poly, aoi = aoi_other),
+      expect = "ok", section = sec,
+      probe = function(x) sprintf("%d feature(s) returned", nrow(x)))
+
+# AOI that misses the map entirely.
+aoi_miss <- st_sf(id = 1, geometry = st_sfc(st_polygon(list(
+  ring(hull["xmax"] + 50 * rad, hull["ymax"] + 50 * rad, rad))), crs = crs_l))
+check("AOI disjoint from the map",
+      transform_map(model_ok, sf_poly, aoi = aoi_miss),
+      expect = "ok", section = sec,
+      probe = function(x) sprintf("%d feature(s) returned", nrow(x)))
+
+report(sec)
+```
+
+---
+
+# 3. Raster rectification
+
+## 3.1 Shape and value degeneracies
+
+```{r sec-rast-shape}
+sec <- "3.1 Raster shape and values"
+
+base_ext <- ext(hull["xmin"], hull["xmax"], hull["ymin"], hull["ymax"])
+
+mk_rast <- function(nr, nc, vals = NULL, e = base_ext, crs_in = crs_l) {
+  r <- rast(e, nrows = nr, ncols = nc)
+  if (!is.null(crs_in)) terra::crs(r) <- paste0("EPSG:", crs_in)
+  values(r) <- if (is.null(vals)) seq_len(ncell(r)) else vals
+  r
+}
+
+check("1 x 1 raster", apply_pai_raster(model_ok, mk_rast(1, 1)),
+      expect = "ok", section = sec,
+      probe = function(r) sprintf("dim %s", paste(dim(r), collapse = "x")))
+check("1 x 50 raster (single row)", apply_pai_raster(model_ok, mk_rast(1, 50)),
+      expect = "ok", section = sec,
+      probe = function(r) sprintf("dim %s", paste(dim(r), collapse = "x")))
+check("50 x 1 raster (single column)", apply_pai_raster(model_ok, mk_rast(50, 1)),
+      expect = "ok", section = sec,
+      probe = function(r) sprintf("dim %s", paste(dim(r), collapse = "x")))
+
+r_allna <- mk_rast(20, 20); values(r_allna) <- NA_real_
+check("all-NA raster", apply_pai_raster(model_ok, r_allna),
+      expect = "ok", section = sec,
+      probe = function(r) sprintf("non-NA out = %d", sum(!is.na(values(r)[, 1]))))
+
+r_const <- mk_rast(20, 20, vals = rep(7, 400))
+check("constant-valued raster", apply_pai_raster(model_ok, r_const),
+      expect = "ok", section = sec,
+      probe = function(r) {
+        v <- values(r)[, 1]
+        sprintf("unique non-NA values = %s",
+                paste(unique(v[!is.na(v)]), collapse = ","))
+      })
+
+# Non-square cells must not be silently squared off.
+r_nonsq <- rast(base_ext, nrows = 10, ncols = 40); values(r_nonsq) <- seq_len(400)
+check("non-square cells, res preserved",
+      apply_pai_raster(model_ok, r_nonsq), expect = "ok", section = sec,
+      probe = function(r) sprintf("res in (%.3f, %.3f) -> out (%.3f, %.3f)",
+                                  res(r_nonsq)[1], res(r_nonsq)[2],
+                                  res(r)[1], res(r)[2]))
+
+report(sec)
+```
+
+## 3.2 Categorical data and interpolation method
+
+The case that motivated this audit: a binary mask resampled with `bilinear`
+gains values that exist nowhere in the source.
+
+```{r sec-rast-cat}
+sec <- "3.2 Categorical rasters"
+
+r_bin <- mk_rast(60, 60, vals = rep(c(0, 1), length.out = 3600))
+r_cls <- mk_rast(60, 60, vals = rep(1:5, length.out = 3600))
+
+nunique <- function(r) {
+  v <- values(r)[, 1]; length(unique(v[!is.na(v)]))
+}
+
+check("binary mask + method = 'near' (values preserved)",
+      apply_pai_raster(model_ok, r_bin, method = "near"),
+      expect = "ok", section = sec,
+      probe = function(r) sprintf("distinct values = %d (source 2)", nunique(r)))
+check("binary mask + method = 'bilinear' (blends classes)",
+      apply_pai_raster(model_ok, r_bin, method = "bilinear"),
+      expect = "ok", section = sec,
+      probe = function(r) sprintf("distinct values = %d (source 2)", nunique(r)))
+check("5-class raster + 'near'",
+      apply_pai_raster(model_ok, r_cls, method = "near"),
+      expect = "ok", section = sec,
+      probe = function(r) sprintf("distinct values = %d (source 5)", nunique(r)))
+check("integer classes survive 'near' as integers",
+      apply_pai_raster(model_ok, r_cls, method = "near"),
+      expect = "ok", section = sec,
+      probe = function(r) {
+        v <- values(r)[, 1]; v <- v[!is.na(v)]
+        sprintf("all integral = %s", all(v == floor(v)))
+      })
+
+report(sec)
+```
+
+Bilinear resampling of a categorical raster is *not* an error — the function does
+exactly what it was asked to. It is a silent modelling mistake, which is why
+`apply_pai_raster()` documents `near` as required for discrete data. Worth noting
+that nothing in the package detects it for you.
+
+## 3.3 `mesh_step`, extent and resolution
+
+```{r sec-rast-mesh}
+sec <- "3.3 mesh_step and extent"
+
+r_mesh <- mk_rast(40, 40)
+exact <- apply_pai_raster(model_gam, r_mesh, ext = "auto", mesh_step = NULL)
+na_exact <- sum(is.na(values(exact)[, 1]))
+
+for (ms in c(2, 3, 5, 7, 9, 10, 20)) {
+  local({
+    step <- ms
+    check(sprintf("mesh_step = %d vs exact evaluation", step),
+          apply_pai_raster(model_gam, r_mesh, ext = "auto", mesh_step = step),
+          expect = "ok", section = sec,
+          probe = function(r) {
+            n <- sum(is.na(values(r)[, 1]))
+            sprintf("NA %d vs exact %d (delta %+d), dim %s",
+                    n, na_exact, n - na_exact, paste(dim(r), collapse = "x"))
+          })
+  })
+}
+
+check("mesh_step larger than the raster itself",
+      apply_pai_raster(model_gam, mk_rast(8, 8), mesh_step = 50),
+      expect = "ok", section = sec,
+      probe = function(r) sprintf("dim %s, non-NA = %d",
+                                  paste(dim(r), collapse = "x"),
+                                  sum(!is.na(values(r)[, 1]))))
+
+check("explicit numeric ext, res = NULL (must preserve resolution)",
+      apply_pai_raster(model_ok, r_nonsq,
+                       ext = c(hull["xmin"] - 50, hull["xmax"] + 50,
+                               hull["ymin"] - 50, hull["ymax"] + 50)),
+      expect = "ok", section = sec,
+      probe = function(r) sprintf("res in (%.3f, %.3f) -> out (%.3f, %.3f)",
+                                  res(r_nonsq)[1], res(r_nonsq)[2],
+                                  res(r)[1], res(r)[2]))
+
+check("explicit ext with explicit res",
+      apply_pai_raster(model_ok, r_mesh, ext = c(0, 1000, 0, 1000), res = 25),
+      expect = "ok", section = sec,
+      probe = function(r) sprintf("res = %.2f, dim %s", res(r)[1],
+                                  paste(dim(r), collapse = "x")))
+
+check("ext = 'auto' on an identity model (extent should barely move)",
+      apply_pai_raster(model_ident, r_mesh, ext = "auto"),
+      expect = "ok", section = sec,
+      probe = function(r) sprintf("xmin %.1f -> %.1f",
+                                  as.vector(ext(r_mesh))[1],
+                                  as.vector(ext(r))[1]))
+
+report(sec)
+```
+
+## 3.4 Inversion solver
+
+```{r sec-rast-solver}
+sec <- "3.4 Coordinate inversion"
+
+r_solver <- mk_rast(20, 20)
+
+check("max_iter = 1 with a tight tolerance (should not converge)",
+      apply_pai_raster(model_gam, r_solver, max_iter = 1, tol = 1e-12),
+      expect = "warning", section = sec)
+check("generous budget (should converge quietly)",
+      apply_pai_raster(model_gam, r_solver, max_iter = 50, tol = 1e-4),
+      expect = "ok", section = sec)
+check("fold-inducing model (non-contractive displacement field)",
+      apply_pai_raster(model_fold, r_solver, ext = "auto"),
+      expect = "warning", section = sec)
+check("lambda = 1 (undamped)",
+      apply_pai_raster(model_gam, r_solver, lambda = 1),
+      expect = "ok", section = sec)
+check("lambda out of range", apply_pai_raster(model_gam, r_solver, lambda = 5),
+      expect = "error", section = sec)
+check("helmert model uses the closed-form inverse, not iteration",
+      apply_pai_raster(train_pai_model(gcp_ok, "helmert"), r_solver),
+      expect = "ok", section = sec)
+
+report(sec)
+```
+
+## 3.5 Multi-band, AOI and out-of-domain rasters
+
+```{r sec-rast-misc}
+sec <- "3.5 Multi-band, AOI, domain"
+
+r_multi <- c(mk_rast(20, 20), mk_rast(20, 20, vals = seq_len(400) * 2))
+names(r_multi) <- c("band1", "band2")
+check("2-band raster (names and band count preserved)",
+      apply_pai_raster(model_ok, r_multi), expect = "ok", section = sec,
+      probe = function(r) sprintf("nlyr = %d, names = %s",
+                                  nlyr(r), paste(names(r), collapse = ",")))
+
+aoi_half <- st_sf(id = 1, geometry = st_sfc(st_polygon(list(rbind(
+  c(hull["xmin"], hull["ymin"]),
+  c(mean(hull[1:2]), hull["ymin"]),
+  c(mean(hull[1:2]), hull["ymax"]),
+  c(hull["xmin"], hull["ymax"]),
+  c(hull["xmin"], hull["ymin"])
+))), crs = crs_l))
+check("AOI covering half the raster (raster has a CRS)",
+      apply_pai_raster(model_ok, mk_rast(20, 20), aoi = aoi_half),
+      expect = "ok", section = sec,
+      probe = function(r) sprintf("NA = %d of %d",
+                                  sum(is.na(values(r)[, 1])), ncell(r)))
+
+# The AOI carries a CRS but the raster does not, so the reprojection has no
+# target. terra's own message surfaces rather than a mapAI-level explanation.
+check("AOI with a CRS, raster without one",
+      apply_pai_raster(model_ok, mk_rast(20, 20, crs_in = NULL), aoi = aoi_half),
+      expect = "error", section = sec)
+
+# Raster entirely outside the control network.
+w <- hull["xmax"] - hull["xmin"]
+r_outside <- rast(ext(hull["xmax"] + 5 * w, hull["xmax"] + 6 * w,
+                      hull["ymin"], hull["ymin"] + w), nrows = 20, ncols = 20)
+values(r_outside) <- seq_len(400)
+check("raster entirely outside the GCP footprint (pure extrapolation)",
+      apply_pai_raster(model_gam, r_outside, ext = "auto"),
+      expect = "ok", section = sec,
+      probe = function(r) sprintf("non-NA = %d of %d",
+                                  sum(!is.na(values(r)[, 1])), ncell(r)))
+
+check("valueless raster template (no data to sample)",
+      apply_pai_raster(model_ok, rast(base_ext, nrows = 10, ncols = 10)),
+      expect = "error", section = sec)
+
+report(sec)
+```
+
+---
+
+# 4. Distortion analysis
+
+```{r sec-dist}
+sec <- "4. Distortion analysis"
+
+check("single evaluation point (degenerate span)",
+      analyze_distortion(model_ok, data.frame(source_x = 500, source_y = 500)),
+      expect = "ok", section = sec,
+      probe = function(d) sprintf("a = %.4f, det_J = %.4f, any NaN = %s",
+                                  d$a[1], d$det_J[1],
+                                  any(is.nan(c(d$a, d$b, d$det_J, d$theta_a)))))
+
+check("collinear evaluation points",
+      analyze_distortion(model_ok,
+                         data.frame(source_x = rep(500, 5),
+                                    source_y = seq(0, 1000, length.out = 5))),
+      expect = "ok", section = sec,
+      probe = function(d) sprintf("all finite = %s", all(is.finite(d$a))))
+
+check("identity transformation (a = b = 1, no distortion)",
+      analyze_distortion(model_ident, gcp_ident[1:5, ]),
+      expect = "ok", section = sec,
+      probe = function(d) sprintf("a = %.6f, b = %.6f, 2Omega = %.2e deg",
+                                  d$a[1], d$b[1], d$max_angular_distortion[1]))
+
+check("fold-inducing model (negative Jacobian expected)",
+      analyze_distortion(suppressWarnings(train_pai_model(gcp_fold, "lm")),
+                         gcp_fold[1:5, ]),
+      expect = "warning", section = sec)
+
+# Raster input with an NA mask: metrics must stay aligned to their cells.
+r_holes <- mk_rast(12, 12)
+values(r_holes)[c(1:20, 100:120)] <- NA
+check("SpatRaster input with NA cells (alignment + mask)",
+      analyze_distortion(model_ok, r_holes), expect = "ok", section = sec,
+      probe = function(d) sprintf("cells %d (input %d), NA in 'a' = %d (input %d)",
+                                  ncell(d), ncell(r_holes),
+                                  sum(is.na(values(d)[, "a"])),
+                                  sum(is.na(values(r_holes)[, 1]))))
+
+check("all-NA SpatRaster input",
+      analyze_distortion(model_ok, r_allna), expect = "ok", section = sec,
+      probe = function(d) sprintf("layers = %d, non-NA = %d",
+                                  nlyr(d), sum(!is.na(values(d)[, "a"]))))
+
+check("reference_scale = 0 rejected",
+      analyze_distortion(model_ok, gcp_ok[1:3, ], reference_scale = 0),
+      expect = "error", section = sec)
+
+check("reference_scale changes both normalised metrics",
+      {
+        d1 <- analyze_distortion(model_ok, gcp_ok[1:3, ], reference_scale = 1)
+        d2 <- analyze_distortion(model_ok, gcp_ok[1:3, ], reference_scale = 2)
+        c(log2 = d1$log2_area_scale[1] - d2$log2_area_scale[1],
+          airy = d1$airy_kavrayskiy[1] - d2$airy_kavrayskiy[1])
+      },
+      expect = "ok", section = sec,
+      probe = function(v) sprintf("log2 delta = %.3f (expect 2), airy changed = %s",
+                                  v["log2"], abs(v["airy"]) > 1e-9))
+
+check("check_tin_inversion() on a non-TIN model",
+      check_tin_inversion(model_gam), expect = "warning", section = sec)
+check("check_tin_inversion() on a TIN model",
+      check_tin_inversion(model_tin), expect = "ok", section = sec)
+
+report(sec)
+```
+
+---
+
+# 5. Cross-validation
+
+```{r sec-cv}
+sec <- "5. Cross-validation"
+
+gcp_cv <- make_gcp(12, warp = "smooth", noise = 2)
+
+check("k_folds greater than the number of GCPs",
+      assess_pai_model(gcp_cv, "lm", validation_type = "random",
+                       k_folds = nrow(gcp_cv) + 5),
+      expect = "error", section = sec)
+
+check("spatial_block with default block sizing",
+      assess_pai_model(gcp_cv, "lm", validation_type = "spatial_block",
+                       k_folds = 5, seed = 1),
+      expect = "ok", section = sec,
+      probe = function(a) sprintf("fold sizes %s, RMSE %.2f",
+                                  paste(a$details$n_test_per_fold, collapse = "/"),
+                                  a$summary$Mean_RMSE_2D))
+
+check("block_size coarser than the GCP extent (1 block)",
+      assess_pai_model(gcp_cv, "lm", validation_type = "spatial_block",
+                       k_folds = 5, block_size = 1e6, seed = 1),
+      expect = "error", section = sec)
+
+check("block_size giving fewer blocks than k_folds",
+      assess_pai_model(gcp_cv, "lm", validation_type = "spatial_block",
+                       k_folds = 20, block_size = 400, seed = 1),
+      expect = "warning", section = sec)
+
+check("buffer wide enough to empty the training set",
+      assess_pai_model(gcp_cv, "lm", validation_type = "spatial_buffered",
+                       k_folds = 5, buffer_dist = 1e5, seed = 1),
+      expect = "error", section = sec)
+
+check("modest buffer",
+      assess_pai_model(gcp_cv, "lm", validation_type = "spatial_buffered",
+                       k_folds = 5, buffer_dist = 80, seed = 1),
+      expect = "ok", section = sec,
+      probe = function(a) sprintf("train sizes %s",
+                                  paste(a$details$n_train_per_fold, collapse = "/")))
+
+# An L-shaped footprint leaves many grid cells empty.
+gcp_L <- gcp_cv[gcp_cv$source_x < 400 | gcp_cv$source_y < 400, ]
+class(gcp_L) <- c("gcp", "data.frame")
+check(sprintf("L-shaped GCP footprint (n = %d), spatial_block", nrow(gcp_L)),
+      assess_pai_model(gcp_L, "lm", validation_type = "spatial_block",
+                       k_folds = 5, seed = 1),
+      expect = "ok", section = sec,
+      probe = function(a) sprintf("fold sizes %s",
+                                  paste(a$details$n_test_per_fold, collapse = "/")))
+
+check("stratified with more strata than distinct displacements",
+      assess_pai_model(gcp_ident, "lm", validation_type = "stratified",
+                       k_folds = 3, n_strata = 10, seed = 1),
+      expect = "error", section = sec)
+
+check("reported metric equals the pooled residual RMSE",
+      assess_pai_model(gcp_cv, "lm", validation_type = "spatial", k_folds = 4,
+                       seed = 1),
+      expect = "ok", section = sec,
+      probe = function(a) {
+        p <- a$predictions
+        pooled <- sqrt(mean((p$true_dx - p$pred_dx)^2 +
+                            (p$true_dy - p$pred_dy)^2))
+        sprintf("reported %.4f, pooled %.4f, match = %s",
+                a$summary$Mean_RMSE_2D, pooled,
+                isTRUE(all.equal(a$summary$Mean_RMSE_2D, pooled)))
+      })
+
+# A model whose predict() emits NA must not silently delete a fold.
+na_model <- list(
+  label = "NA Emitter", modelType = "bivariate", library = NULL,
+  fit = function(dat, ...) list(),
+  predict = function(modelFit, newdata, ...) {
+    n <- nrow(newdata)
+    dx <- rep(0, n); dy <- rep(0, n); dx[1] <- NA_real_
+    data.frame(dx = dx, dy = dy)
+  }
+)
+check("model emitting NA predictions",
+      assess_pai_model(gcp_cv, na_model, validation_type = "random",
+                       k_folds = 4, seed = 1),
+      expect = "warning", section = sec)
+
+check("assess_pai_model leaves the caller's RNG untouched",
+      {
+        set.seed(4242); before <- .Random.seed
+        invisible(assess_pai_model(gcp_cv, "lm", validation_type = "random",
+                                   k_folds = 3, seed = 9))
+        identical(.Random.seed, before)
+      },
+      expect = "ok", section = sec,
+      probe = function(v) sprintf("RNG preserved = %s", v))
+
+report(sec)
+```
+
+---
+
+# Summary
+
+```{r summary}
+all_rows <- do.call(rbind, cc$rows)
+
+knitr::kable(as.data.frame(table(
+  Section = all_rows$section, Verdict = all_rows$verdict
+)) |> subset(Freq > 0), row.names = FALSE)
+```
+
+Cases whose behaviour differs from what was expected:
+
+```{r summary-flagged}
+flagged <- all_rows[all_rows$verdict != "as expected",
+                    c("section", "case", "expected", "observed", "verdict", "detail")]
+rownames(flagged) <- NULL
+if (nrow(flagged) == 0) {
+  cat("None: every case behaved as expected.\n")
+} else {
+  knitr::kable(flagged)
+}
+```
+
+`SILENT` is the verdict to care about: a case that was expected to warn or error
+but returned quietly. `extra warning` is usually benign — the package was more
+talkative than required.
+
+## What this run surfaced
+
+Three things, in descending order of how much they would bite a real user.
+
+### 1. `gam_biv` cannot fit a zero-variance displacement field
+
+A map offset by a constant shift is an ordinary input: `dx = 25`, `dy = -10`
+everywhere. `helmert` recovers it exactly, `lm` and `tps` fit it without
+complaint, and `gam_biv` dies with
+
+```
+Failed to train the bivariate model 'Bivariate GAM'.
+Underlying error: NA/NaN/Inf in foreign function call (arg 1)
+```
+
+The cause is `mgcv::mvn(d = 2)`, which estimates a full 2x2 residual covariance;
+with zero residual variance that matrix is singular. The same failure appears for
+an exact identity warp and for a uniform displacement of `1e-9`, so it is not a
+knife-edge case — it is any control network whose displacement field is constant
+in both components.
+
+Two problems with this. The message names a foreign function argument rather than
+the modelling situation, so a user cannot act on it. And the failure mode is
+"your map needs no correction, or only a rigid shift" — precisely the case where a
+user might reasonably reach for the package's flagship method to confirm that
+nothing is wrong. A pre-flight check on the variance of `dx` and `dy`, with a
+message pointing at `helmert` or `lm`, would cost little.
+
+### 2. `train_pai_model()` does not validate the control network
+
+`assess_pai_model()` runs `validate_assessment_inputs()`, which rejects `NA`
+coordinates and displacements. `train_pai_model()` runs no equivalent check, so
+the two entry points disagree about what counts as usable data:
+
+| Input | `train_pai_model()` | `assess_pai_model()` |
+|---|---|---|
+| `NA` in `dx` | fits on n-1 GCPs, silently | errors |
+| 1 GCP | returns a model with 4 of 6 coefficients `NA` | — |
+| collinear GCPs | returns a model with 2 of 6 coefficients `NA` | — |
+| 10 identical GCPs | returns a model with 4 of 6 coefficients `NA` | — |
+
+A `pai_model` whose coefficients are `NA` predicts `NA`, so the failure surfaces
+later, at `transform_map()` or `apply_pai_raster()`, detached from its cause.
+Note the inconsistency *within* training too: `helmert` refuses co-located control
+points outright (it has an explicit co-location guard), while `lm` accepts the
+same data and returns a rank-deficient fit. Checking `n`, coordinate rank and
+`NA`s once in `train_pai_model()` would make the two paths agree.
+
+### 3. Missing CRS passes without comment
+
+`assert_projected_crs()` warns for geographic coordinates but accepts `NA`. A map
+with no CRS at all is arguably the more dangerous input, since nothing downstream
+can detect a unit mismatch. This one is a judgement call rather than a defect.
+
+### What held up
+
+Everything else. Worth recording explicitly, because these are the cases that
+have historically gone wrong in this package:
+
+- All seven OGC geometry types round-trip, interior rings survive as interior
+  rings, and mixed-geometry layers still get `area_new`.
+- Empty, zero-length, zero-area and zero-row inputs are handled or refused
+  cleanly rather than producing corrupt geometry.
+- `mesh_step` loses no cells at any step size tested (2, 3, 5, 7, 9, 10, 20),
+  including the non-dividing ones.
+- Non-square cell sizes survive both `ext = "auto"` and an explicit extent.
+- Raster distortion metrics stay aligned to their cells and reproduce the input
+  `NA` mask exactly.
+- Degenerate distortion inputs (one point, collinear points) return finite
+  metrics instead of `NaN`.
+- The inversion solver warns on non-convergence and on a non-contractive field
+  rather than returning quietly.
+- Cross-validation refuses a buffer that would empty the training set, reduces
+  `k` when too few blocks are occupied, warns on `NA` predictions, and leaves the
+  caller's RNG stream untouched.
+
+```{r sessioninfo}
+sessionInfo()
+```
