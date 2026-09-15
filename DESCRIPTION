@@ -7,24 +7,16 @@ Authors@R:
            role = c("aut", "cre"),
            email = "kon.vantas@gmail.com",
            comment = c(ORCID = "0000-0001-6387-8791"))
-Description: A statistically rigorous, computationally efficient framework for
-    Positional Accuracy Improvement (PAI) and differential distortion analysis
-    of geospatial vector and raster datasets. Implements conformal similarity
-    (Helmert via Ordinary Least Squares, Total Least Squares, or scaled
-    orthogonal Procrustes), general affine, Thin Plate
-    Splines (TPS), bivariate Generalized Additive Models (GAM) with thin plate
-    regression splines and adaptive basis dimensions, piecewise affine Delaunay
-    triangulation (TIN), Akima C1 triangulated bivariate splines, two-stage
-    hybrid models (conformal Helmert-TIN and affine-TIN with stable extrapolation),
-    and an extensible plugin architecture for custom machine learning algorithms.
-    Features integrated spatial cross-validation (random, spatial clustered,
-    spatial block, spatial buffered block, probability, and stratified) to
-    reduce spatial autocorrelation data leakage. Supports topology-preserving
-    vector transformation across all standard simple feature geometries with
-    automated repair, in-memory raster rectification via damped Krasnoselskii-Mann
-    iterative coordinate inversion, and differential deformation diagnostics
-    including Tissot's indicatrices, Cauchy-Green metric tensor invariants, and
-    signed Jacobian topological inversion screening and facet analysis.
+Description: A framework for Positional Accuracy Improvement (PAI) and 
+             differential distortion analysis of geospatial vector and raster 
+             data. It supports conformal similarity, affine, Thin Plate Spline 
+             (TPS), GAM, TIN, Akima spline, and hybrid transformation models, 
+             with an extensible architecture for custom machine-learning 
+             methods. Integrated spatial cross-validation helps reduce spatial 
+             autocorrelation and data leakage. The package also provides 
+             topology-preserving vector transformation, raster rectification, 
+             and deformation diagnostics based on Tissot's indicatrices, 
+             Cauchy–Green tensor invariants, and Jacobian analysis.
 URL: https://kvantas.github.io/mapAI/
 BugReports: https://github.com/kvantas/mapAI/issues
 License: MIT + file LICENSE
