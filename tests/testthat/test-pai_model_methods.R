@@ -15,7 +15,7 @@ test_that("train_pai_model validates gcp_data class", {
   bad_data <- as.data.frame(test_gcp)
 
    expect_error(train_pai_model(gcp_data = bad_data, method = "lm"),
-               "gcp_data must be an object of class 'gcp'.")
+               "must be an object of class 'gcp'")
 })
 
 test_that("train_pai_model trains and predicts a univariate model correctly", {
@@ -201,4 +201,93 @@ test_that("print, plot, residuals, surface methods run without error", {
   expect_s3_class(s$dx_plot, "ggplot")
   expect_s3_class(s$dy_plot, "ggplot")
 
+})
+
+
+#### Regression tests: control network validation and zero-variance GAM ####
+
+make_flat_gcp <- function(n = 8, dx = 25, dy = -10) {
+  g <- expand.grid(source_x = seq(0, 1000, length.out = n),
+                   source_y = seq(0, 1000, length.out = n))
+  d <- data.frame(source_x = g$source_x, source_y = g$source_y,
+                  dx = rep(dx, nrow(g)), dy = rep(dy, nrow(g)))
+  d$target_x <- d$source_x + d$dx
+  d$target_y <- d$source_y + d$dy
+  class(d) <- c("gcp", "data.frame")
+  d
+}
+
+test_that("gam_biv refuses a constant displacement field with an actionable message", {
+  skip_if_not_installed("mgcv")
+
+  # A map offset by a uniform shift is an ordinary input. mgcv::mvn(d = 2) has no
+  # residual variance to model and used to fail with "NA/NaN/Inf in foreign
+  # function call (arg 1)", which tells the user nothing.
+  shifted <- make_flat_gcp()
+
+  expect_error(train_pai_model(shifted, "gam_biv"), "constant across all")
+  expect_error(train_pai_model(shifted, "gam_biv"), "helmert")
+
+  # An exact identity warp is the same situation.
+  expect_error(train_pai_model(make_flat_gcp(dx = 0, dy = 0), "gam_biv"),
+               "constant across all")
+
+  # One flat component is enough to make the covariance singular.
+  half_flat <- make_flat_gcp()
+  half_flat$dy <- seq(-10, 10, length.out = nrow(half_flat))
+  half_flat$target_y <- half_flat$source_y + half_flat$dy
+  expect_error(train_pai_model(half_flat, "gam_biv"), "dx displacement component")
+
+  # The methods that CAN fit a pure translation must still do so, exactly.
+  h <- train_pai_model(shifted, "helmert")
+  expect_equal(unname(h$model$parameters["tx"]), 25, tolerance = 1e-8)
+  expect_equal(unname(h$model$parameters["ty"]), -10, tolerance = 1e-8)
+  expect_s3_class(train_pai_model(shifted, "lm"), "pai_model")
+})
+
+test_that("train_pai_model validates the control network like assess_pai_model", {
+  gcp <- create_dummy_gcp_data(40)
+
+  # NA control points were silently dropped by stats::lm(), so the model was
+  # fitted on fewer points than supplied without saying so.
+  gcp_na <- gcp
+  gcp_na$dx[3] <- NA_real_
+  expect_error(train_pai_model(gcp_na, "lm"), "contains NA values")
+  expect_error(assess_pai_model(gcp_na, "lm", validation_type = "random",
+                                k_folds = 3), "NA")
+
+  # Degenerate networks used to return a model with NA coefficients, which then
+  # predicted NA far from the cause.
+  expect_error(train_pai_model(gcp[1, ], "lm"), "at least 3 control points")
+  expect_error(train_pai_model(gcp[rep(1, 10), ], "lm"), "co-located")
+
+  collinear <- gcp
+  collinear$source_y <- collinear$source_x   # all points on one line
+  expect_error(train_pai_model(collinear, "lm"), "collinear")
+
+  # Non-finite coordinates.
+  gcp_inf <- gcp
+  gcp_inf$source_x[2] <- Inf
+  expect_error(train_pai_model(gcp_inf, "lm"), "non-finite")
+})
+
+test_that("network validation does not reject cases the model can genuinely fit", {
+  gcp <- create_dummy_gcp_data(40)
+
+  # Helmert is a rigid 4-parameter transform: 2 points suffice, and it stays
+  # estimable from collinear control points.
+  expect_s3_class(train_pai_model(gcp[1:2, ], "helmert"), "pai_model")
+
+  collinear <- gcp
+  collinear$source_y <- collinear$source_x
+  expect_s3_class(train_pai_model(collinear, "helmert"), "pai_model")
+
+  # Three non-collinear points exactly determine an affine fit.
+  tri <- gcp[1:3, ]
+  tri$source_x <- c(0, 100, 50)
+  tri$source_y <- c(0, 0, 100)
+  expect_s3_class(train_pai_model(tri, "lm"), "pai_model")
+
+  # Ordinary data must be unaffected.
+  expect_s3_class(train_pai_model(gcp, "lm"), "pai_model")
 })

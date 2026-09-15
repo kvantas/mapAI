@@ -60,7 +60,7 @@
 #' @references
 #' \itemize{
 #'   \item Wolberg, G. (1990). \emph{Digital Image Warping}. IEEE Computer Society Press.
-#'   \item Vantas, K., & Mirkopoulou, E. (2025). \emph{mapAI: An R Package for Positional Accuracy Improvement of Vector Maps}.
+#'   \item Vantas, K. (2025). \emph{mapAI: Positional Accuracy Improvement for Geospatial Vector and Raster Data}. R package version 1.0.0. \doi{10.5281/zenodo.15767080}
 #' }
 #'
 #' **Interpolation Methods:**

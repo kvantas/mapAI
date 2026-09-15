@@ -3,7 +3,7 @@
 #'   historical map and a corresponding set of homologous points (GCPs),
 #'   returing them inside a list
 #' @details This function implements the simulation framework described in
-#'   Vantas and Mirkopoulou, 2025. It first creates a regular grid of points
+#'   Vantas & Mirkopoulou (2025). It first creates a regular grid of points
 #'   representing the "true" geography. It then applies one of three distortion
 #'   types from the paper:
 #'   \itemize{
@@ -31,6 +31,13 @@
 #'   \eqn{\sigma \approx 4.5} is resolved by roughly one grid interval. Treat
 #'   `"complex"` as a stress test rather than as data with a clean, known error
 #'   floor; use `"nonlinear"` when you need a smooth target.
+#'
+#' @references
+#' \itemize{
+#'   \item Vantas, K., & Mirkopoulou, E. (2025). The simulation framework for
+#'     synthetic map distortion implemented by this function.
+#'   \item Vantas, K. (2025). \emph{mapAI: Positional Accuracy Improvement for Geospatial Vector and Raster Data}. R package version 1.0.0. \doi{10.5281/zenodo.15767080}
+#' }
 #'
 #' @param type A character string specifying the distortion type. One of
 #'  "helmert", "nonlinear", or "complex". Defaults to "complex".

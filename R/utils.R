@@ -119,7 +119,7 @@ plot_input_validation <- function(
   }
 
   valid_metrics <- c("a", "b", "area_scale", "signed_area_scale", "det_J", "is_inverted",
-                     "log2_area_scale", "max_shear", "max_angular_distortion",
+                     "log2_area_scale", "max_angular_distortion",
                      "theta_a", "airy_kavrayskiy")
   if (!metric %in% valid_metrics) {
     stop(paste("`metric` must be one of:",
@@ -451,4 +451,134 @@ validate_write_map <- function(map, file_path, overwrite) {
 
   # If all checks pass, return invisibly
   invisible(NULL)
+}
+
+#' Validate a control point network for model fitting
+#'
+#' @description
+#' Shared structural checks on a `gcp` object, used by both [train_pai_model()]
+#' and [assess_pai_model()] so the two entry points agree about what counts as
+#' usable data. Catches the degeneracies that otherwise produce a fitted model
+#' whose coefficients are `NA` -- a model that predicts `NA` at
+#' [transform_map()] or [apply_pai_raster()] time, far from the cause.
+#'
+#' @param gcp_data An object of class `gcp`.
+#' @param min_points Minimum number of control points required.
+#' @param context Short label naming the caller, used in messages.
+#' @param check_rank Require the source coordinates to span two dimensions.
+#'   `TRUE` for any model carrying a bivariate linear term (`lm`, `tps`,
+#'   `gam_biv`, the TIN family), where collinear points give a rank-deficient
+#'   fit. `FALSE` for the rigid Helmert transform, which remains estimable from
+#'   collinear control points, and for custom plugins whose requirements are
+#'   unknown.
+#' @return Invisibly `NULL`; called for its side effect of raising errors.
+#' @noRd
+validate_gcp_network <- function(gcp_data, min_points = 3L,
+                                 context = "train_pai_model()",
+                                 check_rank = TRUE) {
+
+  if (!inherits(gcp_data, "gcp")) {
+    stop("`gcp_data` must be an object of class 'gcp'.", call. = FALSE)
+  }
+
+  required_cols <- c("source_x", "source_y", "dx", "dy")
+  missing_cols <- setdiff(required_cols, names(gcp_data))
+  if (length(missing_cols) > 0) {
+    stop("`gcp_data` is missing required column(s): ",
+         paste(missing_cols, collapse = ", "), ".", call. = FALSE)
+  }
+
+  # NA control points were previously dropped silently by stats::lm(), so the
+  # model was fitted on fewer points than the user supplied without saying so.
+  incomplete <- !stats::complete.cases(gcp_data[, required_cols])
+  if (any(incomplete)) {
+    stop(sprintf(
+      paste0("`gcp_data` contains NA values in %d of %d control point(s) ",
+             "(columns source_x, source_y, dx, dy). Remove or repair them ",
+             "before fitting."),
+      sum(incomplete), nrow(gcp_data)), call. = FALSE)
+  }
+
+  if (!all(vapply(gcp_data[, required_cols], is.numeric, logical(1)))) {
+    stop("Columns source_x, source_y, dx and dy must all be numeric.",
+         call. = FALSE)
+  }
+
+  if (any(!is.finite(as.matrix(gcp_data[, required_cols])))) {
+    stop("`gcp_data` contains non-finite (Inf or NaN) values in source_x, ",
+         "source_y, dx or dy.", call. = FALSE)
+  }
+
+  n <- nrow(gcp_data)
+  if (n < min_points) {
+    stop(sprintf("%s needs at least %d control points; %d supplied.",
+                 context, min_points, n), call. = FALSE)
+  }
+
+  # Rank of the source coordinates. Co-located or collinear control points carry
+  # no 2D information, so any model with a bivariate linear term is rank
+  # deficient and returns NA slopes.
+  span_x <- diff(range(gcp_data$source_x))
+  span_y <- diff(range(gcp_data$source_y))
+  scale_xy <- max(1, max(abs(range(gcp_data$source_x))),
+                  max(abs(range(gcp_data$source_y))))
+  tol <- .Machine$double.eps^0.5 * scale_xy
+
+  if (span_x <= tol && span_y <= tol) {
+    stop("All control points share the same source coordinates. ",
+         "A transformation cannot be estimated from co-located points.",
+         call. = FALSE)
+  }
+
+  n_unique <- nrow(unique(gcp_data[, c("source_x", "source_y")]))
+  if (n_unique < min_points) {
+    stop(sprintf(
+      paste0("`gcp_data` has only %d distinct source location(s) among %d ",
+             "control points; at least %d are required."),
+      n_unique, n, min_points), call. = FALSE)
+  }
+
+  # Collinearity: all points on one line means one coordinate direction carries
+  # no information, so any bivariate linear term is rank deficient and its
+  # coefficient comes back NA. Measured as the spread perpendicular to the
+  # principal axis (the second singular value of the centred coordinates).
+  if (isTRUE(check_rank) && n_unique >= 3) {
+    xy <- as.matrix(unique(gcp_data[, c("source_x", "source_y")]))
+    xy <- sweep(xy, 2, colMeans(xy), "-")
+    sv <- svd(xy)$d
+    if (length(sv) >= 2 && sv[2] <= .Machine$double.eps^0.5 * max(1, sv[1])) {
+      stop("All control points are collinear in source space. A bivariate ",
+           "transformation cannot be estimated from a single line of points; ",
+           "method = \"helmert\" is estimable from collinear points if a rigid ",
+           "similarity transform is sufficient.", call. = FALSE)
+    }
+  }
+
+  invisible(NULL)
+}
+
+#' Requirements of a built-in method for its control point network
+#'
+#' @description
+#' Minimum control point count and whether the source coordinates must span two
+#' dimensions. Custom plugins are treated permissively, since their parameter
+#' count is unknown: they get the universal checks (NA, non-finite, co-location)
+#' but no rank or count assumption.
+#'
+#' @noRd
+gcp_requirements <- function(method) {
+  label <- if (is.character(method)) method else NA_character_
+
+  if (identical(label, "helmert")) {
+    # 4 parameters estimated from 2n equations, and estimable from collinear
+    # points because the normal matrix depends only on the summed squared
+    # distances from the centroid.
+    list(min_points = 2L, check_rank = FALSE)
+  } else if (is.character(label) && !is.na(label)) {
+    # lm is 6-parameter affine; tps, gam_biv and the TIN family all need a
+    # genuinely 2D point set.
+    list(min_points = 3L, check_rank = TRUE)
+  } else {
+    list(min_points = 2L, check_rank = FALSE)
+  }
 }

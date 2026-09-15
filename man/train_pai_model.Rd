@@ -155,6 +155,6 @@ surface(gam_model)
 \item Wahba, G. (1990). \emph{Spline Models for Observational Data}. Society for Industrial and Applied Mathematics.
 \item Wolf, P. R., & Ghilani, C. D. (2006). \emph{Adjustment Computations: Spatial Data Analysis} (4th ed.). John Wiley & Sons.
 \item Roberts, D. R., et al. (2017). Cross-validation strategies for data with spatial, temporal, hierarchical, or phylogenetic structure. \emph{Ecography}, 40(8), 913-929.
-\item Vantas, K., & Mirkopoulou, E. (2025). \emph{mapAI: An R Package for Positional Accuracy Improvement of Vector Maps}.
+\item Vantas, K. (2025). \emph{mapAI: Positional Accuracy Improvement for Geospatial Vector and Raster Data}. R package version 1.0.0. \doi{10.5281/zenodo.15767080}
 }
 }

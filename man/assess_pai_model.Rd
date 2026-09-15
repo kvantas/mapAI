@@ -153,6 +153,6 @@ spatial, temporal, hierarchical, or phylogenetic structure.
 \item Bengio, Y., & Grandvalet, Y. (2004). No unbiased estimator of the variance
 of k-fold cross-validation. \emph{Journal of Machine Learning Research}, 5, 1089-1105.
 \item Valavi, R., Elith, J., Lahoz-Monfort, J. J., & Guillera-Arroita, G. (2019). blockCV: An R package for generating spatially or environmentally separated folds for k-fold cross-validation of species distribution models. \emph{Methods in Ecology and Evolution}, 10(2), 225-232.
-\item Vantas, K., & Mirkopoulou, E. (2025). \emph{mapAI: An R Package for Positional Accuracy Improvement of Vector Maps}.
+\item Vantas, K. (2025). \emph{mapAI: Positional Accuracy Improvement for Geospatial Vector and Raster Data}. R package version 1.0.0. \doi{10.5281/zenodo.15767080}
 }
 }

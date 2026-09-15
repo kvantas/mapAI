@@ -1,7 +1,12 @@
-  bibentry(
-  bibtype  = "Misc",
+citHeader("To cite mapAI in publications, please use:")
+
+bibentry(
+  bibtype  = "Manual",
   title    = "Positional Accuracy Improvement for Geospatial Vector and Raster Data",
-  author   = "Vantas Konstantinos",
+  author   = person(given = "Konstantinos", family = "Vantas",
+                    comment = c(ORCID = "0000-0001-6387-8791")),
   year     = "2025",
-  doi      = "https://doi.org/10.5281/zenodo.15767080"
+  note     = "R package version 1.0.0",
+  doi      = "10.5281/zenodo.15767080",
+  url      = "https://kvantas.github.io/mapAI/"
 )

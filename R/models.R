@@ -104,6 +104,26 @@ gam_biv_model <- list(
   library = "mgcv",
   modelType = "bivariate",
   fit = function(dat, k = NULL, k_max = 29, ...) {
+    # mgcv::mvn(d = 2) estimates a full 2x2 residual covariance. If either
+    # displacement component is constant, that matrix is singular and mgcv fails
+    # deep in compiled code with "NA/NaN/Inf in foreign function call (arg 1)",
+    # which tells the user nothing. A constant field is an ordinary input -- a
+    # map needing no correction, or only a rigid shift -- so catch it here and
+    # name a method that can fit it.
+    rel_sd <- function(z) stats::sd(z) / max(1, mean(abs(z)))
+    flat <- c(dx = rel_sd(dat$dx), dy = rel_sd(dat$dy)) <= 1e-10
+
+    if (any(flat)) {
+      which_flat <- paste(names(flat)[flat], collapse = " and ")
+      stop(sprintf(
+        paste0("The %s displacement component(s) are constant across all ",
+               "control points, so the bivariate GAM has no residual variance ",
+               "to model. This is what a map needing no correction, or only a ",
+               "uniform shift, looks like. Use method = \"helmert\" (which ",
+               "recovers a pure translation exactly) or method = \"lm\"."),
+        which_flat), call. = FALSE)
+    }
+
     n_unique <- nrow(unique(dat[, c("source_x", "source_y")]))
     if (is.null(k)) {
       k_adaptive <- max(3, min(k_max, floor(n_unique * 0.6)))
@@ -117,7 +137,29 @@ gam_biv_model <- list(
     # family = mvn(d = 2) fits dx and dy jointly with a full 2x2 residual
     # covariance. mvn is a general family, so mgcv selects smoothing parameters
     # by REML regardless of any `method` argument.
-    mgcv::gam(formula_list, data = dat, family = mgcv::mvn(d = 2), ...)
+    #
+    # The check above catches a displacement field that is exactly constant. A
+    # field with variance small enough to make the residual covariance
+    # numerically singular fails too, but at a threshold that depends on mgcv's
+    # internals rather than on anything we can compute here, so translate that
+    # failure rather than trying to predict it.
+    tryCatch(
+      mgcv::gam(formula_list, data = dat, family = mgcv::mvn(d = 2), ...),
+      error = function(e) {
+        msg <- conditionMessage(e)
+        if (grepl("foreign function call|NA/NaN/Inf", msg)) {
+          stop(sprintf(
+            paste0("mgcv could not estimate the residual covariance of the ",
+                   "bivariate GAM (relative SD of dx = %.2e, dy = %.2e). This ",
+                   "happens when the displacement field carries almost no ",
+                   "variance, as for a map needing no correction or only a ",
+                   "near-uniform shift. Use method = \"helmert\" or ",
+                   "method = \"lm\". Original message: %s"),
+            rel_sd(dat$dx), rel_sd(dat$dy), msg), call. = FALSE)
+        }
+        stop(e)
+      }
+    )
   },
   predict = function(modelFit, newdata, ...) {
     stats::predict(modelFit, newdata = newdata, ...)

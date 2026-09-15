@@ -266,9 +266,11 @@ check("identity warp (all displacements 0), helmert",
       train_pai_model(gcp_ident, "helmert"), expect = "ok", section = sec)
 check("identity warp (all displacements 0), gam_biv",
       train_pai_model(gcp_ident, "gam_biv"), expect = "error", section = sec)
+# A constant field has no residual variance for mgcv::mvn(d = 2) to model, so a
+# clear refusal naming a method that CAN fit it is the right outcome.
 check("near-identity warp (displacements 1e-9), gam_biv",
       train_pai_model(make_gcp(8, warp = "tiny"), "gam_biv"),
-      expect = "ok", section = sec)
+      expect = "error", section = sec)
 
 # A map offset by a constant shift is an ordinary real-world case: the
 # displacement is non-zero but has zero variance in both components.
@@ -286,7 +288,8 @@ check("pure translation (constant dx/dy), helmert",
 check("pure translation (constant dx/dy), lm",
       train_pai_model(gcp_shift, "lm"), expect = "ok", section = sec)
 check("pure translation (constant dx/dy), gam_biv",
-      train_pai_model(gcp_shift, "gam_biv"), expect = "ok", section = sec)
+      train_pai_model(gcp_shift, "gam_biv"), expect = "error", section = sec,
+      probe = function(x) "refused, message names helmert/lm")
 check("pure translation (constant dx/dy), tps",
       train_pai_model(gcp_shift, "tps"), expect = "ok", section = sec)
 
@@ -949,55 +952,63 @@ if (nrow(flagged) == 0) {
 but returned quietly. `extra warning` is usually benign — the package was more
 talkative than required.
 
-## What this run surfaced
+## What this document found, and what was done about it
 
-Three things, in descending order of how much they would bite a real user.
+The first run of this report surfaced two defects and one judgement call. The
+first two have since been fixed, and the cases that exposed them are now
+regression tests in `test-pai_model_methods.R`. They are recorded here because
+the report is only worth keeping if it says what it caught.
 
-### 1. `gam_biv` cannot fit a zero-variance displacement field
+### 1. `gam_biv` could not fit a zero-variance displacement field — fixed
 
 A map offset by a constant shift is an ordinary input: `dx = 25`, `dy = -10`
-everywhere. `helmert` recovers it exactly, `lm` and `tps` fit it without
-complaint, and `gam_biv` dies with
+everywhere. `helmert` recovered it exactly and `lm` and `tps` fitted it without
+complaint, but `gam_biv` died with
 
 ```
-Failed to train the bivariate model 'Bivariate GAM'.
 Underlying error: NA/NaN/Inf in foreign function call (arg 1)
 ```
 
-The cause is `mgcv::mvn(d = 2)`, which estimates a full 2x2 residual covariance;
-with zero residual variance that matrix is singular. The same failure appears for
-an exact identity warp and for a uniform displacement of `1e-9`, so it is not a
-knife-edge case — it is any control network whose displacement field is constant
-in both components.
+`mgcv::mvn(d = 2)` estimates a full 2x2 residual covariance, which is singular
+when a component has no variance. The same failure appeared for an exact identity
+warp, for a uniform `1e-9` displacement, and whenever *either* component was
+constant regardless of the other — so it was any constant field, not a knife-edge
+case. The message named a C argument rather than the modelling situation, and the
+scenario it described is precisely "this map needs no correction, or only a rigid
+shift".
 
-Two problems with this. The message names a foreign function argument rather than
-the modelling situation, so a user cannot act on it. And the failure mode is
-"your map needs no correction, or only a rigid shift" — precisely the case where a
-user might reasonably reach for the package's flagship method to confirm that
-nothing is wrong. A pre-flight check on the variance of `dx` and `dy`, with a
-message pointing at `helmert` or `lm`, would cost little.
+`gam_biv` now checks the relative standard deviation of each component up front
+and refuses with a message naming `helmert` (which recovers a pure translation
+exactly) and `lm`. Because mgcv's own numerical tolerance sits at a threshold
+that cannot be predicted from the data, the `mgcv::gam()` call is additionally
+wrapped so that a singular-covariance failure is re-raised with the same
+explanation rather than the raw C message.
 
-### 2. `train_pai_model()` does not validate the control network
+### 2. `train_pai_model()` did not validate the control network — fixed
 
-`assess_pai_model()` runs `validate_assessment_inputs()`, which rejects `NA`
-coordinates and displacements. `train_pai_model()` runs no equivalent check, so
-the two entry points disagree about what counts as usable data:
+`assess_pai_model()` rejected `NA` control points; `train_pai_model()` ran no
+equivalent check, so the two entry points disagreed about usable data:
 
-| Input | `train_pai_model()` | `assess_pai_model()` |
+| Input | was | now |
 |---|---|---|
-| `NA` in `dx` | fits on n-1 GCPs, silently | errors |
-| 1 GCP | returns a model with 4 of 6 coefficients `NA` | — |
-| collinear GCPs | returns a model with 2 of 6 coefficients `NA` | — |
-| 10 identical GCPs | returns a model with 4 of 6 coefficients `NA` | — |
+| `NA` in `dx` | fitted on n-1 GCPs, silently | errors, naming the count |
+| 1 GCP | model with 4 of 6 coefficients `NA` | errors |
+| collinear GCPs | model with 2 of 6 coefficients `NA` | errors, suggests `helmert` |
+| co-located GCPs | model with 4 of 6 coefficients `NA` | errors |
 
-A `pai_model` whose coefficients are `NA` predicts `NA`, so the failure surfaces
-later, at `transform_map()` or `apply_pai_raster()`, detached from its cause.
-Note the inconsistency *within* training too: `helmert` refuses co-located control
-points outright (it has an explicit co-location guard), while `lm` accepts the
-same data and returns a rank-deficient fit. Checking `n`, coordinate rank and
-`NA`s once in `train_pai_model()` would make the two paths agree.
+A `pai_model` with `NA` coefficients predicts `NA`, so the failure used to surface
+later at `transform_map()` or `apply_pai_raster()` time, detached from its cause.
+Training was also inconsistent with itself: `helmert` refused co-located points
+while `lm` accepted them.
 
-### 3. Missing CRS passes without comment
+Both entry points now call a shared `validate_gcp_network()`. The checks are
+method-aware, because the requirements genuinely differ: `helmert` is a rigid
+4-parameter transform that needs only 2 points and stays estimable from collinear
+ones, while anything with a bivariate linear term needs a rank-2 point set.
+Custom plugins get the universal checks (`NA`, non-finite, co-location) but no
+count or rank assumption, since their parameter count is unknown.
+
+### 3. Missing CRS passes without comment — open
 
 `assert_projected_crs()` warns for geographic coordinates but accepts `NA`. A map
 with no CRS at all is arguably the more dangerous input, since nothing downstream

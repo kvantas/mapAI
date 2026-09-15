@@ -264,9 +264,9 @@ print(gam_model)
 #> 
 #> Formula:
 #> dx ~ s(source_x, source_y, k = 29)
-#> <environment: 0x000001b21922b1c0>
+#> <environment: 0x0000028c9de694a0>
 #> dy ~ s(source_x, source_y, k = 29)
-#> <environment: 0x000001b21922b1c0>
+#> <environment: 0x0000028c9de694a0>
 #> 
 #> Parametric coefficients:
 #>               Estimate Std. Error z value Pr(>|z|)    
@@ -469,8 +469,9 @@ indicatrices(distortion_field)
   environmentally separated folds for k-fold cross-validation of species
   distribution models. *Methods in Ecology and Evolution*, 10(2),
   225-232. <https://doi.org/10.1111/2041-210X.13107>
-- Vantas, K., & Mirkopoulou, E. (2025). *mapAI: An R Package for
-  Positional Accuracy Improvement of Vector Maps*.
+- Vantas, K. (2025). *mapAI: Positional Accuracy Improvement for
+  Geospatial Vector and Raster Data*. R package version 1.0.0.
+  <https://doi.org/10.5281/zenodo.15767080>
 - Wahba, G. (1990). *Spline Models for Observational Data*. Society for
   Industrial and Applied Mathematics.
 - Wolberg, G. (1990). *Digital Image Warping*. IEEE Computer Society

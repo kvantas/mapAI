@@ -107,7 +107,7 @@
 #'   \item Wahba, G. (1990). \emph{Spline Models for Observational Data}. Society for Industrial and Applied Mathematics.
 #'   \item Wolf, P. R., & Ghilani, C. D. (2006). \emph{Adjustment Computations: Spatial Data Analysis} (4th ed.). John Wiley & Sons.
 #'   \item Roberts, D. R., et al. (2017). Cross-validation strategies for data with spatial, temporal, hierarchical, or phylogenetic structure. \emph{Ecography}, 40(8), 913-929.
-#'   \item Vantas, K., & Mirkopoulou, E. (2025). \emph{mapAI: An R Package for Positional Accuracy Improvement of Vector Maps}.
+#'   \item Vantas, K. (2025). \emph{mapAI: Positional Accuracy Improvement for Geospatial Vector and Raster Data}. R package version 1.0.0. \doi{10.5281/zenodo.15767080}
 #' }
 #'
 #' @param gcp_data An `gcp` object of homologous points.
@@ -162,9 +162,16 @@ train_pai_model <- function(gcp_data, method, cv = NULL, seed = 123, ...) {
   # the get_model_info function handles validation of the method argument
   model_info <- get_model_info(method)
 
-  if (!inherits(gcp_data, "gcp")) {
-    stop("gcp_data must be an object of class 'gcp'.", call. = FALSE)
-  }
+  # Structural checks on the control point network, shared with
+  # assess_pai_model() so the two entry points agree about usable data. Without
+  # this, an NA control point was silently dropped by stats::lm(), and
+  # co-located or collinear networks produced a model with NA coefficients that
+  # only failed later, at prediction time.
+  req <- gcp_requirements(method)
+  validate_gcp_network(gcp_data,
+                       min_points = req$min_points,
+                       context    = "train_pai_model()",
+                       check_rank = req$check_rank)
 
   # Check for required packages
   if (!is.null(model_info$library)) {

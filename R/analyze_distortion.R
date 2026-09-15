@@ -53,7 +53,7 @@
 #' \itemize{
 #'   \item Tissot, A. (1881). \emph{Mémoire sur la représentation des surfaces et les projections des cartes géographiques}. Gauthier-Villars.
 #'   \item Snyder, J. P. (1987). \emph{Map Projections: A Working Manual}. U.S. Geological Survey Professional Paper 1395.
-#'   \item Vantas, K., & Mirkopoulou, E. (2025). \emph{mapAI: An R Package for Positional Accuracy Improvement of Vector Maps}.
+#'   \item Vantas, K. (2025). \emph{mapAI: Positional Accuracy Improvement for Geospatial Vector and Raster Data}. R package version 1.0.0. \doi{10.5281/zenodo.15767080}
 #' }
 #'
 #' @param pai_model A model object of class `pai_model`.

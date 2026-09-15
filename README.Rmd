@@ -285,7 +285,7 @@ indicatrices(distortion_field)
 - Snyder, J. P. (1987). *Map Projections: A Working Manual*. U.S. Geological Survey Professional Paper 1395.
 - Tissot, A. (1881). *Mémoire sur la représentation des surfaces et les projections des cartes géographiques*. Gauthier-Villars.
 - Valavi, R., Elith, J., Lahoz-Monfort, J. J., & Guillera-Arroita, G. (2019). blockCV: An R package for generating spatially or environmentally separated folds for k-fold cross-validation of species distribution models. *Methods in Ecology and Evolution*, 10(2), 225-232. https://doi.org/10.1111/2041-210X.13107
-- Vantas, K., & Mirkopoulou, E. (2025). *mapAI: An R Package for Positional Accuracy Improvement of Vector Maps*.
+- Vantas, K. (2025). *mapAI: Positional Accuracy Improvement for Geospatial Vector and Raster Data*. R package version 1.0.0. https://doi.org/10.5281/zenodo.15767080
 - Wahba, G. (1990). *Spline Models for Observational Data*. Society for Industrial and Applied Mathematics.
 - Wolberg, G. (1990). *Digital Image Warping*. IEEE Computer Society Press.
 - Wolf, P. R., & Ghilani, C. D. (2006). *Adjustment Computations: Spatial Data Analysis* (4th ed.). John Wiley & Sons.
