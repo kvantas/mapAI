@@ -4,7 +4,13 @@
 \alias{helmert}
 \title{Helmert 2D Transformation Solver}
 \usage{
-helmert(source_x, source_y, target_x, target_y, method = c("ols", "tls"))
+helmert(
+  source_x,
+  source_y,
+  target_x,
+  target_y,
+  method = c("ols", "tls", "procrustes")
+)
 }
 \arguments{
 \item{source_x}{Numeric vector of approximate ('from') x coordinates.}
@@ -15,8 +21,9 @@ helmert(source_x, source_y, target_x, target_y, method = c("ols", "tls"))
 
 \item{target_y}{Numeric vector of actual ('to') y coordinates.}
 
-\item{method}{Estimation method: \code{"ols"} (Ordinary Least Squares, default) or
-\code{"tls"} (Total Least Squares / SVD Procrustes).}
+\item{method}{Estimation method: \code{"ols"} (Ordinary Least Squares, default),
+\code{"tls"} (Total Least Squares, errors-in-variables), or \code{"procrustes"}
+(scaled orthogonal Procrustes, which coincides with \code{"ols"} for this model).}
 }
 \value{
 An object of class \code{helmert} containing:
@@ -28,12 +35,12 @@ An object of class \code{helmert} containing:
 \item{sigma0}{Reference standard deviation (standard error of unit weight).}
 \item{df}{Degrees of freedom (\eqn{2n - 4}).}
 \item{residuals}{Data frame of coordinate residuals \eqn{(r_x, r_y)}.}
-\item{method}{Estimation method used (\code{"ols"} or \code{"tls"}).}
+\item{method}{Estimation method used (\code{"ols"}, \code{"tls"}, or \code{"procrustes"}).}
 }
 \description{
 Calculates the parameters of a 2D similarity (Helmert)
 transformation using either Ordinary Least Squares (OLS) or Total Least
-Squares (TLS / Procrustes Analysis). Calculates geodetic physical
+Squares (TLS), or scaled orthogonal Procrustes. Calculates geodetic physical
 parameters (scale factor, rotation angle, translations), standard errors,
 and residual variance.
 }
@@ -48,10 +55,30 @@ where the physical parameters are:
 \item Translation vector: \eqn{(t_x, t_y)}
 }
 
-When \code{method = "ols"}, errors are assumed only in the target coordinates.
-When \code{method = "tls"}, errors in both source and target coordinates are
-simultaneously minimized using Singular Value Decomposition (SVD),
-mitigating attenuation bias (regression dilution).
+Three estimators are available:
+\itemize{
+\item \code{"ols"} (default): Ordinary Least Squares. Errors are assumed to lie
+only in the target coordinates. Closed-form solution.
+\item \code{"tls"}: Total Least Squares. The 2n-by-2 design matrix \eqn{\mathbf{A}}
+and the stacked target vector \eqn{\mathbf{d}} are combined into the
+augmented matrix
+\deqn{\mathbf{M} = \begin{pmatrix} \mathbf{u} & -\mathbf{v} & \mathbf{x} \\ \mathbf{v} & \mathbf{u} & \mathbf{y}\end{pmatrix}}
+(centred coordinates), and the estimate is read from the right singular
+vector \eqn{\mathbf{v}_3} belonging to the smallest singular value:
+\deqn{(a, b)^T = -\frac{1}{v_{33}}(v_{31}, v_{32})^T}
+Because the perturbation is applied to the whole of \eqn{\mathbf{M}},
+error in the source coordinates is accounted for, which reduces the
+attenuation (regression-dilution) bias that OLS incurs when the source
+coordinates are themselves measured with error.
+\item \code{"procrustes"}: scaled orthogonal Procrustes (Umeyama) via SVD of the
+cross-product matrix. \strong{For this 4-parameter conformal model it
+minimises the same objective over the same parameter set as OLS and so
+returns the same estimate to machine precision}; it is provided for
+completeness and for comparison, not as an errors-in-variables method.
+}
+
+Standard errors, \code{sigma0} and \code{df} are derived under the OLS error model.
+For \code{"tls"} they should be read as approximate.
 }
 \examples{
 # Sample homologous control points

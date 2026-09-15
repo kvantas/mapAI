@@ -25,8 +25,9 @@ controlled synthetic benchmarks using \code{create_demo_data()}.
 \item \strong{Model Training & Integrated Validation:} Fit transformation models using
 \code{train_pai_model()} across a tiered algorithmic hierarchy:
 \itemize{
-\item \code{"helmert"}: 2D conformal similarity via Ordinary Least Squares (OLS)
-or Total Least Squares (TLS / SVD Procrustes) with analytical standard errors.
+\item \code{"helmert"}: 2D conformal similarity via Ordinary Least Squares
+(OLS), Total Least Squares (errors-in-variables), or scaled orthogonal
+Procrustes, with analytical standard errors.
 \item \code{"lm"}: General affine bivariate linear regression.
 \item \code{"tps"}: Thin Plate Splines minimizing biharmonic bending energy.
 \item \code{"gam_biv"}: Bivariate Generalized Additive Models with thin plate
@@ -42,7 +43,7 @@ autocorrelation data leakage (Roberts et al., 2017).
 (including nested polygon rings), recalculating planar areas, and automatically
 repairing non-linear topological self-intersections via \code{sf::st_make_valid()}.
 \item \strong{In-Memory Raster Rectification:} Correct continuous or discrete \code{terra}
-\code{SpatRaster} objects using \code{apply_pai_raster()}, utilizing a damped Picard-Mann
+\code{SpatRaster} objects using \code{apply_pai_raster()}, utilizing a damped Krasnoselskii-Mann
 iterative fixed-point coordinate inversion solver with regular mesh interpolation,
 operating 100\% in RAM without temporary disk files.
 \item \strong{Differential Distortion Analysis & Inversion Screening:} Quantify deformation

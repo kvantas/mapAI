@@ -103,7 +103,9 @@ transform_map <- function(pai_model, map, aoi = NULL, repair_topology = TRUE, ..
   }
 
   # --- 1. Input Validation ---
-  validate_map_transform(pai_model, map, aoi)
+  # Assign the return value: the validator reprojects `aoi` to the map's CRS when
+  # they differ, and that reprojected copy has to come back here to be used.
+  aoi <- validate_map_transform(pai_model, map, aoi)
 
   message("Applying PAI model to map features...")
 
@@ -299,8 +301,11 @@ transform_map <- function(pai_model, map, aoi = NULL, repair_topology = TRUE, ..
   }
 
   # --- 6. Update Area ---
+  # by_geometry = TRUE: the collapsed form returns "GEOMETRY" for a mixed layer,
+  # which matches no POLYGON pattern, so areas were silently skipped whenever
+  # polygons were mixed with other geometry types.
   if (any(grepl("POLYGON",
-                sf::st_geometry_type(corrected_map, by_geometry = FALSE)))) {
+                sf::st_geometry_type(corrected_map, by_geometry = TRUE)))) {
     message("Recalculating polygon areas...")
     corrected_map$area_new <- sf::st_area(corrected_map)
   }

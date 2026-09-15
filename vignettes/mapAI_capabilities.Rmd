@@ -33,9 +33,9 @@ Historically, georeferencing and geometric correction have relied on global poly
 
 To address these challenges, `mapAI` establishes a complete end-to-end pipeline:
 1. **Algorithmic Diversity**: Implements conformal similarity (Helmert via Ordinary and Total Least Squares), general affine, Thin Plate Splines (TPS), Bivariate Generalized Additive Models (GAM) with Thin Plate Regression Splines, Piecewise Affine Delaunay Triangulation (`tin_linear`), Akima $C^1$ Triangulated Bivariate Splines (`tin_akima`), Two-Stage Hybrid Models (`hybrid_helmert_tin`, `hybrid_affine_tin`), and an extensible interface for arbitrary machine learning algorithms (Support Vector Machines, Random Forests, Neural Networks).
-2. **Spatial Data Leakage Prevention**: Features an integrated spatial cross-validation framework supporting six distinct partition topologies (`random`, `spatial`, `spatial_block`, `spatial_buffered`, `probability`, `stratified`) to guard against spatial autocorrelation bias and overfitting.
+2. **Spatial Data Leakage Mitigation**: Features an integrated cross-validation framework supporting six distinct partition topologies (`random`, `spatial`, `spatial_block`, `spatial_buffered`, `probability`, `stratified`) to reduce spatial autocorrelation bias and overfitting. Spatial schemes reduce optimism; they do not remove it.
 3. **Topology-Preserving Vector Transformation**: Offers a robust geometry reconstruction engine capable of processing all standard OGC simple feature types (`POINT`, `LINESTRING`, `POLYGON` with interior boundary rings, `MULTIPOINT`, `MULTILINESTRING`, `MULTIPOLYGON`), spatial AOI partitioning, and automated topological repair via `sf::st_make_valid()`.
-4. **In-Memory Raster Rectification**: Implements backward mapping with a damped Picard-Mann fixed-point iterative coordinate inversion solver and regular mesh interpolation, executing entirely in RAM via `terra::SpatRaster`.
+4. **In-Memory Raster Rectification**: Implements backward mapping with a damped Krasnoselskii-Mann (averaged) fixed-point iterative coordinate inversion solver and regular mesh interpolation, executing entirely in RAM via `terra::SpatRaster`.
 5. **Differential Distortion & Inversion Diagnostics**: Evaluates local deformation fields using Tissot's Indicatrix, the Cauchy-Green metric tensor, and the signed Jacobian determinant $\det(\mathbf{J})$, automatically flagging topological fold-overs and singular shears, with facet-level topological inversion screening via `check_tin_inversion()`.
 
 ---
@@ -135,10 +135,14 @@ model_tls <- helmert(source_x = sample_gcp$source_x, source_y = sample_gcp$sourc
                      target_x = sample_gcp$target_x, target_y = sample_gcp$target_y,
                      method = "tls")
 
+# The physical parameters live in $parameters, not at the top level of the
+# helmert object.
 cat(sprintf("True: Scale=%.4f, Rot=%.2f deg\nOLS:  Scale=%.4f, Rot=%.2f deg (sigma0=%.3f m)\nTLS:  Scale=%.4f, Rot=%.2f deg (sigma0=%.3f m)\n",
             scale_true, theta_true * 180 / pi,
-            model_ols$scale, model_ols$theta_deg, model_ols$sigma0,
-            model_tls$scale, model_tls$theta_deg, model_tls$sigma0))
+            model_ols$parameters["scale"], model_ols$parameters["theta_deg"],
+            model_ols$sigma0,
+            model_tls$parameters["scale"], model_tls$parameters["theta_deg"],
+            model_tls$sigma0))
 ```
 
 ## General Affine Transformation (`lm`)
@@ -193,7 +197,7 @@ $$\mathbf{p}' = \sum_{j=1}^3 \lambda_j \mathbf{t}_j, \qquad \mathbf{d}(\mathbf{p
 
 Piecewise affine triangulation is $C^0$ continuous, meaning displacement derivatives are step functions that jump discontinuously across triangle edges (producing visible "kinks" or creases in linear features). 
 
-To achieve smooth derivatives while retaining triangular localization, `mapAI` implements Akima's $C^1$ bivariate quintic interpolation scheme on Delaunay triangles (Akima, 1978, 1996). Akima constructs a 5th-degree bivariate polynomial on each triangular patch with normal derivatives matching continuously across shared edges. This yields **continuous metric tensors, smooth Jacobian determinants, and seamless Tissot indicatrices across all facet boundaries**.
+To achieve smooth derivatives while retaining triangular localization, `mapAI` uses Akima's $C^1$ triangulated interpolation on Delaunay triangles via `interp::interp(method = "akima")`. That routine implements Akima (1996), which has the accuracy of a **bicubic** polynomial — not the quintic scheme of the original 1978 algorithm. Derivatives match continuously across shared edges, giving **continuous metric tensors, smooth Jacobian determinants, and seamless Tissot indicatrices across facet interiors**.
 
 ## Two-Stage Hybrid Trend-Residual Triangulation
 
@@ -238,20 +242,24 @@ When using standard random cross-validation, training and testing points frequen
 
 ## The Six Cross-Validation Strategies in `mapAI`
 
-To eliminate spatial data leakage, `mapAI` provides six validation schemes via `cv_pai_model()` and directly inside `train_pai_model(..., cv = TRUE)`:
+To reduce spatial data leakage, `mapAI` provides six validation schemes via `cv_pai_model()` and directly inside `train_pai_model(..., cv = TRUE)`:
 
-| Strategy | `cv_args$method` | Splitting Mechanism | Safeguard Against Leakage |
+| Strategy | `validation_type` | Splitting Mechanism | Effect on Leakage |
 | :--- | :--- | :--- | :--- |
-| **Random $k$-Fold** | `"random"` | Uniform random assignment across $k$ folds | None (Baseline IID benchmark) |
+| **Random $k$-Fold** | `"random"` | Uniform random assignment across $k$ folds | None (baseline IID benchmark) |
 | **Spatial Clustered** | `"spatial"` | $k$-Means clustering on spatial coordinates | Disjoint geographic clusters |
-| **Spatial Block** | `"spatial_block"` | Regular $n_x \times n_y$ rectangular spatial grid | Independent geographic blocks |
-| **Spatial Buffered** | `"spatial_buffered"` | Block holdout with exclusion buffer zone $\delta$ | Complete dead-zone around test fold |
-| **Probability Sampling** | `"probability"` | Design-based sampling with coordinate-density weights | Reflects spatial sample design |
-| **Stratified Sampling** | `"stratified"` | Stratified by residual displacement magnitude | Balances extreme displacement tails |
+| **Spatial Block** | `"spatial_block"` | Regular $n_x \times n_y$ rectangular grid; whole tiles assigned to folds. Tile size set by `block_size`, independently of $k$ | Contiguous held-out regions |
+| **Spatial Buffered** | `"spatial_buffered"` | Block holdout with an exclusion buffer $\delta$ (`buffer_dist`) | Dead zone around each test fold; removes leakage only if $\delta$ exceeds the autocorrelation range |
+| **Probability Sampling** | `"probability"` | A single train/test split by simple random sampling (unweighted). Not $k$-fold: no replication, no dispersion estimate | None |
+| **Stratified Sampling** | `"stratified"` | Stratified by displacement magnitude | Balances displacement tails across folds; note the strata are a function of the response, which deflates the reported SD |
+
+The option name is `validation_type`, supplied either directly to
+`assess_pai_model()` / `cv_pai_model()` or inside the `cv` list of
+`train_pai_model()`, e.g. `cv = list(validation_type = "spatial_block", k_folds = 5)`.
 
 ## Empirical Benchmark Across All Six Strategies
 
-We demonstrate the empirical behavior of all six validation strategies using the built-in Swiss historical dataset (`basel_frickthal$gcp`), consisting of 343 homologous control points from the 1798 Meyer-Weiss map:
+We demonstrate the empirical behavior of all six validation strategies using the built-in Swiss historical dataset (`basel_frickthal$gcp`), consisting of 343 homologous control points from W. Haas's 1798 map of the Basel and Frickthal region:
 
 ```{r validation-benchmark}
 data(basel_frickthal)
@@ -282,9 +290,14 @@ knitr::kable(benchmark_table,
 ```
 
 ### Analysis of the Benchmark Findings
-- **Random Cross-Validation (`"random"`)** reports the lowest RMSE because test folds are surrounded by spatially proximate training points.
-- **Spatial Block (`"spatial_block"`) and Buffered Block (`"spatial_buffered"`)** report higher, realistic prediction errors because the model is evaluated on unseen geographic regions without relying on local spatial autocorrelation.
-- When publishing empirical evaluations or assessing georeferencing quality, practitioners should report spatial block or buffered block metrics to reflect true out-of-sample generalization.
+
+- **Random cross-validation (`"random"`)** reports among the lowest errors because every test fold is surrounded by spatially proximate training points. It measures interpolation within a dense control network, not generalization to unmapped ground.
+- **Spatial clustering (`"spatial"`)** reports the highest error. $k$-means produces a small number of large, compact, strongly unbalanced clusters, so each held-out region is both large and far from any training point — the most severe extrapolation of the six schemes.
+- **Spatial block (`"spatial_block"`) and buffered block (`"spatial_buffered"`)** sit between the two. Each fold holds out several spatially disjoint tiles rather than one contiguous quadrant, so the held-out regions are smaller and better surrounded than under `"spatial"`, while still excluding the immediate neighbourhood of each test point. Tile size is controlled by `block_size`; smaller tiles move the estimate toward `"random"`, larger ones toward `"spatial"`.
+- **`"probability"`** is a single 80/20 holdout, not cross-validation. It has no replication and reports `NA` for dispersion, so it is not directly comparable with the $k$-fold rows.
+- **`"stratified"`** balances displacement magnitude across folds. That is a spatially random split, so its error is close to `"random"`; and because the strata are a function of the response, its `Residual_SD_m` is mechanically deflated and should not be compared with the other schemes' dispersions.
+
+**What to report.** There is no single "true" out-of-sample number: each scheme answers a different question, and the spread above (roughly 800 to 1660 m for the same model and data) is the honest measure of that sensitivity. Choose the scheme matching the intended use — interpolation within the network, or prediction into unmapped regions — state `block_size` and `buffer_dist`, and report the spread rather than the single most favourable figure. Note also that all of these reduce optimism from spatial autocorrelation; none removes it.
 
 ---
 
@@ -313,17 +326,27 @@ Non-linear displacement fields $\mathbf{f}(\mathbf{s})$ can introduce severe top
 
 $$\text{Valid}(\mathcal{G}) = \begin{cases} \text{Keep } \mathcal{G} & \text{if } \texttt{sf::st\_is\_valid}(\mathcal{G}) = \text{TRUE} \\ \texttt{sf::st\_make\_valid}(\mathcal{G}) & \text{if } \texttt{sf::st\_is\_valid}(\mathcal{G}) = \text{FALSE and } \texttt{repair\_topology} = \text{TRUE} \end{cases}$$
 
+A trained model is only meaningful over the region its control points cover.
+The Basel GCPs span roughly x $\in$ [603 517, 665 751], y $\in$ [240 727, 279 498]
+in the source system, so the demonstration parcel is placed **inside** that
+footprint. Feeding the model geometry from a different coordinate system — LV95
+(EPSG:2056) coordinates, say, which use a different false origin for the same
+country — would be extrapolation of roughly $2 \times 10^6$ map units and would
+return a "correction" far larger than the parcel itself. `transform_map()` does
+not check that the map's CRS matches the one the GCPs were digitised in, so this
+is the user's responsibility.
+
 ```{r vector-transformation-demo}
-# Create a synthetic parcel with boundary ring
+# Create a synthetic parcel inside the control point footprint
 parcel_poly <- st_polygon(list(matrix(c(
-  2610000, 1260000,
-  2615000, 1260000,
-  2615000, 1265000,
-  2610000, 1265000,
-  2610000, 1260000
+  620000, 255000,
+  625000, 255000,
+  625000, 260000,
+  620000, 260000,
+  620000, 255000
 ), ncol = 2, byrow = TRUE)))
 
-parcel_sf <- st_sf(parcel_id = "CH-01", geometry = st_sfc(parcel_poly, crs = 2056))
+parcel_sf <- st_sf(parcel_id = "CH-01", geometry = st_sfc(parcel_poly, crs = 21781))
 
 # Fit a TPS model on the Basel GCPs
 model_tps <- train_pai_model(gcp_data = swiss_cps, method = "tps")
@@ -335,9 +358,10 @@ transformed_parcel <- transform_map(
   repair_topology = TRUE
 )
 
+# transform_map() writes the recalculated area to `area_new`.
 cat(sprintf("Original Area:    %.2f sq m\nTransformed Area: %.2f sq m\nTopology Valid:   %s\n",
             st_area(parcel_sf),
-            transformed_parcel$area_m2,
+            transformed_parcel$area_new,
             st_is_valid(transformed_parcel)))
 ```
 
@@ -365,20 +389,30 @@ Starting with initial estimate $\mathbf{s}^{(0)} = \mathbf{t} - \mathbf{d}(\math
 
 $$\mathbf{s}^{(k+1)} = \mathbf{s}^{(k)} - \lambda \left[ \mathbf{s}^{(k)} + \mathbf{d}(\mathbf{s}^{(k)}) - \mathbf{t} \right], \quad k = 0, 1, \dots, K_{\max}$$
 
-where $\lambda \in (0, 1]$ is a relaxation damping factor ($\lambda = 0.70$ by default). Iteration terminates when the Euclidean step size falls below tolerance $\epsilon = 10^{-4}$ meters:
+where $\lambda$ is a relaxation damping factor, exposed as the `lambda` argument (default 0.70). Rewriting the update as
 
-$$\|\mathbf{s}^{(k+1)} - \mathbf{s}^{(k)}\|_2 < \epsilon$$
+$$\mathbf{s}^{(k+1)} = (1 - \lambda)\,\mathbf{s}^{(k)} + \lambda\, T(\mathbf{s}^{(k)}), \qquad T(\mathbf{s}) = \mathbf{t} - \mathbf{d}(\mathbf{s})$$
+
+identifies it as the averaged (Krasnosel'skii–Mann) iteration. It converges linearly when the eigenvalues of $\mathbf{J} = \mathbf{I} + \partial\mathbf{d}/\partial\mathbf{s}$ lie in $(0, 2/\lambda)$; damping helps only near fold-over, and `lambda = 1` converges faster for well-behaved fields.
+
+Iteration terminates when the **residual of the fixed-point equation**, taken as a maximum over all evaluated points, falls below `tol` ($\epsilon = 10^{-4}$ by default):
+
+$$\max_i \left\| \mathbf{s}_i^{(k)} + \mathbf{d}(\mathbf{s}_i^{(k)}) - \mathbf{t}_i \right\|_2 < \epsilon$$
+
+Note this is the residual, not the step size — the step is $\lambda$ times the residual. If `max_iter` is exhausted before the tolerance is met, or if the iteration diverges, `apply_pai_raster()` issues a warning reporting the residual actually achieved; it does not return silently as though converged.
 
 ## Subsampled Mesh Bilinear Interpolation
 
-Evaluating the fixed-point solver for every pixel on a 50-megapixel raster is computationally prohibitive. `apply_pai_raster()` constructs a coarse regular mesh across the target domain (e.g., $100 \times 100$ control nodes), solves the iterative inversion exclusively at mesh vertices, and applies fast continuous bilinear interpolation across intermediate pixels.
+Evaluating the fixed-point solver for every pixel on a 50-megapixel raster is computationally prohibitive. `mesh_step` is a subsampling **stride**, not a node count: `mesh_step = k` solves the iterative inversion on a mesh whose spacing is `k` times the target cell size (so a $60 \times 60$ raster with `mesh_step = 2` uses a $30 \times 30$ mesh), then reconstructs the displacement field across intermediate pixels by bilinear interpolation.
+
+This trades accuracy for speed. The interpolation error is $O(h^2 \|D^2 \mathbf{d}\|)$ with $h = \texttt{mesh\_step} \times \texttt{res}$: it grows with the square of the stride and with the curvature of the displacement field. For smooth fields a modest stride stays well below one pixel; for a strongly curved TPS or GAM field with a large stride it will not. Verify against `mesh_step = NULL` before relying on it.
 
 ```{r raster-rectification-demo}
 # Create synthetic raster map representing distorted survey map
 r_distorted <- rast(nrows = 60, ncols = 60,
-                    xmin = 2605000, xmax = 2625000,
-                    ymin = 1255000, ymax = 1275000,
-                    crs = "EPSG:2056")
+                    xmin = 610000, xmax = 660000,
+                    ymin = 245000, ymax = 275000,
+                    crs = "EPSG:21781")
 values(r_distorted) <- sin(seq(0, 4*pi, length.out = ncell(r_distorted)))
 
 # Rectify raster entirely in memory
@@ -470,7 +504,7 @@ data(basel_frickthal)
 cps <- basel_frickthal$gcp
 
 # Step 2: Integrated Model Training with Spatial Block Cross-Validation
-# Using spatial blocks to prevent spatial autocorrelation data leakage
+# Spatial blocks reduce spatial autocorrelation data leakage
 pai_mod <- train_pai_model(
   gcp_data = cps,
   method = "gam_biv",
@@ -488,15 +522,15 @@ if (any(dist_diag$is_inverted)) {
 # Step 4: Vector Feature Transformation with Automated Topology Repair
 parcels_transformed <- transform_map(
   map = historical_parcels,
-  model = pai_mod,
+  pai_model = pai_mod,
   repair_topology = TRUE
 )
 
 # Step 5: High-Performance In-Memory Raster Rectification
 historical_sheet_rectified <- apply_pai_raster(
   raster = scanned_map_sheet,
-  model = pai_mod,
-  mesh_size = 50,
+  pai_model = pai_mod,
+  mesh_step = 10,
   max_iter = 15,
   tol = 1e-4
 )
@@ -506,12 +540,13 @@ historical_sheet_rectified <- apply_pai_raster(
 
 # References
 
-1. **Akima, H. (1978)**. A Method of Bivariate Interpolation and Smooth Surface Fitting for Irregularly Distributed Data Points. *ACM Transactions on Mathematical Software*, 4(2), 148–164.
+1. **Akima, H. (1978)**. A Method of Bivariate Interpolation and Smooth Surface Fitting for Irregularly Distributed Data Points. *ACM Transactions on Mathematical Software*, 4(2), 148–159.
+1b. **Akima, H. (1996)**. Algorithm 761: Scattered-data surface fitting that has the accuracy of a cubic polynomial. *ACM Transactions on Mathematical Software*, 22(3), 362–371.
 2. **Bookstein, F. L. (1989)**. Principal warps: Thin-plate splines and the decomposition of deformations. *IEEE Transactions on Pattern Analysis and Machine Intelligence*, 11(6), 567–585.
-3. **Doytsher, Y., & Gelbman, E. (1995)**. Rubber-sheeting algorithm for cadastral maps. *Journal of Surveying Engineering*, 121(4), 145–162.
+3. **Doytsher, Y., & Gelbman, E. (1995)**. A rubber sheeting algorithm for non-rectangular maps. *Computers & Geosciences*, 21(1), 55–61.
 4. **Golub, G. H., & Van Loan, C. F. (2013)**. *Matrix Computations* (4th ed.). Johns Hopkins University Press.
 5. **Roberts, D. R., Bahn, V., Ciuti, S., Boyce, M. S., Elith, J., Guillera-Arroita, G., ... & Dormann, C. F. (2017)**. Cross-validation strategies for data with temporal, spatial, hierarchical or phylogenetic structure. *Ecography*, 40(8), 913–929.
-6. **Saalfeld, A. (1985)**. A fast rubber-sheeting algorithm based on Delaunay triangulation. *The American Cartographer*, 12(2), 169–173.
+6. **Saalfeld, A. (1985)**. A fast rubber-sheeting transformation using Delaunay triangulation. *The American Cartographer*, 12(2), 169–173.
 7. **Tissot, A. (1881)**. *Mémoire sur la représentation des surfaces et les projections des cartes géographiques*. Gauthier-Villars.
 8. **Tobler, W. R. (1970)**. A computer movie simulating urban growth in the Detroit region. *Economic Geography*, 46(sup1), 234–240.
 9. **Valente, R., Vantas, K., & Carrera-Hernández, J. (2021)**. Positional accuracy assessment and improvement of historical maps using non-linear spline models. *International Journal of Geographical Information Science*.

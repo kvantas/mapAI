@@ -43,6 +43,21 @@ check_tin_inversion <- function(object, plot = FALSE) {
         inherits(object$model, "hybrid_helmert_tin_fit") ||
         inherits(object$model, "hybrid_affine_tin_fit")) {
       tri_mesh <- object$model$mesh
+    } else {
+      # The model has no triangulation, so the statistics below would describe a
+      # mesh this model never uses. The signed-area ratio is the exact facet
+      # Jacobian only for a piecewise-affine TIN map; for a TPS, GAM, Helmert or
+      # lm fit it is an artefact of the GCP layout and bears no relation to the
+      # model's actual Jacobian, which can fold where the GCP triangles do not
+      # and vice versa.
+      warning(
+        sprintf(paste0(
+          "`%s` is not a triangulation-based model, so it has no mesh to check. ",
+          "The returned statistics describe a Delaunay triangulation of the GCPs ",
+          "only, NOT the fitted transformation. Use analyze_distortion() to ",
+          "screen this model for fold-over via its signed Jacobian determinant."),
+          object$model_info$label),
+        call. = FALSE)
     }
   } else if (inherits(object, "gcp") || (is.data.frame(object) && all(c("source_x", "source_y", "target_x", "target_y") %in% names(object)))) {
     gcp_dat <- object
@@ -65,8 +80,23 @@ check_tin_inversion <- function(object, plot = FALSE) {
   tgt_area <- 0.5 * ((gcp_dat$target_x[v2] - gcp_dat$target_x[v1]) * (gcp_dat$target_y[v3] - gcp_dat$target_y[v1]) -
                      (gcp_dat$target_x[v3] - gcp_dat$target_x[v1]) * (gcp_dat$target_y[v2] - gcp_dat$target_y[v1]))
 
-  det_J <- tgt_area / src_area
+  # Guard against degenerate (collinear) source triangles, which would otherwise
+  # give Inf/NaN and be dropped silently by the na.rm counting below.
+  area_scale <- max(abs(src_area), na.rm = TRUE)
+  degenerate <- !is.finite(src_area) |
+    abs(src_area) <= .Machine$double.eps^0.5 * max(1, area_scale)
+
+  det_J <- ifelse(degenerate, NA_real_, tgt_area / src_area)
   is_inv <- (det_J <= 0)
+
+  n_degenerate <- sum(degenerate, na.rm = TRUE)
+  if (n_degenerate > 0) {
+    warning(sprintf(
+      paste0("%d triangle(s) are degenerate (near-zero source area, i.e. ",
+             "collinear control points). Their Jacobian determinant is ",
+             "undefined and is reported as NA."),
+      n_degenerate), call. = FALSE)
+  }
 
   res_df <- data.frame(
     triangle_id = seq_len(nrow(tris)),
@@ -125,6 +155,7 @@ check_tin_inversion <- function(object, plot = FALSE) {
   return(res_df)
 }
 
+#' @importFrom utils head
 #' @export
 print.tin_inversion <- function(x, ...) {
   n_tri <- attr(x, "n_triangles")

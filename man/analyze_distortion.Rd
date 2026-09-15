@@ -14,13 +14,21 @@ analyze_distortion(pai_model, newdata = NULL, reference_scale = 1)
 the model will be used. If a \code{SpatRaster} is provided, distortion metrics
 are evaluated at each cell center and returned as a multi-layer \code{SpatRaster}.}
 
-\item{reference_scale}{A single numeric value to normalize area scale.}
+\item{reference_scale}{A single positive number giving the reference
+\strong{linear} scale \eqn{s_{\text{ref}}} against which distortion is
+measured (for example the scale factor of a global Helmert fit, or \code{1} for
+none). \code{log2_area_scale} is normalised by \eqn{s_{\text{ref}}^2} and
+\code{airy_kavrayskiy} by \eqn{s_{\text{ref}}}. Supply a linear scale, not an
+area scale.}
 }
 \value{
 A \code{distortion} object (a data frame) or a \code{terra::SpatRaster} object
-with all calculated distortion metrics (\code{a}, \code{b}, \code{area_scale},
-\code{signed_area_scale}, \code{det_J}, \code{is_inverted}, \code{log2_area_scale},
-\code{max_shear}, \code{max_angular_distortion}, \code{airy_kavrayskiy}, \code{theta_a}).
+with all calculated distortion metrics: \code{a}, \code{b} (principal semi-axes),
+\code{area_scale} (\eqn{= a \cdot b = |\det \mathbf{J}|}), \code{signed_area_scale},
+\code{det_J}, \code{is_inverted}, \code{log2_area_scale}, \code{max_angular_distortion}
+(degrees), \code{airy_kavrayskiy}, and \code{theta_a} (degrees). For a \code{SpatRaster}
+input the layers carry these names and the \code{NA} mask of the input is
+preserved.
 }
 \description{
 Evaluates the local differential geometry and distortion metrics
@@ -57,10 +65,21 @@ is recorded.
 
 \strong{Angular and Total Distortion Criteria:}
 \itemize{
-\item Maximum Angular Distortion: \eqn{2 \arcsin\left(\frac{a - b}{a + b}\right)}
-\item Airy-Kavrayskiy Measure: \eqn{\frac{1}{2}\left((\ln a)^2 + (\ln b)^2\right)}
-\item Principal Axis Orientation: \eqn{\theta_a}
+\item Maximum Angular Distortion \eqn{2\Omega = 2 \arcsin\left(\frac{a - b}{a + b}\right)},
+reported in \strong{degrees}.
+\item Airy-Kavrayskiy Measure, with both semi-axes normalised by
+\code{reference_scale} \eqn{s_{\text{ref}}}:
+\deqn{E_{AK} = \sqrt{\frac{1}{2}\left(\left(\ln \frac{a}{s_{\text{ref}}}\right)^2 + \left(\ln \frac{b}{s_{\text{ref}}}\right)^2\right)}}
+\item Principal Axis Orientation \eqn{\theta_a}, in \strong{degrees}. Writing
+\eqn{\alpha = \frac{1}{2}\arctan_2(2F,\, E - G)} for the principal direction
+in the source plane (the eigenvector angle of the metric tensor), the
+reported orientation is that direction carried through the transformation:
+\deqn{\theta_a = \arctan_2\left(\frac{\partial f_y}{\partial x}\cos\alpha + \frac{\partial f_y}{\partial y}\sin\alpha,\; \frac{\partial f_x}{\partial x}\cos\alpha + \frac{\partial f_x}{\partial y}\sin\alpha\right)}
+This is the major-axis orientation of the indicatrix in the target plane,
+equal to the angle of the first left singular vector of \eqn{\mathbf{J}}.
 }
+
+All three angular quantities are returned in degrees.
 }
 \examples{
   # Create data and train a model

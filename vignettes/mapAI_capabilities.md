@@ -1,145 +1,62 @@
-- [Executive Summary & Architectural
-  Overview](#executive-summary-architectural-overview)
-- [Theoretical Foundations of Positional Accuracy
-  Improvement](#theoretical-foundations-of-positional-accuracy-improvement)
-  - [The Continuum Mechanics Formulation of Map
-    Deformation](#the-continuum-mechanics-formulation-of-map-deformation)
-- [Algorithmic Taxonomy & Mathematical
-  Implementations](#algorithmic-taxonomy-mathematical-implementations)
-  - [Conformal Similarity Transformation: Helmert (OLS and
-    TLS)](#conformal-similarity-transformation-helmert-ols-and-tls)
-    - [Ordinary Least Squares (OLS)](#ordinary-least-squares-ols)
-    - [Total Least Squares (TLS) /
-      Errors-in-Variables](#total-least-squares-tls-errors-in-variables)
-  - [General Affine Transformation
-    (`lm`)](#general-affine-transformation-lm)
-  - [Thin Plate Splines (`tps`)](#thin-plate-splines-tps)
-  - [Bivariate Generalized Additive Models
-    (`gam_biv`)](#bivariate-generalized-additive-models-gam_biv)
-- [Mitigating Spatial Autocorrelation Bias: Six Validation
-  Schemes](#mitigating-spatial-autocorrelation-bias-six-validation-schemes)
-  - [The Spatial Autocorrelation
-    Fallacy](#the-spatial-autocorrelation-fallacy)
-  - [The Six Cross-Validation Strategies in
-    `mapAI`](#the-six-cross-validation-strategies-in-mapai)
-  - [Empirical Benchmark Across All Six
-    Strategies](#empirical-benchmark-across-all-six-strategies)
-    - [Analysis of the Benchmark
-      Findings](#analysis-of-the-benchmark-findings)
-- [The Vector Transformation Engine & Topological
-  Resilience](#the-vector-transformation-engine-topological-resilience)
-  - [Decomposition and Geometry Reconstruction in
-    `transform_map`](#decomposition-and-geometry-reconstruction-in-transform_map)
-  - [Topological Validity & Automated
-    Repair](#topological-validity-automated-repair)
-- [In-Memory Raster Rectification: The Damped Picard Inversion
-  Solver](#in-memory-raster-rectification-the-damped-picard-inversion-solver)
-  - [Forward Mapping vs. Backward
-    Mapping](#forward-mapping-vs.-backward-mapping)
-  - [Damped Picard-Mann Iterative Fixed-Point
-    Inversion](#damped-picard-mann-iterative-fixed-point-inversion)
-  - [Subsampled Mesh Bilinear
-    Interpolation](#subsampled-mesh-bilinear-interpolation)
-- [Differential Geometry & Topological Inversion
-  Diagnostics](#differential-geometry-topological-inversion-diagnostics)
-  - [The Metric Tensor and Tissot’s
-    Indicatrix](#the-metric-tensor-and-tissots-indicatrix)
-  - [Topological Inversion: The Signed Jacobian
-    Determinant](#topological-inversion-the-signed-jacobian-determinant)
-- [Complete End-to-End Practitioner Case
-  Study](#complete-end-to-end-practitioner-case-study)
-- [References](#references)
+---
+title: "A Rigorous Methodological and Computational Framework for Positional Accuracy Improvement: The mapAI Package"
+author: "Konstantinos Vantas"
+date: "2026-09-15"
+output: 
+  rmarkdown::html_vignette:
+    toc: true
+    toc_depth: 3
+    number_sections: true
+vignette: >
+  %\VignetteIndexEntry{A Rigorous Methodological and Computational Framework for Positional Accuracy Improvement: The mapAI Package}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+
 
 # Executive Summary & Architectural Overview
 
-The **`mapAI`** package provides a statistically rigorous,
-computationally efficient, and topology-resilient framework for
-**Positional Accuracy Improvement (PAI)** of spatial datasets in R.
-Designed for geodesists, GIS professionals, and spatial data scientists,
-`mapAI` bridges classical geodetic coordinate transformations with
-modern non-parametric regression, spatial machine learning, and
-differential geometry diagnostics.
+The **`mapAI`** package provides a statistically rigorous, computationally efficient, and topology-resilient framework for **Positional Accuracy Improvement (PAI)** of spatial datasets in R. Designed for geodesists, GIS professionals, and spatial data scientists, `mapAI` bridges classical geodetic coordinate transformations with modern non-parametric regression, spatial machine learning, and differential geometry diagnostics.
 
-Historically, georeferencing and geometric correction have relied on
-global polynomial or similarity transformations. While sufficient for
-simple translations and rigid rotations, such models fail
-catastrophically when applied to historical cartography, scanned analog
-cadastre, or aerial imagery subject to complex, spatially continuous,
-non-linear deformations.
+Historically, georeferencing and geometric correction have relied on global polynomial or similarity transformations. While sufficient for simple translations and rigid rotations, such models fail catastrophically when applied to historical cartography, scanned analog cadastre, or aerial imagery subject to complex, spatially continuous, non-linear deformations. 
 
-To address these challenges, `mapAI` establishes a complete end-to-end
-pipeline: 1. **Algorithmic Diversity**: Implements conformal similarity
-(Helmert via Ordinary and Total Least Squares), general affine, Thin
-Plate Splines (TPS), Bivariate Generalized Additive Models (GAM) with
-Thin Plate Regression Splines, and an extensible interface for arbitrary
-machine learning algorithms (Support Vector Machines, Random Forests,
-Neural Networks). 2. **Spatial Data Leakage Prevention**: Features an
-integrated spatial cross-validation framework supporting six distinct
-partition topologies (`random`, `spatial`, `spatial_block`,
-`spatial_buffered`, `probability`, `stratified`) to guard against
-spatial autocorrelation bias and overfitting. 3. **Topology-Preserving
-Vector Transformation**: Offers a robust geometry reconstruction engine
-capable of processing all standard OGC simple feature types (`POINT`,
-`LINESTRING`, `POLYGON` with interior boundary rings, `MULTIPOINT`,
-`MULTILINESTRING`, `MULTIPOLYGON`), spatial AOI partitioning, and
-automated topological repair via `sf::st_make_valid()`. 4. **In-Memory
-Raster Rectification**: Implements backward mapping with a damped
-Picard-Mann fixed-point iterative coordinate inversion solver and
-regular mesh interpolation, executing entirely in RAM via
-`terra::SpatRaster`. 5. **Differential Distortion & Inversion
-Diagnostics**: Evaluates local deformation fields using Tissot’s
-Indicatrix, the Cauchy-Green metric tensor, and the signed Jacobian
-determinant $`\det(\mathbf{J})`$, automatically flagging topological
-fold-overs and singular shears.
+To address these challenges, `mapAI` establishes a complete end-to-end pipeline:
+1. **Algorithmic Diversity**: Implements conformal similarity (Helmert via Ordinary and Total Least Squares), general affine, Thin Plate Splines (TPS), Bivariate Generalized Additive Models (GAM) with Thin Plate Regression Splines, Piecewise Affine Delaunay Triangulation (`tin_linear`), Akima $C^1$ Triangulated Bivariate Splines (`tin_akima`), Two-Stage Hybrid Models (`hybrid_helmert_tin`, `hybrid_affine_tin`), and an extensible interface for arbitrary machine learning algorithms (Support Vector Machines, Random Forests, Neural Networks).
+2. **Spatial Data Leakage Mitigation**: Features an integrated cross-validation framework supporting six distinct partition topologies (`random`, `spatial`, `spatial_block`, `spatial_buffered`, `probability`, `stratified`) to reduce spatial autocorrelation bias and overfitting. Spatial schemes reduce optimism; they do not remove it.
+3. **Topology-Preserving Vector Transformation**: Offers a robust geometry reconstruction engine capable of processing all standard OGC simple feature types (`POINT`, `LINESTRING`, `POLYGON` with interior boundary rings, `MULTIPOINT`, `MULTILINESTRING`, `MULTIPOLYGON`), spatial AOI partitioning, and automated topological repair via `sf::st_make_valid()`.
+4. **In-Memory Raster Rectification**: Implements backward mapping with a damped Krasnoselskii-Mann (averaged) fixed-point iterative coordinate inversion solver and regular mesh interpolation, executing entirely in RAM via `terra::SpatRaster`.
+5. **Differential Distortion & Inversion Diagnostics**: Evaluates local deformation fields using Tissot's Indicatrix, the Cauchy-Green metric tensor, and the signed Jacobian determinant $\det(\mathbf{J})$, automatically flagging topological fold-overs and singular shears, with facet-level topological inversion screening via `check_tin_inversion()`.
 
-------------------------------------------------------------------------
+---
 
 # Theoretical Foundations of Positional Accuracy Improvement
 
 ## The Continuum Mechanics Formulation of Map Deformation
 
-Let $`\Omega_s \subset \mathbb{R}^2`$ represent the coordinate domain of
-a distorted spatial dataset (the **source** space), and let
-$`\Omega_t \subset \mathbb{R}^2`$ represent the true geographic or
-geodetic reference domain (the **target** space). A set of $`n`$
-homologous Ground Control Points (GCPs) is observed across both domains:
+Let $\Omega_s \subset \mathbb{R}^2$ represent the coordinate domain of a distorted spatial dataset (the **source** space), and let $\Omega_t \subset \mathbb{R}^2$ represent the true geographic or geodetic reference domain (the **target** space). A set of $n$ homologous Ground Control Points (GCPs) is observed across both domains:
 
-``` math
-\mathcal{D} = \left\{ \left( \mathbf{s}_i, \mathbf{t}_i \right) \right\}_{i=1}^n, \quad \mathbf{s}_i = \begin{pmatrix} x_{s,i} \\ y_{s,i} \end{pmatrix} \in \Omega_s, \quad \mathbf{t}_i = \begin{pmatrix} x_{t,i} \\ y_{t,i} \end{pmatrix} \in \Omega_t
-```
+$$\mathcal{D} = \left\{ \left( \mathbf{s}_i, \mathbf{t}_i \right) \right\}_{i=1}^n, \quad \mathbf{s}_i = \begin{pmatrix} x_{s,i} \\ y_{s,i} \end{pmatrix} \in \Omega_s, \quad \mathbf{t}_i = \begin{pmatrix} x_{t,i} \\ y_{t,i} \end{pmatrix} \in \Omega_t$$
 
-The goal of Positional Accuracy Improvement is to estimate a continuous
-spatial mapping function $`\mathbf{f}: \Omega_s \to \Omega_t`$ such
-that:
+The goal of Positional Accuracy Improvement is to estimate a continuous spatial mapping function $\mathbf{f}: \Omega_s \to \Omega_t$ such that:
 
-``` math
-\mathbf{t} = \mathbf{f}(\mathbf{s}) = \mathbf{s} + \mathbf{d}(\mathbf{s})
-```
+$$\mathbf{t} = \mathbf{f}(\mathbf{s}) = \mathbf{s} + \mathbf{d}(\mathbf{s})$$
 
-where
-$`\mathbf{d}(\mathbf{s}) = \left( d_x(\mathbf{s}), d_y(\mathbf{s}) \right)^T`$
-is the continuous 2D displacement field defined by:
+where $\mathbf{d}(\mathbf{s}) = \left( d_x(\mathbf{s}), d_y(\mathbf{s}) \right)^T$ is the continuous 2D displacement field defined by:
 
-``` math
-d_x(\mathbf{s}) = x_t - x_s, \qquad d_y(\mathbf{s}) = y_t - y_s
-```
+$$d_x(\mathbf{s}) = x_t - x_s, \qquad d_y(\mathbf{s}) = y_t - y_s$$
 
-In physical terms, $`\mathbf{d}(\mathbf{s})`$ encapsulates the
-superposition of several distinct error processes: - **Global Datum
-Misalignment**: Rigid translation, scale divergence, and azimuth
-orientation discrepancies. - **Systematic Non-Orthogonal Distortion**:
-Anisotropic paper grain shrinkage or expansion driven by relative
-humidity variations. - **Local Non-Linear Irregularities**: Paper
-warping, non-uniform scanning lens distortions, plane-table surveying
-imprecision, and relief displacement in historical surveys (Valente et
-al., 2021).
+In physical terms, $\mathbf{d}(\mathbf{s})$ encapsulates the superposition of several distinct error processes:
+- **Global Datum Misalignment**: Rigid translation, scale divergence, and azimuth orientation discrepancies.
+- **Systematic Non-Orthogonal Distortion**: Anisotropic paper grain shrinkage or expansion driven by relative humidity variations.
+- **Local Non-Linear Irregularities**: Paper warping, non-uniform scanning lens distortions, plane-table surveying imprecision, and relief displacement in historical surveys (Valente et al., 2021).
 
-------------------------------------------------------------------------
+---
 
 # Algorithmic Taxonomy & Mathematical Implementations
 
-The `mapAI` package implements a tiered hierarchy of parametric,
-semi-parametric, and machine learning models.
+The `mapAI` package implements a tiered hierarchy of parametric, semi-parametric, and machine learning models.
+
 
 ``` r
 library(mapAI)
@@ -150,72 +67,42 @@ library(ggplot2)
 
 ## Conformal Similarity Transformation: Helmert (OLS and TLS)
 
-The 4-parameter Helmert transformation preserves local shape and angles
-(conformal mapping) by applying a uniform scale factor $`\mu > 0`$, an
-orthogonal rotation angle $`\theta \in [-\pi, \pi)`$, and translations
-$`(t_x, t_y)^T`$:
+The 4-parameter Helmert transformation preserves local shape and angles (conformal mapping) by applying a uniform scale factor $\mu > 0$, an orthogonal rotation angle $\theta \in [-\pi, \pi)$, and translations $(t_x, t_y)^T$:
 
-``` math
-\begin{pmatrix} x_t \\ y_t \end{pmatrix} = \begin{pmatrix} c & -d \\ d & c \end{pmatrix} \begin{pmatrix} x_s \\ y_s \end{pmatrix} + \begin{pmatrix} t_x \\ t_y \end{pmatrix}
-```
+$$\begin{pmatrix} x_t \\ y_t \end{pmatrix} = \begin{pmatrix} c & -d \\ d & c \end{pmatrix} \begin{pmatrix} x_s \\ y_s \end{pmatrix} + \begin{pmatrix} t_x \\ t_y \end{pmatrix}$$
 
-where $`c = \mu \cos(\theta)`$ and $`d = \mu \sin(\theta)`$. The
-physical parameters are uniquely reconstructed via:
+where $c = \mu \cos(\theta)$ and $d = \mu \sin(\theta)$. The physical parameters are uniquely reconstructed via:
 
-``` math
-\mu = \sqrt{c^2 + d^2}, \qquad \theta = \operatorname{atan2}(d, c)
-```
+$$\mu = \sqrt{c^2 + d^2}, \qquad \theta = \operatorname{atan2}(d, c)$$
 
 ### Ordinary Least Squares (OLS)
 
-Under classical OLS, source coordinates $`\mathbf{s}_i`$ are treated as
-error-free deterministic constants, with stochastic residuals confined
-exclusively to target measurements:
+Under classical OLS, source coordinates $\mathbf{s}_i$ are treated as error-free deterministic constants, with stochastic residuals confined exclusively to target measurements:
 
-``` math
-\min_{c, d, t_x, t_y} \sum_{i=1}^n \left( \left[ c x_{s,i} - d y_{s,i} + t_x - x_{t,i} \right]^2 + \left[ d x_{s,i} + c y_{s,i} + t_y - y_{t,i} \right]^2 \right)
-```
+$$\min_{c, d, t_x, t_y} \sum_{i=1}^n \left( \left[ c x_{s,i} - d y_{s,i} + t_x - x_{t,i} \right]^2 + \left[ d x_{s,i} + c y_{s,i} + t_y - y_{t,i} \right]^2 \right)$$
 
-Centering coordinates about their centroids $`\bar{\mathbf{s}}`$ and
-$`\bar{\mathbf{t}}`$ yields the closed-form normal equations:
+Centering coordinates about their centroids $\bar{\mathbf{s}}$ and $\bar{\mathbf{t}}$ yields the closed-form normal equations:
 
-``` math
-c = \frac{\sum_{i=1}^n (u_i X_i + v_i Y_i)}{\sum_{i=1}^n (u_i^2 + v_i^2)}, \qquad d = \frac{\sum_{i=1}^n (u_i Y_i - v_i X_i)}{\sum_{i=1}^n (u_i^2 + v_i^2)}
-```
+$$c = \frac{\sum_{i=1}^n (u_i X_i + v_i Y_i)}{\sum_{i=1}^n (u_i^2 + v_i^2)}, \qquad d = \frac{\sum_{i=1}^n (u_i Y_i - v_i X_i)}{\sum_{i=1}^n (u_i^2 + v_i^2)}$$
 
-where $`u_i = x_{s,i} - \bar{x}_s`$, $`v_i = y_{s,i} - \bar{y}_s`$,
-$`X_i = x_{t,i} - \bar{x}_t`$, and $`Y_i = y_{t,i} - \bar{y}_t`$.
+where $u_i = x_{s,i} - \bar{x}_s$, $v_i = y_{s,i} - \bar{y}_s$, $X_i = x_{t,i} - \bar{x}_t$, and $Y_i = y_{t,i} - \bar{y}_t$.
 
 ### Total Least Squares (TLS) / Errors-in-Variables
 
-When source coordinates are also subject to measurement errors (e.g.,
-manual digitizing errors on scanned maps), OLS yields biased parameter
-estimates (attenuation bias). `mapAI` solves this Errors-in-Variables
-(EIV) problem via **Total Least Squares (TLS)** using Singular Value
-Decomposition (SVD) (Golub & Van Loan, 2013).
+When source coordinates are also subject to measurement errors (e.g., manual digitizing errors on scanned maps), OLS yields biased parameter estimates (attenuation bias). `mapAI` solves this Errors-in-Variables (EIV) problem via **Total Least Squares (TLS)** using Singular Value Decomposition (SVD) (Golub & Van Loan, 2013).
 
 The centered augmented data matrix is formed as:
 
-``` math
-\mathbf{M} = \begin{pmatrix} \mathbf{u} & -\mathbf{v} & \mathbf{X} \\ \mathbf{v} & \mathbf{u} & \mathbf{Y} \end{pmatrix}_{2n \times 3}
-```
+$$\mathbf{M} = \begin{pmatrix} \mathbf{u} & -\mathbf{v} & \mathbf{X} \\ \mathbf{v} & \mathbf{u} & \mathbf{Y} \end{pmatrix}_{2n \times 3}$$
 
-Computing the thin SVD
-$`\mathbf{M} = \mathbf{U} \mathbf{\Sigma} \mathbf{V}^T`$, the right
-singular vector $`\mathbf{v}_3 = (v_{31}, v_{32}, v_{33})^T`$
-corresponding to the smallest singular value $`\sigma_3`$ provides the
-optimal TLS solution:
+Computing the thin SVD $\mathbf{M} = \mathbf{U} \mathbf{\Sigma} \mathbf{V}^T$, the right singular vector $\mathbf{v}_3 = (v_{31}, v_{32}, v_{33})^T$ corresponding to the smallest singular value $\sigma_3$ provides the optimal TLS solution:
 
-``` math
-\begin{pmatrix} c \\ d \end{pmatrix} = -\frac{1}{v_{33}} \begin{pmatrix} v_{31} \\ v_{32} \end{pmatrix}
-```
+$$\begin{pmatrix} c \\ d \end{pmatrix} = -\frac{1}{v_{33}} \begin{pmatrix} v_{31} \\ v_{32} \end{pmatrix}$$
 
-The a posteriori reference variance $`\hat{\sigma}_0^2`$ and standard
-errors with $`\nu = 2n - 4`$ degrees of freedom are computed as:
+The a posteriori reference variance $\hat{\sigma}_0^2$ and standard errors with $\nu = 2n - 4$ degrees of freedom are computed as:
 
-``` math
-\hat{\sigma}_0^2 = \frac{\|\mathbf{r}\|_2^2}{2n - 4}, \qquad \operatorname{SE}(\hat{\mathbf{p}}) = \hat{\sigma}_0 \sqrt{\operatorname{diag}\left( (\mathbf{A}^T \mathbf{A})^{-1} \right)}
-```
+$$\hat{\sigma}_0^2 = \frac{\|\mathbf{r}\|_2^2}{2n - 4}, \qquad \operatorname{SE}(\hat{\mathbf{p}}) = \hat{\sigma}_0 \sqrt{\operatorname{diag}\left( (\mathbf{A}^T \mathbf{A})^{-1} \right)}$$
+
 
 ``` r
 # Generate synthetic GCPs with known rigid shift, 5 deg rotation, 1.05 scale
@@ -240,109 +127,157 @@ model_tls <- helmert(source_x = sample_gcp$source_x, source_y = sample_gcp$sourc
                      target_x = sample_gcp$target_x, target_y = sample_gcp$target_y,
                      method = "tls")
 
+# The physical parameters live in $parameters, not at the top level of the
+# helmert object.
 cat(sprintf("True: Scale=%.4f, Rot=%.2f deg\nOLS:  Scale=%.4f, Rot=%.2f deg (sigma0=%.3f m)\nTLS:  Scale=%.4f, Rot=%.2f deg (sigma0=%.3f m)\n",
             scale_true, theta_true * 180 / pi,
-            model_ols$scale, model_ols$theta_deg, model_ols$sigma0,
-            model_tls$scale, model_tls$theta_deg, model_tls$sigma0))
+            model_ols$parameters["scale"], model_ols$parameters["theta_deg"],
+            model_ols$sigma0,
+            model_tls$parameters["scale"], model_tls$parameters["theta_deg"],
+            model_tls$sigma0))
+#> True: Scale=1.0500, Rot=5.00 deg
+#> OLS:  Scale=1.0500, Rot=5.00 deg (sigma0=0.488 m)
+#> TLS:  Scale=1.0500, Rot=5.00 deg (sigma0=0.488 m)
 ```
 
 ## General Affine Transformation (`lm`)
 
-The 6-parameter affine model allows for independent scaling along the
-$`x`$ and $`y`$ axes and non-orthogonal shear:
+The 6-parameter affine model allows for independent scaling along the $x$ and $y$ axes and non-orthogonal shear:
 
-``` math
-\begin{pmatrix} x_t \\ y_t \end{pmatrix} = \begin{pmatrix} a_{11} & a_{12} \\ a_{21} & a_{22} \end{pmatrix} \begin{pmatrix} x_s \\ y_s \end{pmatrix} + \begin{pmatrix} t_x \\ t_y \end{pmatrix}
-```
+$$\begin{pmatrix} x_t \\ y_t \end{pmatrix} = \begin{pmatrix} a_{11} & a_{12} \\ a_{21} & a_{22} \end{pmatrix} \begin{pmatrix} x_s \\ y_s \end{pmatrix} + \begin{pmatrix} t_x \\ t_y \end{pmatrix}$$
 
-This is fitted via multivariate linear regression (`stats::lm`),
-capturing anisotropic paper shrinkage between grain and cross-grain
-directions.
+This is fitted via multivariate linear regression (`stats::lm`), capturing anisotropic paper shrinkage between grain and cross-grain directions.
 
 ## Thin Plate Splines (`tps`)
 
-The Thin Plate Spline (TPS) minimizes an objective function balancing
-interpolation fidelity with an idealized physical bending energy of a
-thin metal sheet (Bookstein, 1989):
+The Thin Plate Spline (TPS) minimizes an objective function balancing interpolation fidelity with an idealized physical bending energy of a thin metal sheet (Bookstein, 1989):
 
-``` math
-\mathcal{J}_{\text{TPS}}(f) = \sum_{i=1}^n \|\mathbf{t}_i - f(\mathbf{s}_i)\|^2 + \lambda \iint_{\mathbb{R}^2} \left[ \left(\frac{\partial^2 f}{\partial x^2}\right)^2 + 2\left(\frac{\partial^2 f}{\partial x \partial y}\right)^2 + \left(\frac{\partial^2 f}{\partial y^2}\right)^2 \right] dx dy
-```
+$$\mathcal{J}_{\text{TPS}}(f) = \sum_{i=1}^n \|\mathbf{t}_i - f(\mathbf{s}_i)\|^2 + \lambda \iint_{\mathbb{R}^2} \left[ \left(\frac{\partial^2 f}{\partial x^2}\right)^2 + 2\left(\frac{\partial^2 f}{\partial x \partial y}\right)^2 + \left(\frac{\partial^2 f}{\partial y^2}\right)^2 \right] dx dy$$
 
-The smooth mapping decomposes into a global affine component and a
-linear combination of radial basis functions $`\phi(r) = r^2 \ln(r)`$:
+The smooth mapping decomposes into a global affine component and a linear combination of radial basis functions $\phi(r) = r^2 \ln(r)$:
 
-``` math
-f(\mathbf{s}) = \mathbf{A} \mathbf{s} + \mathbf{b} + \sum_{i=1}^n \mathbf{w}_i \phi(\|\mathbf{s} - \mathbf{s}_i\|)
-```
+$$f(\mathbf{s}) = \mathbf{A} \mathbf{s} + \mathbf{b} + \sum_{i=1}^n \mathbf{w}_i \phi(\|\mathbf{s} - \mathbf{s}_i\|)$$
 
 ## Bivariate Generalized Additive Models (`gam_biv`)
 
-While classical TPS uses all $`n`$ data points as knots—yielding an
-$`\mathcal{O}(n^3)`$ computational bottleneck—`mapAI` employs **Thin
-Plate Regression Splines (TPRS)** via `mgcv::gam` (Wood, 2003). The
-displacement field is modeled as:
+While classical TPS uses all $n$ data points as knots—yielding an $\mathcal{O}(n^3)$ computational bottleneck—`mapAI` employs **Thin Plate Regression Splines (TPRS)** via `mgcv::gam` (Wood, 2003). The displacement field is modeled as:
 
-``` math
-d_x(\mathbf{s}) = \beta_{0,x} + \sum_{j=1}^k \beta_{j,x} b_j(\mathbf{s}), \qquad d_y(\mathbf{s}) = \beta_{0,y} + \sum_{j=1}^k \beta_{j,y} b_j(\mathbf{s})
+$$d_x(\mathbf{s}) = \beta_{0,x} + \sum_{j=1}^k \beta_{j,x} b_j(\mathbf{s}), \qquad d_y(\mathbf{s}) = \beta_{0,y} + \sum_{j=1}^k \beta_{j,y} b_j(\mathbf{s})$$
+
+The smoothing parameters $\boldsymbol{\lambda} = (\lambda_x, \lambda_y)$ are estimated via **Restricted Maximum Likelihood (REML)**. To prevent rank-deficiency on small sample sizes, `mapAI` uses an adaptive basis dimension formula:
+
+$$k = \max\left(3, \; \min\left(29, \; \lfloor 0.6 \times n_{\text{unique}} \rfloor \right)\right)$$
+
+guaranteeing numerical robustness across datasets ranging from sparse GCP sets ($N \approx 10$) to regional surveys ($N > 1000$).
+
+## Piecewise Affine Delaunay Triangulation (`tin_linear`)
+
+While global splines produce smoothly varying deformation fields, they can exhibit non-local influence—adjusting an anchor in one corner can induce minor deformations far away. In contrast, **Piecewise Affine Delaunay Triangulation** (White & Griffin, 1985; Saalfeld, 1985) partitions the source coordinate domain into localized triangular facets $\mathcal{T} = \{T_1, \dots, T_m\}$ using the Sweep-Hull algorithm (`interp::tri.mesh`).
+
+For any query coordinate $\mathbf{p} = (x_s, y_s)^T$ located inside triangle $T_k = (\mathbf{s}_1, \mathbf{s}_2, \mathbf{s}_3)$, its position is expressed via simplicial **barycentric coordinates** $\boldsymbol{\lambda} = (\lambda_1, \lambda_2, \lambda_3)^T$:
+
+$$\mathbf{p} = \sum_{j=1}^3 \lambda_j \mathbf{s}_j, \qquad \sum_{j=1}^3 \lambda_j = 1, \quad \lambda_j \ge 0$$
+
+The target position and displacement vector are evaluated by:
+
+$$\mathbf{p}' = \sum_{j=1}^3 \lambda_j \mathbf{t}_j, \qquad \mathbf{d}(\mathbf{p}) = \sum_{j=1}^3 \lambda_j \mathbf{d}_j$$
+
+### Key Mathematical & Geometric Properties:
+- **Exact Interpolation**: Matches homologous control points with machine-precision zero error ($\mathrm{RMSE} = 0$ at GCPs).
+- **Strict Locality**: Perturbing a control point only affects triangles incident to that vertex; distant regions are completely unaffected.
+- **Topological Inversion Screening**: Pre-computes the signed area ratio $\det(\mathbf{J}_k) = \operatorname{Area}(T'_k) / \operatorname{Area}(T_k)$ for all facets, warning if any facet is flipped ($\det(\mathbf{J}) \le 0$).
+- **Convex Hull Fallback**: Query points falling outside the control network's convex hull are automatically transformed via a global Helmert or affine model, avoiding unhandled `NA` values.
+
+## Akima $C^1$ Triangulated Bivariate Splines (`tin_akima`)
+
+Piecewise affine triangulation is $C^0$ continuous, meaning displacement derivatives are step functions that jump discontinuously across triangle edges (producing visible "kinks" or creases in linear features). 
+
+To achieve smooth derivatives while retaining triangular localization, `mapAI` uses Akima's $C^1$ triangulated interpolation on Delaunay triangles via `interp::interp(method = "akima")`. That routine implements Akima (1996), which has the accuracy of a **bicubic** polynomial — not the quintic scheme of the original 1978 algorithm. Derivatives match continuously across shared edges, giving **continuous metric tensors, smooth Jacobian determinants, and seamless Tissot indicatrices across facet interiors**.
+
+## Two-Stage Hybrid Trend-Residual Triangulation
+
+To combine the geodetic stability of global parametric models with the exact local fidelity of triangulated networks, `mapAI` implements two-stage hybrid models (Doytsher & Gelbman, 1995):
+
+1. **`hybrid_helmert_tin` (Conformal Trend + Triangulated Residuals)**:
+   - *Stage 1*: Fits a global 4-parameter conformal Helmert similarity transformation $\mathbf{t}_{\text{global}} = H(\mathbf{s})$.
+   - *Stage 2*: Calculates residual discrepancies $\mathbf{r}_i = \mathbf{t}_i - H(\mathbf{s}_i)$ and constructs a Delaunay TIN over the residuals.
+   - *Extrapolation*: Outside the convex hull of the GCPs, the local residual field gracefully defaults to zero, meaning out-of-bounds coordinates cleanly follow the geodetically sound Helmert transformation.
+2. **`hybrid_affine_tin` (Affine Trend + Triangulated Residuals)**:
+   - *Stage 1*: Fits bivariate 1st-order affine polynomials (`lm`) capturing anisotropic axis scale differences and affine shear.
+   - *Stage 2*: Triangulates affine residual displacements, providing exact GCP interpolation with stable affine extrapolation.
+
+
+``` r
+# Load Swiss Basel-Frickthal GCP dataset
+data(basel_frickthal)
+swiss_cps <- basel_frickthal$gcp
+
+# Fit Piecewise Affine Delaunay and Hybrid Helmert-TIN models on the Swiss GCPs
+model_tin <- train_pai_model(gcp_data = swiss_cps, method = "tin_linear")
+model_hyb <- train_pai_model(gcp_data = swiss_cps, method = "hybrid_helmert_tin")
+
+# Inspect the trained triangulation model
+print(model_tin)
+#> PAI Model - Piecewise Affine Delaunay Triangulation 
+#> Model Type: Bivariate
+#> Piecewise Affine Delaunay Triangulation Fit
+#>   Control Points (GCPs): 343 
+#>   Triangular Facets:     670 
+#>   Inverted Facets (det(J) <= 0): 11 
+#>   Jacobian det(J) range: [-4.4772, 7.8214]
+#>   Extrapolation Fallback: helmert
+
+# Check for topological triangle inversions across the mesh
+inversion_summary <- check_tin_inversion(model_tin)
+print(inversion_summary)
+#> TIN Topological Inversion Assessment
+#>   Total Triangular Facets:  670 
+#>   Inverted Facets (det(J) <= 0):  11 (1.6%)
+#>   Inverted Triangle IDs:  30, 117, 155, 187, 493, 525, 553, 564, 650, 663, 670 
+#> 
+#> First few triangles:
+#>   triangle_id  v1 v2 v3 source_area target_area     det_J is_inverted
+#> 1           1   1 15 14   1851972.6   2751729.5 1.4858370       FALSE
+#> 2           2  15 16 17    182713.6    527418.3 2.8865842       FALSE
+#> 3           3  16 15  1    272052.7    373476.7 1.3728099       FALSE
+#> 4           4  15 99 14   3872774.2   4486870.5 1.1585675       FALSE
+#> 5           5  10  1 14   2500713.6   4202422.0 1.6804891       FALSE
+#> 6           6 121 14 99   3975233.1   2974302.8 0.7482084       FALSE
 ```
 
-The smoothing parameters
-$`\boldsymbol{\lambda} = (\lambda_x, \lambda_y)`$ are estimated via
-**Restricted Maximum Likelihood (REML)**. To prevent rank-deficiency on
-small sample sizes, `mapAI` uses an adaptive basis dimension formula:
-
-``` math
-k = \max\left(3, \; \min\left(29, \; \lfloor 0.6 \times n_{\text{unique}} \rfloor \right)\right)
-```
-
-guaranteeing numerical robustness across datasets ranging from sparse
-GCP sets ($`N \approx 10`$) to regional surveys ($`N > 1000`$).
-
-------------------------------------------------------------------------
+---
 
 # Mitigating Spatial Autocorrelation Bias: Six Validation Schemes
 
 ## The Spatial Autocorrelation Fallacy
 
-In classical machine learning, data points are assumed to be Independent
-and Identically Distributed (IID). Under **Tobler’s First Law of
-Geography**—*“everything is related to everything else, but near things
-are more related than distant things”* (Tobler, 1970)—spatial residuals
-exhibit positive autocorrelation:
+In classical machine learning, data points are assumed to be Independent and Identically Distributed (IID). Under **Tobler's First Law of Geography**—*"everything is related to everything else, but near things are more related than distant things"* (Tobler, 1970)—spatial residuals exhibit positive autocorrelation:
 
-``` math
-\operatorname{Cov}(\epsilon(\mathbf{s}_i), \epsilon(\mathbf{s}_j)) = C(\|\mathbf{s}_i - \mathbf{s}_j\|) > 0
-```
+$$\operatorname{Cov}(\epsilon(\mathbf{s}_i), \epsilon(\mathbf{s}_j)) = C(\|\mathbf{s}_i - \mathbf{s}_j\|) > 0$$
 
-When using standard random cross-validation, training and testing points
-frequently lie in close geographical proximity. The model can simply
-memorize local residual patterns rather than learning the generalized
-deformation field. This creates **spatial data leakage**, resulting in
-severe optimism bias where reported validation errors are artificially
-deflated (Roberts et al., 2017).
+When using standard random cross-validation, training and testing points frequently lie in close geographical proximity. The model can simply memorize local residual patterns rather than learning the generalized deformation field. This creates **spatial data leakage**, resulting in severe optimism bias where reported validation errors are artificially deflated (Roberts et al., 2017).
 
 ## The Six Cross-Validation Strategies in `mapAI`
 
-To eliminate spatial data leakage, `mapAI` provides six validation
-schemes via `cv_pai_model()` and directly inside
-`train_pai_model(..., cv = TRUE)`:
+To reduce spatial data leakage, `mapAI` provides six validation schemes via `cv_pai_model()` and directly inside `train_pai_model(..., cv = TRUE)`:
 
-| Strategy | `cv_args$method` | Splitting Mechanism | Safeguard Against Leakage |
-|:---|:---|:---|:---|
-| **Random $`k`$-Fold** | `"random"` | Uniform random assignment across $`k`$ folds | None (Baseline IID benchmark) |
-| **Spatial Clustered** | `"spatial"` | $`k`$-Means clustering on spatial coordinates | Disjoint geographic clusters |
-| **Spatial Block** | `"spatial_block"` | Regular $`n_x \times n_y`$ rectangular spatial grid | Independent geographic blocks |
-| **Spatial Buffered** | `"spatial_buffered"` | Block holdout with exclusion buffer zone $`\delta`$ | Complete dead-zone around test fold |
-| **Probability Sampling** | `"probability"` | Design-based sampling with coordinate-density weights | Reflects spatial sample design |
-| **Stratified Sampling** | `"stratified"` | Stratified by residual displacement magnitude | Balances extreme displacement tails |
+| Strategy | `validation_type` | Splitting Mechanism | Effect on Leakage |
+| :--- | :--- | :--- | :--- |
+| **Random $k$-Fold** | `"random"` | Uniform random assignment across $k$ folds | None (baseline IID benchmark) |
+| **Spatial Clustered** | `"spatial"` | $k$-Means clustering on spatial coordinates | Disjoint geographic clusters |
+| **Spatial Block** | `"spatial_block"` | Regular $n_x \times n_y$ rectangular grid; whole tiles assigned to folds. Tile size set by `block_size`, independently of $k$ | Contiguous held-out regions |
+| **Spatial Buffered** | `"spatial_buffered"` | Block holdout with an exclusion buffer $\delta$ (`buffer_dist`) | Dead zone around each test fold; removes leakage only if $\delta$ exceeds the autocorrelation range |
+| **Probability Sampling** | `"probability"` | A single train/test split by simple random sampling (unweighted). Not $k$-fold: no replication, no dispersion estimate | None |
+| **Stratified Sampling** | `"stratified"` | Stratified by displacement magnitude | Balances displacement tails across folds; note the strata are a function of the response, which deflates the reported SD |
+
+The option name is `validation_type`, supplied either directly to
+`assess_pai_model()` / `cv_pai_model()` or inside the `cv` list of
+`train_pai_model()`, e.g. `cv = list(validation_type = "spatial_block", k_folds = 5)`.
 
 ## Empirical Benchmark Across All Six Strategies
 
-We demonstrate the empirical behavior of all six validation strategies
-using the built-in Swiss historical dataset (`basel_frickthal$gcp`),
-consisting of 343 homologous control points from the 1798 Meyer-Weiss
-map:
+We demonstrate the empirical behavior of all six validation strategies using the built-in Swiss historical dataset (`basel_frickthal$gcp`), consisting of 343 homologous control points from W. Haas's 1798 map of the Basel and Frickthal region:
+
 
 ``` r
 data(basel_frickthal)
@@ -372,78 +307,80 @@ knitr::kable(benchmark_table,
              caption = "Out-of-sample 2D RMSE across the 6 validation schemes for the 1798 Basel-Frickthal map.")
 ```
 
-|                  | Method           | CV_2D_RMSE_m | Residual_SD_m |
-|:-----------------|:-----------------|-------------:|--------------:|
-| random           | random           |      800.337 |        29.988 |
-| spatial          | spatial          |     1347.147 |       957.809 |
-| spatial_block    | spatial_block    |     1449.895 |       772.633 |
-| spatial_buffered | spatial_buffered |     1473.015 |       800.900 |
-| probability      | probability      |      807.817 |            NA |
-| stratified       | stratified       |      844.177 |        76.997 |
 
-Out-of-sample 2D RMSE across the 6 validation schemes for the 1798
-Basel-Frickthal map.
+
+Table: Out-of-sample 2D RMSE across the 6 validation schemes for the 1798 Basel-Frickthal map.
+
+|                 |Method           | CV_2D_RMSE_m| Residual_SD_m|
+|:----------------|:----------------|------------:|-------------:|
+|random           |random           |      800.787|        29.988|
+|spatial          |spatial          |     1657.173|       957.809|
+|spatial_block    |spatial_block    |      922.181|       273.058|
+|spatial_buffered |spatial_buffered |      955.005|       288.173|
+|probability      |probability      |      807.817|            NA|
+|stratified       |stratified       |      846.972|        76.997|
+
+
 
 ### Analysis of the Benchmark Findings
 
-- **Random Cross-Validation (`"random"`)** reports the lowest RMSE
-  because test folds are surrounded by spatially proximate training
-  points.
-- **Spatial Block (`"spatial_block"`) and Buffered Block
-  (`"spatial_buffered"`)** report higher, realistic prediction errors
-  because the model is evaluated on unseen geographic regions without
-  relying on local spatial autocorrelation.
-- When publishing empirical evaluations or assessing georeferencing
-  quality, practitioners should report spatial block or buffered block
-  metrics to reflect true out-of-sample generalization.
+- **Random cross-validation (`"random"`)** reports among the lowest errors because every test fold is surrounded by spatially proximate training points. It measures interpolation within a dense control network, not generalization to unmapped ground.
+- **Spatial clustering (`"spatial"`)** reports the highest error. $k$-means produces a small number of large, compact, strongly unbalanced clusters, so each held-out region is both large and far from any training point — the most severe extrapolation of the six schemes.
+- **Spatial block (`"spatial_block"`) and buffered block (`"spatial_buffered"`)** sit between the two. Each fold holds out several spatially disjoint tiles rather than one contiguous quadrant, so the held-out regions are smaller and better surrounded than under `"spatial"`, while still excluding the immediate neighbourhood of each test point. Tile size is controlled by `block_size`; smaller tiles move the estimate toward `"random"`, larger ones toward `"spatial"`.
+- **`"probability"`** is a single 80/20 holdout, not cross-validation. It has no replication and reports `NA` for dispersion, so it is not directly comparable with the $k$-fold rows.
+- **`"stratified"`** balances displacement magnitude across folds. That is a spatially random split, so its error is close to `"random"`; and because the strata are a function of the response, its `Residual_SD_m` is mechanically deflated and should not be compared with the other schemes' dispersions.
 
-------------------------------------------------------------------------
+**What to report.** There is no single "true" out-of-sample number: each scheme answers a different question, and the spread above (roughly 800 to 1660 m for the same model and data) is the honest measure of that sensitivity. Choose the scheme matching the intended use — interpolation within the network, or prediction into unmapped regions — state `block_size` and `buffer_dist`, and report the spread rather than the single most favourable figure. Note also that all of these reduce optimism from spatial autocorrelation; none removes it.
+
+---
 
 # The Vector Transformation Engine & Topological Resilience
 
 ## Decomposition and Geometry Reconstruction in `transform_map`
 
-The `transform_map()` function implements a multi-stage vector
-transformation pipeline: 1. **Coordinate System Verification**: Asserts
-that inputs possess a projected CRS with linear meter units, issuing
-clear warnings for unprojected angular coordinates (longitude/latitude).
-2. **Feature-by-Feature Vertex Extraction**: Decomposes complex OGC
-geometries into constituent 2D point arrays: - `POINT`: Direct
-transformation $`(x_t, y_t) = \mathbf{f}(x_s, y_s)`$. - `LINESTRING` &
-`MULTILINESTRING`: Sequential vertex transformation preserving
-coordinate order. - `POLYGON`: Preserves outer exterior boundaries and
-nested interior hole boundaries. - `MULTIPOLYGON`: Preserves multi-part
-topological structures. 3. **Batch Model Prediction**: Evaluates
-$`\mathbf{d}(\mathbf{s})`$ in vectorized batches, minimizing interpreter
-overhead. 4. **Area Recalculation**: For areal features (`POLYGON`,
-`MULTIPOLYGON`), automatically recalculates geometric area using planar
-metric properties.
+The `transform_map()` function implements a multi-stage vector transformation pipeline:
+1. **Coordinate System Verification**: Asserts that inputs possess a projected CRS with linear meter units, issuing clear warnings for unprojected angular coordinates (longitude/latitude).
+2. **Feature-by-Feature Vertex Extraction**: Decomposes complex OGC geometries into constituent 2D point arrays:
+   - `POINT`: Direct transformation $(x_t, y_t) = \mathbf{f}(x_s, y_s)$.
+   - `LINESTRING` & `MULTILINESTRING`: Sequential vertex transformation preserving coordinate order.
+   - `POLYGON`: Preserves outer exterior boundaries and nested interior hole boundaries.
+   - `MULTIPOLYGON`: Preserves multi-part topological structures.
+3. **Batch Model Prediction**: Evaluates $\mathbf{d}(\mathbf{s})$ in vectorized batches, minimizing interpreter overhead.
+4. **Area Recalculation**: For areal features (`POLYGON`, `MULTIPOLYGON`), automatically recalculates geometric area using planar metric properties.
 
 ## Topological Validity & Automated Repair
 
-Non-linear displacement fields $`\mathbf{f}(\mathbf{s})`$ can introduce
-severe topological defects into vector geometries: - Boundary edge
-self-intersections (butterfly / bowtie polygons). - Exterior ring
-reversals. - Collapsing of thin polygon slivers.
+Non-linear displacement fields $\mathbf{f}(\mathbf{s})$ can introduce severe topological defects into vector geometries:
+- Boundary edge self-intersections (butterfly / bowtie polygons).
+- Exterior ring reversals.
+- Collapsing of thin polygon slivers.
 
-`transform_map()` integrates automated topological validation and
-repair:
+`transform_map()` integrates automated topological validation and repair:
 
-``` math
-\text{Valid}(\mathcal{G}) = \begin{cases} \text{Keep } \mathcal{G} & \text{if } \texttt{sf::st\_is\_valid}(\mathcal{G}) = \text{TRUE} \\ \texttt{sf::st\_make\_valid}(\mathcal{G}) & \text{if } \texttt{sf::st\_is\_valid}(\mathcal{G}) = \text{FALSE and } \texttt{repair\_topology} = \text{TRUE} \end{cases}
-```
+$$\text{Valid}(\mathcal{G}) = \begin{cases} \text{Keep } \mathcal{G} & \text{if } \texttt{sf::st\_is\_valid}(\mathcal{G}) = \text{TRUE} \\ \texttt{sf::st\_make\_valid}(\mathcal{G}) & \text{if } \texttt{sf::st\_is\_valid}(\mathcal{G}) = \text{FALSE and } \texttt{repair\_topology} = \text{TRUE} \end{cases}$$
+
+A trained model is only meaningful over the region its control points cover.
+The Basel GCPs span roughly x $\in$ [603 517, 665 751], y $\in$ [240 727, 279 498]
+in the source system, so the demonstration parcel is placed **inside** that
+footprint. Feeding the model geometry from a different coordinate system — LV95
+(EPSG:2056) coordinates, say, which use a different false origin for the same
+country — would be extrapolation of roughly $2 \times 10^6$ map units and would
+return a "correction" far larger than the parcel itself. `transform_map()` does
+not check that the map's CRS matches the one the GCPs were digitised in, so this
+is the user's responsibility.
+
 
 ``` r
-# Create a synthetic parcel with boundary ring
+# Create a synthetic parcel inside the control point footprint
 parcel_poly <- st_polygon(list(matrix(c(
-  2610000, 1260000,
-  2615000, 1260000,
-  2615000, 1265000,
-  2610000, 1265000,
-  2610000, 1260000
+  620000, 255000,
+  625000, 255000,
+  625000, 260000,
+  620000, 260000,
+  620000, 255000
 ), ncol = 2, byrow = TRUE)))
 
-parcel_sf <- st_sf(parcel_id = "CH-01", geometry = st_sfc(parcel_poly, crs = 2056))
+parcel_sf <- st_sf(parcel_id = "CH-01", geometry = st_sfc(parcel_poly, crs = 21781))
 
 # Fit a TPS model on the Basel GCPs
 model_tps <- train_pai_model(gcp_data = swiss_cps, method = "tps")
@@ -455,79 +392,65 @@ transformed_parcel <- transform_map(
   repair_topology = TRUE
 )
 
+# transform_map() writes the recalculated area to `area_new`.
 cat(sprintf("Original Area:    %.2f sq m\nTransformed Area: %.2f sq m\nTopology Valid:   %s\n",
             st_area(parcel_sf),
-            transformed_parcel$area_m2,
+            transformed_parcel$area_new,
             st_is_valid(transformed_parcel)))
+#> Original Area:    25000000.00 sq m
+#> Transformed Area: 26252000.50 sq m
+#> Topology Valid:   TRUE
 ```
 
-------------------------------------------------------------------------
+---
 
 # In-Memory Raster Rectification: The Damped Picard Inversion Solver
 
-## Forward Mapping vs. Backward Mapping
+## Forward Mapping vs. Backward Mapping
 
-Rectifying a continuous raster grid presents a fundamental mathematical
-dilemma: - **Forward Mapping**: Moving source pixels
-$`\mathbf{s}_{i,j}`$ to target locations
-$`\mathbf{t}_{i,j} = \mathbf{f}(\mathbf{s}_{i,j})`$. Because
-$`\mathbf{f}`$ is non-linear, target coordinates fall unevenly across
-continuous space, producing empty “raster holes” (unassigned cells) and
-overlapping cell collisions. - **Backward Mapping**: Iterating over
-regular target grid pixels $`\mathbf{t}_{u,v}`$ and finding the
-corresponding source coordinate
-$`\mathbf{s}_{u,v} = \mathbf{f}^{-1}(\mathbf{t}_{u,v})`$, followed by
-bilinear interpolation of pixel values.
+Rectifying a continuous raster grid presents a fundamental mathematical dilemma:
+- **Forward Mapping**: Moving source pixels $\mathbf{s}_{i,j}$ to target locations $\mathbf{t}_{i,j} = \mathbf{f}(\mathbf{s}_{i,j})$. Because $\mathbf{f}$ is non-linear, target coordinates fall unevenly across continuous space, producing empty "raster holes" (unassigned cells) and overlapping cell collisions.
+- **Backward Mapping**: Iterating over regular target grid pixels $\mathbf{t}_{u,v}$ and finding the corresponding source coordinate $\mathbf{s}_{u,v} = \mathbf{f}^{-1}(\mathbf{t}_{u,v})$, followed by bilinear interpolation of pixel values.
 
-However, PAI models are explicitly trained in the **forward direction**
-($`\mathbf{t} = \mathbf{s} + \mathbf{d}(\mathbf{s})`$). For non-linear
-models like TPS and GAM, no analytical inverse $`\mathbf{f}^{-1}`$
-exists.
+However, PAI models are explicitly trained in the **forward direction** ($\mathbf{t} = \mathbf{s} + \mathbf{d}(\mathbf{s})$). For non-linear models like TPS and GAM, no analytical inverse $\mathbf{f}^{-1}$ exists.
 
 ## Damped Picard-Mann Iterative Fixed-Point Inversion
 
-To solve the backward mapping problem without requiring explicit model
-inversion, `apply_pai_raster()` implements a **Damped Picard-Mann
-Iterative Fixed-Point Coordinate Solver**.
+To solve the backward mapping problem without requiring explicit model inversion, `apply_pai_raster()` implements a **Damped Picard-Mann Iterative Fixed-Point Coordinate Solver**.
 
-Given a target cell coordinate $`\mathbf{t}`$, we seek $`\mathbf{s}^*`$
-such that:
+Given a target cell coordinate $\mathbf{t}$, we seek $\mathbf{s}^*$ such that:
 
-``` math
-\mathbf{s}^* + \mathbf{d}(\mathbf{s}^*) = \mathbf{t} \iff \mathbf{s}^* = \mathbf{t} - \mathbf{d}(\mathbf{s}^*)
-```
+$$\mathbf{s}^* + \mathbf{d}(\mathbf{s}^*) = \mathbf{t} \iff \mathbf{s}^* = \mathbf{t} - \mathbf{d}(\mathbf{s}^*)$$
 
-Starting with initial estimate
-$`\mathbf{s}^{(0)} = \mathbf{t} - \mathbf{d}(\mathbf{t})`$, the
-iterative sequence proceeds as:
+Starting with initial estimate $\mathbf{s}^{(0)} = \mathbf{t} - \mathbf{d}(\mathbf{t})$, the iterative sequence proceeds as:
 
-``` math
-\mathbf{s}^{(k+1)} = \mathbf{s}^{(k)} - \lambda \left[ \mathbf{s}^{(k)} + \mathbf{d}(\mathbf{s}^{(k)}) - \mathbf{t} \right], \quad k = 0, 1, \dots, K_{\max}
-```
+$$\mathbf{s}^{(k+1)} = \mathbf{s}^{(k)} - \lambda \left[ \mathbf{s}^{(k)} + \mathbf{d}(\mathbf{s}^{(k)}) - \mathbf{t} \right], \quad k = 0, 1, \dots, K_{\max}$$
 
-where $`\lambda \in (0, 1]`$ is a relaxation damping factor
-($`\lambda = 0.70`$ by default). Iteration terminates when the Euclidean
-step size falls below tolerance $`\epsilon = 10^{-4}`$ meters:
+where $\lambda$ is a relaxation damping factor, exposed as the `lambda` argument (default 0.70). Rewriting the update as
 
-``` math
-\|\mathbf{s}^{(k+1)} - \mathbf{s}^{(k)}\|_2 < \epsilon
-```
+$$\mathbf{s}^{(k+1)} = (1 - \lambda)\,\mathbf{s}^{(k)} + \lambda\, T(\mathbf{s}^{(k)}), \qquad T(\mathbf{s}) = \mathbf{t} - \mathbf{d}(\mathbf{s})$$
+
+identifies it as the averaged (Krasnosel'skii–Mann) iteration. It converges linearly when the eigenvalues of $\mathbf{J} = \mathbf{I} + \partial\mathbf{d}/\partial\mathbf{s}$ lie in $(0, 2/\lambda)$; damping helps only near fold-over, and `lambda = 1` converges faster for well-behaved fields.
+
+Iteration terminates when the **residual of the fixed-point equation**, taken as a maximum over all evaluated points, falls below `tol` ($\epsilon = 10^{-4}$ by default):
+
+$$\max_i \left\| \mathbf{s}_i^{(k)} + \mathbf{d}(\mathbf{s}_i^{(k)}) - \mathbf{t}_i \right\|_2 < \epsilon$$
+
+Note this is the residual, not the step size — the step is $\lambda$ times the residual. If `max_iter` is exhausted before the tolerance is met, or if the iteration diverges, `apply_pai_raster()` issues a warning reporting the residual actually achieved; it does not return silently as though converged.
 
 ## Subsampled Mesh Bilinear Interpolation
 
-Evaluating the fixed-point solver for every pixel on a 50-megapixel
-raster is computationally prohibitive. `apply_pai_raster()` constructs a
-coarse regular mesh across the target domain (e.g., $`100 \times 100`$
-control nodes), solves the iterative inversion exclusively at mesh
-vertices, and applies fast continuous bilinear interpolation across
-intermediate pixels.
+Evaluating the fixed-point solver for every pixel on a 50-megapixel raster is computationally prohibitive. `mesh_step` is a subsampling **stride**, not a node count: `mesh_step = k` solves the iterative inversion on a mesh whose spacing is `k` times the target cell size (so a $60 \times 60$ raster with `mesh_step = 2` uses a $30 \times 30$ mesh), then reconstructs the displacement field across intermediate pixels by bilinear interpolation.
+
+This trades accuracy for speed. The interpolation error is $O(h^2 \|D^2 \mathbf{d}\|)$ with $h = \texttt{mesh\_step} \times \texttt{res}$: it grows with the square of the stride and with the curvature of the displacement field. For smooth fields a modest stride stays well below one pixel; for a strongly curved TPS or GAM field with a large stride it will not. Verify against `mesh_step = NULL` before relying on it.
+
 
 ``` r
 # Create synthetic raster map representing distorted survey map
 r_distorted <- rast(nrows = 60, ncols = 60,
-                    xmin = 2605000, xmax = 2625000,
-                    ymin = 1255000, ymax = 1275000,
-                    crs = "EPSG:2056")
+                    xmin = 610000, xmax = 660000,
+                    ymin = 245000, ymax = 275000,
+                    crs = "EPSG:21781")
 values(r_distorted) <- sin(seq(0, 4*pi, length.out = ncell(r_distorted)))
 
 # Rectify raster entirely in memory
@@ -545,77 +468,47 @@ cat(sprintf("Original Raster Dimensions:  %d x %d\nRectified Raster Dimensions: 
             nrow(r_rectified), ncol(r_rectified),
             inMemory(r_rectified)))
 #> Original Raster Dimensions:  60 x 60
-#> Rectified Raster Dimensions: 55 x 65
+#> Rectified Raster Dimensions: 64 x 67
 #> In-Memory Processing:        TRUE
 ```
 
-------------------------------------------------------------------------
+---
 
 # Differential Geometry & Topological Inversion Diagnostics
 
-## The Metric Tensor and Tissot’s Indicatrix
+## The Metric Tensor and Tissot's Indicatrix
 
-Any continuous map transformation
-$`\mathbf{f}(x, y) = (u(x, y), v(x, y))^T`$ can be characterized locally
-by its **Jacobian matrix** $`\mathbf{J}`$:
+Any continuous map transformation $\mathbf{f}(x, y) = (u(x, y), v(x, y))^T$ can be characterized locally by its **Jacobian matrix** $\mathbf{J}$:
 
-``` math
-\mathbf{J}(x, y) = \begin{pmatrix} \frac{\partial u}{\partial x} & \frac{\partial u}{\partial y} \\ \frac{\partial v}{\partial x} & \frac{\partial v}{\partial y} \end{pmatrix} = \begin{pmatrix} 1 + \frac{\partial d_x}{\partial x} & \frac{\partial d_x}{\partial y} \\ \frac{\partial d_y}{\partial x} & 1 + \frac{\partial d_y}{\partial y} \end{pmatrix}
-```
+$$\mathbf{J}(x, y) = \begin{pmatrix} \frac{\partial u}{\partial x} & \frac{\partial u}{\partial y} \\ \frac{\partial v}{\partial x} & \frac{\partial v}{\partial y} \end{pmatrix} = \begin{pmatrix} 1 + \frac{\partial d_x}{\partial x} & \frac{\partial d_x}{\partial y} \\ \frac{\partial d_y}{\partial x} & 1 + \frac{\partial d_y}{\partial y} \end{pmatrix}$$
 
-The **Cauchy-Green metric tensor**
-$`\mathbf{G} = \mathbf{J}^T \mathbf{J}`$ describes how infinitesimal
-lengths and angles are distorted. According to Tissot’s theorem (Tissot,
-1881), an infinitesimal circle in the source domain is mapped to an
-infinitesimal ellipse (**Tissot’s Indicatrix**) in the target domain.
+The **Cauchy-Green metric tensor** $\mathbf{G} = \mathbf{J}^T \mathbf{J}$ describes how infinitesimal lengths and angles are distorted. According to Tissot's theorem (Tissot, 1881), an infinitesimal circle in the source domain is mapped to an infinitesimal ellipse (**Tissot's Indicatrix**) in the target domain.
 
-The eigenvalues of $`\mathbf{G}`$, denoted
-$`\lambda_1 \ge \lambda_2 > 0`$, correspond to the squared lengths of
-the semi-major ($`a`$) and semi-minor ($`b`$) axes of Tissot’s ellipse:
+The eigenvalues of $\mathbf{G}$, denoted $\lambda_1 \ge \lambda_2 > 0$, correspond to the squared lengths of the semi-major ($a$) and semi-minor ($b$) axes of Tissot's ellipse:
 
-``` math
-a = \sqrt{\lambda_1}, \qquad b = \sqrt{\lambda_2}
-```
+$$a = \sqrt{\lambda_1}, \qquad b = \sqrt{\lambda_2}$$
 
-From these principal axes, `analyze_distortion()` extracts fundamental
-deformation invariants: 1. **Area Scale Factor ($`s`$)**: Ratio of
-transformed area to original area:
-``` math
-s = a \cdot b = |\det(\mathbf{J})|
-```
-2. **Maximum Angular Distortion ($`2\omega`$)**: Maximum angular
-deviation experienced by orthogonal intersecting lines:
-``` math
-2\omega = 2 \arcsin\left( \frac{a - b}{a + b} \right)
-```
-3. **Areal Strain ($`\sigma`$)**: Percentage change in differential
-surface area:
-``` math
-\sigma = s - 1
-```
+From these principal axes, `analyze_distortion()` extracts fundamental deformation invariants:
+1. **Area Scale Factor ($s$)**: Ratio of transformed area to original area:
+   $$s = a \cdot b = |\det(\mathbf{J})|$$
+2. **Maximum Angular Distortion ($2\omega$)**: Maximum angular deviation experienced by orthogonal intersecting lines:
+   $$2\omega = 2 \arcsin\left( \frac{a - b}{a + b} \right)$$
+3. **Areal Strain ($\sigma$)**: Percentage change in differential surface area:
+   $$\sigma = s - 1$$
 
 ## Topological Inversion: The Signed Jacobian Determinant
 
-While the classical Tissot formulation considers only the absolute area
-scale factor $`|\det(\mathbf{J})|`$, `mapAI` computes the **signed
-Jacobian determinant**:
+While the classical Tissot formulation considers only the absolute area scale factor $|\det(\mathbf{J})|$, `mapAI` computes the **signed Jacobian determinant**:
 
-``` math
-\det(\mathbf{J}) = \frac{\partial u}{\partial x}\frac{\partial v}{\partial y} - \frac{\partial u}{\partial y}\frac{\partial v}{\partial x}
-```
+$$\det(\mathbf{J}) = \frac{\partial u}{\partial x}\frac{\partial v}{\partial y} - \frac{\partial u}{\partial y}\frac{\partial v}{\partial x}$$
 
-The sign of $`\det(\mathbf{J})`$ carries vital topological
-significance: - **$`\det(\mathbf{J}) > 0`$**: The transformation is
-orientation-preserving and locally homeomorphic. -
-**$`\det(\mathbf{J}) = 0`$**: The transformation has collapsed spatial
-dimensions into a line or point (singular shear). -
-**$`\det(\mathbf{J}) < 0`$**: The transformation has folded the map onto
-itself (topological fold-over / reflection), breaking geographic
-reality.
+The sign of $\det(\mathbf{J})$ carries vital topological significance:
+- **$\det(\mathbf{J}) > 0$**: The transformation is orientation-preserving and locally homeomorphic.
+- **$\det(\mathbf{J}) = 0$**: The transformation has collapsed spatial dimensions into a line or point (singular shear).
+- **$\det(\mathbf{J}) < 0$**: The transformation has folded the map onto itself (topological fold-over / reflection), breaking geographic reality.
 
-Whenever $`\det(\mathbf{J}) \le 0`$ occurs within the evaluation grid,
-`analyze_distortion()` triggers an explicit warning alerting the
-practitioner to local topological inversion.
+Whenever $\det(\mathbf{J}) \le 0$ occurs within the evaluation grid, `analyze_distortion()` triggers an explicit warning alerting the practitioner to local topological inversion.
+
 
 ``` r
 # Compute differential distortion across the Swiss GCPs
@@ -625,69 +518,77 @@ distortion_res <- analyze_distortion(
 
 # Print comprehensive summary
 summary(distortion_res)
-#>                               Mean      Median         SD           Min
-#> a                       1.20082103  1.16454256  0.2278500  6.771416e-01
-#> b                       0.84614432  0.86849258  0.1893402  1.957984e-01
-#> area_scale              1.03275373  0.98789092  0.3641865  2.208101e-01
-#> signed_area_scale       1.03275373  0.98789092  0.3641865  2.208101e-01
-#> det_J                   1.03275373  0.98789092  0.3641865  2.208101e-01
-#> is_inverted             0.00000000  0.00000000  0.0000000  0.000000e+00
-#> log2_area_scale        -0.04557977 -0.01757634  0.5350780 -2.179122e+00
-#> max_shear              10.23318444  8.53810540  7.0612956  9.781949e-01
-#> max_angular_distortion  0.35720552  0.29803610  0.2464857  3.414544e-02
-#> airy_kavrayskiy         0.08481933  0.04138961  0.1406059  3.937847e-04
-#> theta_a                 2.04241718  5.95862659 51.1233127 -1.008441e+02
-#>                              Max
-#> a                       2.042445
-#> b                       1.443367
-#> area_scale              2.656927
-#> signed_area_scale       2.656927
-#> det_J                   2.656927
-#> is_inverted             0.000000
-#> log2_area_scale         1.409759
-#> max_shear              52.074597
-#> max_angular_distortion  1.817746
-#> airy_kavrayskiy         1.457502
-#> theta_a                92.580494
+#>                               Mean      Median         SD          Min
+#> a                       1.20082103  1.16454256  0.2278500   0.67714158
+#> b                       0.84614432  0.86849258  0.1893402   0.19579843
+#> area_scale              1.03275373  0.98789092  0.3641865   0.22081011
+#> signed_area_scale       1.03275373  0.98789092  0.3641865   0.22081011
+#> det_J                   1.03275373  0.98789092  0.3641865   0.22081011
+#> is_inverted             0.00000000  0.00000000  0.0000000   0.00000000
+#> log2_area_scale        -0.04557977 -0.01757634  0.5350780  -2.17912188
+#> max_angular_distortion 20.46636888 17.07621078 14.1225912   1.95638972
+#> airy_kavrayskiy         0.24279782  0.20344438  0.1610720   0.01984401
+#> theta_a                 0.43807181 -3.34390643 50.8774163 -91.75884762
+#>                               Max
+#> a                        2.042445
+#> b                        1.443367
+#> area_scale               2.656927
+#> signed_area_scale        2.656927
+#> det_J                    2.656927
+#> is_inverted              0.000000
+#> log2_area_scale          1.409759
+#> max_angular_distortion 104.149193
+#> airy_kavrayskiy          1.207271
+#> theta_a                107.133363
 ```
 
-Visualizing the spatial distribution of angular distortion, area scale,
-and displacement vectors reveals where the historical map experienced
-severe physical strain:
+Visualizing the spatial distribution of angular distortion, area scale, and displacement vectors reveals where the historical map experienced severe physical strain:
+
 
 ``` r
 # Plot spatial displacement vectors and distortion metrics
 plot(swiss_cps)
 ```
 
-<img src="../man/figures/capabilities/plot-distortion-fields-1.png" alt="" style="display: block; margin: auto;" />
+<div class="figure" style="text-align: center">
+<img src="figure/plot-distortion-fields-1.png" alt="plot of chunk plot-distortion-fields"  />
+<p class="caption">plot of chunk plot-distortion-fields</p>
+</div>
 
 ``` r
 plot(distortion_res, metric = "area_scale")
 ```
 
-<img src="../man/figures/capabilities/plot-distortion-fields-2.png" alt="" style="display: block; margin: auto;" />
+<div class="figure" style="text-align: center">
+<img src="figure/plot-distortion-fields-2.png" alt="plot of chunk plot-distortion-fields"  />
+<p class="caption">plot of chunk plot-distortion-fields</p>
+</div>
 
 ``` r
 plot(distortion_res, metric = "max_angular_distortion")
 ```
 
-<img src="../man/figures/capabilities/plot-distortion-fields-3.png" alt="" style="display: block; margin: auto;" />
+<div class="figure" style="text-align: center">
+<img src="figure/plot-distortion-fields-3.png" alt="plot of chunk plot-distortion-fields"  />
+<p class="caption">plot of chunk plot-distortion-fields</p>
+</div>
 
 ``` r
 indicatrices(distortion_res)
 ```
 
-<img src="../man/figures/capabilities/plot-distortion-fields-4.png" alt="" style="display: block; margin: auto;" />
+<div class="figure" style="text-align: center">
+<img src="figure/plot-distortion-fields-4.png" alt="plot of chunk plot-distortion-fields"  />
+<p class="caption">plot of chunk plot-distortion-fields</p>
+</div>
 
-------------------------------------------------------------------------
+---
 
 # Complete End-to-End Practitioner Case Study
 
-We conclude with a complete end-to-end script illustrating the
-recommended `mapAI` workflow on historical spatial data:
+We conclude with a complete end-to-end script illustrating the recommended `mapAI` workflow on historical spatial data:
 
-``` r
+```r
 library(mapAI)
 library(sf)
 library(terra)
@@ -697,7 +598,7 @@ data(basel_frickthal)
 cps <- basel_frickthal$gcp
 
 # Step 2: Integrated Model Training with Spatial Block Cross-Validation
-# Using spatial blocks to prevent spatial autocorrelation data leakage
+# Spatial blocks reduce spatial autocorrelation data leakage
 pai_mod <- train_pai_model(
   gcp_data = cps,
   method = "gam_biv",
@@ -715,41 +616,33 @@ if (any(dist_diag$is_inverted)) {
 # Step 4: Vector Feature Transformation with Automated Topology Repair
 parcels_transformed <- transform_map(
   map = historical_parcels,
-  model = pai_mod,
+  pai_model = pai_mod,
   repair_topology = TRUE
 )
 
 # Step 5: High-Performance In-Memory Raster Rectification
 historical_sheet_rectified <- apply_pai_raster(
   raster = scanned_map_sheet,
-  model = pai_mod,
-  mesh_size = 50,
+  pai_model = pai_mod,
+  mesh_step = 10,
   max_iter = 15,
   tol = 1e-4
 )
 ```
 
-------------------------------------------------------------------------
+---
 
 # References
 
-1.  **Bookstein, F. L. (1989)**. Principal warps: Thin-plate splines and
-    the decomposition of deformations. *IEEE Transactions on Pattern
-    Analysis and Machine Intelligence*, 11(6), 567–585.
-2.  **Golub, G. H., & Van Loan, C. F. (2013)**. *Matrix Computations*
-    (4th ed.). Johns Hopkins University Press.
-3.  **Roberts, D. R., Bahn, V., Ciuti, S., Boyce, M. S., Elith, J.,
-    Guillera-Arroita, G., … & Dormann, C. F. (2017)**. Cross-validation
-    strategies for data with temporal, spatial, hierarchical or
-    phylogenetic structure. *Ecography*, 40(8), 913–929.
-4.  **Tissot, A. (1881)**. *Mémoire sur la représentation des surfaces
-    et les projections des cartes géographiques*. Gauthier-Villars.
-5.  **Tobler, W. R. (1970)**. A computer movie simulating urban growth
-    in the Detroit region. *Economic Geography*, 46(sup1), 234–240.
-6.  **Valente, R., Vantas, K., & Carrera-Hernández, J. (2021)**.
-    Positional accuracy assessment and improvement of historical maps
-    using non-linear spline models. *International Journal of
-    Geographical Information Science*.
-7.  **Wood, S. N. (2003)**. Thin plate regression splines. *Journal of
-    the Royal Statistical Society: Series B (Statistical Methodology)*,
-    65(1), 95–114.
+1. **Akima, H. (1978)**. A Method of Bivariate Interpolation and Smooth Surface Fitting for Irregularly Distributed Data Points. *ACM Transactions on Mathematical Software*, 4(2), 148–159.
+1b. **Akima, H. (1996)**. Algorithm 761: Scattered-data surface fitting that has the accuracy of a cubic polynomial. *ACM Transactions on Mathematical Software*, 22(3), 362–371.
+2. **Bookstein, F. L. (1989)**. Principal warps: Thin-plate splines and the decomposition of deformations. *IEEE Transactions on Pattern Analysis and Machine Intelligence*, 11(6), 567–585.
+3. **Doytsher, Y., & Gelbman, E. (1995)**. A rubber sheeting algorithm for non-rectangular maps. *Computers & Geosciences*, 21(1), 55–61.
+4. **Golub, G. H., & Van Loan, C. F. (2013)**. *Matrix Computations* (4th ed.). Johns Hopkins University Press.
+5. **Roberts, D. R., Bahn, V., Ciuti, S., Boyce, M. S., Elith, J., Guillera-Arroita, G., ... & Dormann, C. F. (2017)**. Cross-validation strategies for data with temporal, spatial, hierarchical or phylogenetic structure. *Ecography*, 40(8), 913–929.
+6. **Saalfeld, A. (1985)**. A fast rubber-sheeting transformation using Delaunay triangulation. *The American Cartographer*, 12(2), 169–173.
+7. **Tissot, A. (1881)**. *Mémoire sur la représentation des surfaces et les projections des cartes géographiques*. Gauthier-Villars.
+8. **Tobler, W. R. (1970)**. A computer movie simulating urban growth in the Detroit region. *Economic Geography*, 46(sup1), 234–240.
+9. **Valente, R., Vantas, K., & Carrera-Hernández, J. (2021)**. Positional accuracy assessment and improvement of historical maps using non-linear spline models. *International Journal of Geographical Information Science*.
+10. **White, M. S., & Griffin, P. (1985)**. Piecewise linear rubber-sheet map transformation. *The American Cartographer*, 12(2), 123–131.
+11. **Wood, S. N. (2003)**. Thin plate regression splines. *Journal of the Royal Statistical Society: Series B (Statistical Methodology)*, 65(1), 95–114.

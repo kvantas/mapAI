@@ -29,7 +29,7 @@ demo_data <- create_demo_data()
 set.seed(1)
 indx <- sample(1:nrow(demo_data$gcp), 100)
 train_set <- demo_data$gcp[indx, ]
-test_set <- demo_data$gcp[indx, ]
+test_set <- demo_data$gcp[-indx, ]   # held out: NOT the training rows
 
 # fit a linear model
 lm_model <- train_pai_model(train_set, method = "lm")

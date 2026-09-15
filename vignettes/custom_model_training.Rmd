@@ -29,7 +29,7 @@ This vignette demonstrates how to define, tune, train, and evaluate custom model
 To avoid data leakage and optimism bias, we follow standard ML evaluation practices:
 - **Data Splitting**: We split the ground control points (GCPs) into an 80% training set (`train_gcp`) and a 20% held-out test set (`test_gcp`).
 - **Hyperparameter Tuning on Training Data**: Cross-validation (`cv_pai_model`) is performed exclusively on the training set to identify optimal hyperparameters.
-- **Unbiased Test Set Evaluation**: Final models are fitted on the training set and evaluated on the unseen test set, reporting true out-of-sample 2D RMSE.
+- **Held-Out Test Set Evaluation**: Final models are fitted on the training set and evaluated on the unseen test set, reporting out-of-sample 2D RMSE. Note the split below is random, not spatial, so the reported figure is unbiased with respect to hyperparameter-selection leakage but still optimistic for spatial generalization (see the capabilities vignette).
 - **Raster Rectification & Distortion Analysis**: The trained models are applied to correct a continuous raster map and evaluate spatial distortion fields across the domain.
 
 ## Generating Demo Data and Train/Test Split
@@ -60,8 +60,16 @@ In `mapAI`, a custom model is defined as a list containing the following element
 - `label`: A descriptive name for the model.
 - `library`: Name of the package (or packages) required by the model.
 - `modelType`: Either `"univariate"` (fitting separate models for `dx` and `dy`) or `"bivariate"` (fitting both simultaneously).
-- `fit`: A function with arguments `x`, `y`, and `...` that trains the model on source coordinates `x` and target displacement `y`.
-- `predict`: A function with arguments `modelFit`, `newdata`, and `...` that returns predicted displacement values.
+- `fit`: the signature depends on `modelType`.
+  - For `modelType = "univariate"`, `function(x, y, ...)`, called twice — once for
+    `dx` and once for `dy` — where `x` is a data frame of source coordinates and
+    `y` the response vector.
+  - For `modelType = "bivariate"`, `function(dat, ...)`, called once, where `dat`
+    is the **whole GCP data frame** carrying `source_x`, `source_y`, `target_x`,
+    `target_y`, `dx` and `dy`.
+- `predict`: `function(modelFit, newdata, ...)`. A univariate model returns a
+  numeric vector; a bivariate model returns a two-column object whose first
+  column is `dx` and second `dy`.
 
 ### Custom Model 1: Support Vector Regression (SVR)
 
@@ -200,7 +208,7 @@ rf_fitted  <- train_pai_model(train_gcp, method = rf_model, num.trees = best_tre
 
 ## Out-of-Sample Evaluation on the Held-Out Test Set
 
-Now we assess the true generalization accuracy of each model by predicting on the unseen `test_gcp` data points. This guarantees an unbiased performance comparison:
+Now we assess each model on the unseen `test_gcp` points. Because the split is random rather than spatial, nearby training and test points remain correlated, so treat these figures as an upper bound on accuracy for interpolation within the control network, not as spatial generalization performance:
 
 ```{r evaluate-test-set}
 # Generate predictions on unseen test set
@@ -270,15 +278,15 @@ dist_svr <- analyze_distortion(svr_fitted, newdata = demo_data$raster)
 dist_nn  <- analyze_distortion(nn_fitted, newdata = demo_data$raster)
 dist_rf  <- analyze_distortion(rf_fitted, newdata = demo_data$raster)
 
-# Summarize area scale and maximum shear distortion
+# Summarize area scale and maximum angular distortion
 cat("=== SVR Distortion Summary ===\n")
-summary(dist_svr[[c("area_scale", "max_shear")]])
+summary(dist_svr[[c("area_scale", "max_angular_distortion")]])
 
 cat("=== Neural Network Distortion Summary ===\n")
-summary(dist_nn[[c("area_scale", "max_shear")]])
+summary(dist_nn[[c("area_scale", "max_angular_distortion")]])
 
 cat("=== Random Forest Distortion Summary ===\n")
-summary(dist_rf[[c("area_scale", "max_shear")]])
+summary(dist_rf[[c("area_scale", "max_angular_distortion")]])
 ```
 
 ### Visualizing Distortion Surfaces
@@ -292,10 +300,12 @@ plot(
   main = c("SVR: Area Scale", "NN: Area Scale", "RF: Area Scale")
 )
 
-# Compare maximum shear distortion surfaces (degrees)
+# Compare maximum angular distortion surfaces (degrees)
 plot(
-  c(dist_svr$max_shear, dist_nn$max_shear, dist_rf$max_shear),
-  main = c("SVR: Max Shear (deg)", "NN: Max Shear (deg)", "RF: Max Shear (deg)")
+  c(dist_svr$max_angular_distortion, dist_nn$max_angular_distortion,
+    dist_rf$max_angular_distortion),
+  main = c("SVR: Max Angular Distortion (deg)", "NN: Max Angular Distortion (deg)",
+           "RF: Max Angular Distortion (deg)")
 )
 ```
 
@@ -303,7 +313,7 @@ plot(
 
 This vignette demonstrates an end-to-end machine learning workflow for custom models in `mapAI`:
 - **Custom Model Flexibility**: Support Vector Regression, Neural Networks, and Random Forests can be seamlessly integrated into `mapAI`.
-- **Methodological Rigor**: Preventing data leakage by tuning hyperparameters exclusively on training data and reporting unbiased generalization performance on held-out test data.
+- **Methodological Rigor**: Avoiding hyperparameter-selection leakage by tuning exclusively on training data and reporting performance on held-out test data. For spatial generalization, use one of the spatial cross-validation schemes instead of a random split.
 - **Multimodal Evaluation**: Evaluating spatial transformations through cross-validation, held-out test sets, raster map rectification, and continuous Tissot distortion analysis.
 
 

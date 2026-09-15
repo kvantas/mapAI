@@ -20,8 +20,9 @@
 #' 2.  **Model Training & Integrated Validation:** Fit transformation models using
 #'     `train_pai_model()` across a tiered algorithmic hierarchy:
 #'     \itemize{
-#'       \item `"helmert"`: 2D conformal similarity via Ordinary Least Squares (OLS)
-#'         or Total Least Squares (TLS / SVD Procrustes) with analytical standard errors.
+#'       \item `"helmert"`: 2D conformal similarity via Ordinary Least Squares
+#'         (OLS), Total Least Squares (errors-in-variables), or scaled orthogonal
+#'         Procrustes, with analytical standard errors.
 #'       \item `"lm"`: General affine bivariate linear regression.
 #'       \item `"tps"`: Thin Plate Splines minimizing biharmonic bending energy.
 #'       \item `"gam_biv"`: Bivariate Generalized Additive Models with thin plate
@@ -39,7 +40,7 @@
 #'     repairing non-linear topological self-intersections via `sf::st_make_valid()`.
 #'
 #' 4.  **In-Memory Raster Rectification:** Correct continuous or discrete `terra`
-#'     `SpatRaster` objects using `apply_pai_raster()`, utilizing a damped Picard-Mann
+#'     `SpatRaster` objects using `apply_pai_raster()`, utilizing a damped Krasnoselskii-Mann
 #'     iterative fixed-point coordinate inversion solver with regular mesh interpolation,
 #'     operating 100% in RAM without temporary disk files.
 #'

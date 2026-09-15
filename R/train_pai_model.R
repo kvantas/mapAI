@@ -16,8 +16,11 @@
 #'   \item \strong{`"helmert"` (4-Parameter Conformal Transformation):}
 #'     A rigid similarity transformation preserving angles and shapes:
 #'     \deqn{\begin{pmatrix} x \\ y \end{pmatrix} = \begin{pmatrix} t_x \\ t_y \end{pmatrix} + \begin{pmatrix} a & -b \\ b & a \end{pmatrix} \begin{pmatrix} u \\ v \end{pmatrix}}
-#'     Estimated via Ordinary Least Squares (OLS) or Total Least Squares (TLS / SVD Procrustes)
-#'     to mitigate regression dilution bias (Wolf & Ghilani, 2006).
+#'     Estimated by Ordinary Least Squares, by Total Least Squares (which accounts
+#'     for error in the source coordinates and so mitigates regression-dilution
+#'     bias), or by scaled orthogonal Procrustes. See [helmert()] for the
+#'     distinction: Procrustes and OLS coincide for this model
+#'     (Wolf & Ghilani, 2006; Golub & Van Loan, 2013).
 #'   \item \strong{`"lm"` (First-Order Bivariate Polynomial Affine):}
 #'     Fits independent linear surface trends for each displacement axis:
 #'     \deqn{d_x = \beta_{0x} + \beta_{1x} u + \beta_{2x} v, \quad d_y = \beta_{0y} + \beta_{1y} u + \beta_{2y} v}
@@ -30,31 +33,56 @@
 #'     Models displacement components simultaneously using a bivariate thin plate regression
 #'     spline with a joint multivariate normal error distribution:
 #'     \deqn{\begin{pmatrix} d_x \\ d_y \end{pmatrix} \sim \mathcal{N}_2\left(\begin{pmatrix} \mu_x(u, v) \\ \mu_y(u, v) \end{pmatrix}, \boldsymbol{\Sigma}\right)}
-#'     where the basis dimension \eqn{k} is adaptively tuned to sample size:
-#'     \deqn{k = \max\left(3, \min\left(29, \lfloor 0.6 \cdot n_{\text{unique}} \rfloor\right)\right)}
-#'     preventing rank-deficiency errors in small-sample control point sets (Wood, 2017).
+#'     Smoothing parameters are selected by REML (`mgcv::mvn` is a general family,
+#'     for which mgcv always uses REML). The basis dimension \eqn{k} is adaptively
+#'     tuned to sample size:
+#'     \deqn{k = \max\left(3, \min\left(k_{\max}, \lfloor 0.6 \cdot n_{\text{unique}} \rfloor\right)\right)}
+#'     The lower bound prevents rank-deficiency errors in small control point sets
+#'     (Wood, 2017). The upper bound \eqn{k_{\max}} (default 29) caps model
+#'     flexibility and binds for any set of 49 or more distinct points, which
+#'     includes every dataset shipped with this package. If `mgcv::k.check()`
+#'     reports an effective degrees of freedom close to \eqn{k - 1}, the basis is
+#'     the limiting factor rather than the data: pass a larger `k` or `k_max`
+#'     through `...` to relax it.
 #'   \item \strong{`"tin_linear"` (Piecewise Affine Delaunay Triangulation):}
 #'     Partitions the domain into triangular facets via 2D Delaunay triangulation (Sweep-Hull)
 #'     and evaluates localized affine transformations via barycentric coordinates:
 #'     \deqn{\mathbf{p}' = \lambda_1 \mathbf{t}_1 + \lambda_2 \mathbf{t}_2 + \lambda_3 \mathbf{t}_3}
 #'     providing exact interpolation at control points (\eqn{\mathrm{RMSE} = 0}) while
 #'     constraining adjustments locally. Includes automatic pre-flight screening for
-#'     topological triangle inversions (\eqn{\det(\mathbf{J}) \le 0}) and seamless global
+#'     topological triangle inversions (\eqn{\det(\mathbf{J}) \le 0}) and a global
 #'     Helmert fallback outside the convex hull (White & Griffin, 1985; Saalfeld, 1985).
+#'     Note that the fallback is \emph{not} continuous with the interior: just
+#'     inside the hull the displacement is the barycentric interpolation of the
+#'     boundary GCP displacements, just outside it is the global Helmert
+#'     prediction, and the two agree only where the global model happens to
+#'     reproduce the boundary control points. Expect a seam at the hull, and treat
+#'     distortion metrics evaluated within a cell of it as unreliable.
 #'   \item \strong{`"tin_akima"` (Akima \eqn{C^1} Triangulated Bivariate Spline):}
-#'     Fits smooth 5th-degree bivariate polynomials on Delaunay triangles with continuous partial
-#'     derivatives across facet edges, eliminating derivative kinks and ensuring smooth metric
-#'     tensors and Tissot indicatrices (Akima, 1978, 1996).
+#'     Smooth triangulated interpolation with continuous first derivatives across
+#'     facet edges, avoiding the derivative kinks of `tin_linear` and giving
+#'     smoother metric tensors and Tissot indicatrices. Implemented via
+#'     [interp::interp()] with `method = "akima"`, which provides the accuracy of a
+#'     bicubic polynomial (Akima, 1996).
 #'   \item \strong{`"hybrid_helmert_tin"` (Two-Stage Conformal Trend + Triangulated Residuals):}
-#'     Combines a global 4-parameter conformal Helmert similarity base with localized Delaunay
-#'     triangulation on residual displacements. Outside the control network's convex hull,
-#'     residuals default to zero, ensuring geodetically stable Helmert extrapolation
-#'     (Doytsher & Gelbman, 1995).
+#'     A global 4-parameter conformal Helmert base with Delaunay triangulation of
+#'     the residual displacements. Outside the convex hull residuals default to
+#'     zero, giving stable Helmert extrapolation (Doytsher & Gelbman, 1995).
 #'   \item \strong{`"hybrid_affine_tin"` (Two-Stage Affine Trend + Triangulated Residuals):}
-#'     Combines a global 6-parameter affine polynomial base (capturing uniform differential scale
-#'     and shear) with localized Delaunay triangulation on residuals, achieving exact control
-#'     point matching with stable affine extrapolation.
+#'     As above with a global 6-parameter affine base and affine extrapolation.
 #' }
+#'
+#' \strong{Relationship between the TIN family.} Inside the convex hull,
+#' `hybrid_helmert_tin` and `hybrid_affine_tin` are \emph{identical} to
+#' `tin_linear`. Barycentric weights satisfy \eqn{\sum\lambda_i = 1} and
+#' \eqn{\sum\lambda_i \mathbf{p}_i = \mathbf{p}}, so for any affine base
+#' \eqn{h} the base cancels exactly:
+#' \deqn{\mathbf{d}(\mathbf{p}) = \left[h(\mathbf{p}) - h\left(\textstyle\sum\lambda_i\mathbf{p}_i\right)\right] + \sum\lambda_i \mathbf{t}_i - \mathbf{p} = \sum \lambda_i \mathbf{d}_i}
+#' Both the conformal Helmert base and the affine `lm` base are affine, so the
+#' three methods differ \strong{only in how they extrapolate outside the hull}.
+#' Choose between them on that basis, not on expected interior accuracy. (A
+#' two-stage decomposition would be substantive only with a non-affine base or a
+#' non-linear residual interpolator.)
 #'
 #' **Integrated Cross-Validation:**
 #' By setting `cv = TRUE` or supplying a configuration list (e.g.,
@@ -71,13 +99,14 @@
 #' @references
 #' \itemize{
 #'   \item White, M. S., & Griffin, P. (1985). Piecewise linear rubber-sheet map transformation. \emph{The American Cartographer}, 12(2), 123-131.
-#'   \item Saalfeld, A. (1985). A fast rubber-sheeting algorithm based on Delaunay triangulation. \emph{The American Cartographer}, 12(2), 169-173.
-#'   \item Akima, H. (1978). A Method of Bivariate Interpolation and Smooth Surface Fitting for Irregularly Distributed Data Points. \emph{ACM Transactions on Mathematical Software}, 4(2), 148-164.
-#'   \item Doytsher, Y., & Gelbman, E. (1995). Rubber-sheeting algorithm for cadastral maps. \emph{Journal of Surveying Engineering}, 121(4), 145-162.
+#'   \item Saalfeld, A. (1985). A fast rubber-sheeting transformation using Delaunay triangulation. \emph{The American Cartographer}, 12(2), 169-173.
+#'   \item Akima, H. (1978). A Method of Bivariate Interpolation and Smooth Surface Fitting for Irregularly Distributed Data Points. \emph{ACM Transactions on Mathematical Software}, 4(2), 148-159.
+#'   \item Akima, H. (1996). Algorithm 761: Scattered-data surface fitting that has the accuracy of a cubic polynomial. \emph{ACM Transactions on Mathematical Software}, 22(3), 362-371.
+#'   \item Doytsher, Y., & Gelbman, E. (1995). A rubber sheeting algorithm for non-rectangular maps. \emph{Computers & Geosciences}, 21(1), 55-61.
 #'   \item Wood, S. N. (2017). \emph{Generalized Additive Models: An Introduction with R} (2nd ed.). Chapman & Hall/CRC.
 #'   \item Wahba, G. (1990). \emph{Spline Models for Observational Data}. Society for Industrial and Applied Mathematics.
 #'   \item Wolf, P. R., & Ghilani, C. D. (2006). \emph{Adjustment Computations: Spatial Data Analysis} (4th ed.). John Wiley & Sons.
-#'   \item Roberts et al. (2017). Cross-validation strategies for data with spatial, temporal, or phylogenetic dependence. \emph{Ecography}, 40(8), 913-929.
+#'   \item Roberts, D. R., et al. (2017). Cross-validation strategies for data with spatial, temporal, hierarchical, or phylogenetic structure. \emph{Ecography}, 40(8), 913-929.
 #'   \item Vantas, K., & Mirkopoulou, E. (2025). \emph{mapAI: An R Package for Positional Accuracy Improvement of Vector Maps}.
 #' }
 #'
@@ -114,6 +143,15 @@
 #' surface(gam_model)
 #'
 train_pai_model <- function(gcp_data, method, cv = NULL, seed = 123, ...) {
+
+  # Restore the caller's global RNG state on exit (see assess_pai_model).
+  if (exists(".Random.seed", envir = globalenv(), inherits = FALSE)) {
+    .old_seed <- get(".Random.seed", envir = globalenv(), inherits = FALSE)
+    on.exit(assign(".Random.seed", .old_seed, envir = globalenv()), add = TRUE)
+  } else {
+    on.exit(suppressWarnings(rm(".Random.seed", envir = globalenv())), add = TRUE)
+  }
+
   set.seed(seed)
 
   # Input validation
@@ -149,11 +187,24 @@ train_pai_model <- function(gcp_data, method, cv = NULL, seed = 123, ...) {
       stop("`cv` must be TRUE, FALSE, or a configuration list.", call. = FALSE)
     }
 
+    known_cv_params <- c("validation_type", "k_folds", "train_split_ratio",
+                         "n_strata", "buffer_dist", "block_size", "seed")
+    unknown <- setdiff(names(cv_params), known_cv_params)
+    if (length(unknown) > 0) {
+      warning("Ignoring unrecognised `cv` element(s): ",
+              paste(unknown, collapse = ", "),
+              ". Valid names are: ", paste(known_cv_params, collapse = ", "), ".",
+              call. = FALSE)
+    }
+
     val_type <- if (!is.null(cv_params$validation_type)) cv_params$validation_type else "spatial_block"
     k_f <- if (!is.null(cv_params$k_folds)) cv_params$k_folds else 5
     t_ratio <- if (!is.null(cv_params$train_split_ratio)) cv_params$train_split_ratio else 0.8
     n_str <- if (!is.null(cv_params$n_strata)) cv_params$n_strata else 4
     buf_d <- cv_params$buffer_dist
+    blk_sz <- cv_params$block_size
+    # A `seed` supplied inside the cv list used to be read by nothing at all.
+    cv_seed <- if (!is.null(cv_params$seed)) cv_params$seed else seed
 
     message(paste("Running integrated", val_type, "cross-validation..."))
     cv_assessment <- assess_pai_model(
@@ -164,7 +215,8 @@ train_pai_model <- function(gcp_data, method, cv = NULL, seed = 123, ...) {
       train_split_ratio = t_ratio,
       n_strata = n_str,
       buffer_dist = buf_d,
-      seed = seed,
+      block_size = blk_sz,
+      seed = cv_seed,
       ...
     )
   }
@@ -256,7 +308,7 @@ train_pai_model <- function(gcp_data, method, cv = NULL, seed = 123, ...) {
 #' set.seed(1)
 #' indx <- sample(1:nrow(demo_data$gcp), 100)
 #' train_set <- demo_data$gcp[indx, ]
-#' test_set <- demo_data$gcp[indx, ]
+#' test_set <- demo_data$gcp[-indx, ]   # held out: NOT the training rows
 #'
 #' # fit a linear model
 #' lm_model <- train_pai_model(train_set, method = "lm")
@@ -408,9 +460,22 @@ plot.pai_model <- function(x, ...) {
 #' @description Visualizes the residual errors of a trained `pai_model`
 #' as arrows pointing from predicted to actual target locations.
 #'
+#' @details
+#' By default this plots \strong{in-sample} residuals: the model is evaluated on
+#' the very control points it was fitted to. For the exact interpolators
+#' (`tin_linear`, `tin_akima`, `hybrid_helmert_tin`, `hybrid_affine_tin`) those
+#' residuals are zero by construction, so the plot is empty and carries no
+#' information about predictive accuracy.
+#'
+#' Set `out_of_sample = TRUE` to plot the out-of-fold residuals instead, which is
+#' the honest picture of predictive performance. This requires a model trained
+#' with cross-validation (see the `cv` argument of [train_pai_model()]).
+#'
 #' @param object An object of class `pai_model`.
-#' @param title A character string for the plot's main title.
-#' @param subtitle A character string for the plot's subtitle.
+#' @param title A character string for the plot's main title. If `NULL` (default),
+#'   a title stating whether the residuals are in-sample or out-of-sample is used.
+#' @param subtitle A character string for the plot's subtitle. If `NULL`
+#'   (default), an explanatory subtitle is generated.
 #' @param arrow_color A character string specifying the color of the residual
 #'    arrows.
 #' @param point_color A character string specifying the color of the points
@@ -419,6 +484,9 @@ plot.pai_model <- function(x, ...) {
 #'   residual vectors. A value of 2, for instance, will double their
 #'   plotted length, making subtle residuals more visible. Defaults to 1
 #'   (no exaggeration).
+#' @param out_of_sample Logical. If `TRUE`, plot out-of-fold residuals from the
+#'   model's stored cross-validation instead of in-sample residuals. Requires a
+#'   model trained with `cv`. Defaults to `FALSE`.
 #' @param ... Additional arguments (not used).
 #' @return A plot with the residual as arrows using a `ggplot` object, which
 #' can be further customized.
@@ -430,18 +498,53 @@ plot.pai_model <- function(x, ...) {
 #' # See ?train_pai_model for a complete, runnable example.
 residuals.pai_model <-
   function(object,
-           title = "Model Residual Error Vectors",
-           subtitle = "Arrows point from predicted to true target locations",
+           title = NULL,
+           subtitle = NULL,
            arrow_color = "darkblue",
            point_color = "blue",
            exaggeration_factor = 1,
+           out_of_sample = FALSE,
            ...) {
-  # Predict the displacements
-  pred <- predict(object, object$gcp)
 
-  # add actual target coordinates from pai_model
-  pred$actual_target_x <- object$gcp$target_x
-  pred$actual_target_y <- object$gcp$target_y
+  if (isTRUE(out_of_sample)) {
+    if (is.null(object$cv) || is.null(object$cv$predictions)) {
+      stop("`out_of_sample = TRUE` requires a model trained with `cv`. ",
+           "Refit with e.g. cv = TRUE, or use out_of_sample = FALSE.",
+           call. = FALSE)
+    }
+    cvp <- object$cv$predictions
+    # Out-of-fold predictions are stored as displacements; recover coordinates
+    # using the GCP source positions in the order the folds were assembled.
+    idx <- unlist(lapply(object$cv$details$splits, function(s) s$test),
+                  use.names = FALSE)
+    src_x <- object$gcp$source_x[idx]
+    src_y <- object$gcp$source_y[idx]
+    pred <- data.frame(
+      target_x = src_x + cvp$pred_dx,
+      target_y = src_y + cvp$pred_dy,
+      actual_target_x = src_x + cvp$true_dx,
+      actual_target_y = src_y + cvp$true_dy
+    )
+    default_title <- "Out-of-Sample Residual Error Vectors"
+    default_subtitle <- paste0(
+      "Out-of-fold predictions from ", object$cv$summary$ValidationType,
+      " cross-validation; arrows point from predicted to true target locations")
+  } else {
+    # Predict the displacements on the training GCPs. These are IN-SAMPLE
+    # residuals: the exact interpolators (tin_linear, tin_akima and both hybrids)
+    # reproduce every control point, so this plot is empty for them by
+    # construction and says nothing about predictive accuracy.
+    pred <- predict(object, object$gcp)
+    pred$actual_target_x <- object$gcp$target_x
+    pred$actual_target_y <- object$gcp$target_y
+    default_title <- "In-Sample (Training) Residual Error Vectors"
+    default_subtitle <- paste0(
+      "Fitted on the same control points; arrows point from predicted to true ",
+      "target locations. Not a measure of predictive accuracy.")
+  }
+
+  if (is.null(title)) title <- default_title
+  if (is.null(subtitle)) subtitle <- default_subtitle
 
   # create the plots of residuals
   plt <- ggplot2::ggplot(pred) +

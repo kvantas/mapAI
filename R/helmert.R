@@ -2,7 +2,7 @@
 #'
 #' @description Calculates the parameters of a 2D similarity (Helmert)
 #'   transformation using either Ordinary Least Squares (OLS) or Total Least
-#'   Squares (TLS / Procrustes Analysis). Calculates geodetic physical
+#'   Squares (TLS), or scaled orthogonal Procrustes. Calculates geodetic physical
 #'   parameters (scale factor, rotation angle, translations), standard errors,
 #'   and residual variance.
 #'
@@ -16,10 +16,30 @@
 #'     \item Translation vector: \eqn{(t_x, t_y)}
 #'   }
 #'
-#'   When `method = "ols"`, errors are assumed only in the target coordinates.
-#'   When `method = "tls"`, errors in both source and target coordinates are
-#'   simultaneously minimized using Singular Value Decomposition (SVD),
-#'   mitigating attenuation bias (regression dilution).
+#'   Three estimators are available:
+#'   \itemize{
+#'     \item `"ols"` (default): Ordinary Least Squares. Errors are assumed to lie
+#'       only in the target coordinates. Closed-form solution.
+#'     \item `"tls"`: Total Least Squares. The 2n-by-2 design matrix \eqn{\mathbf{A}}
+#'       and the stacked target vector \eqn{\mathbf{d}} are combined into the
+#'       augmented matrix
+#'       \deqn{\mathbf{M} = \begin{pmatrix} \mathbf{u} & -\mathbf{v} & \mathbf{x} \\ \mathbf{v} & \mathbf{u} & \mathbf{y}\end{pmatrix}}
+#'       (centred coordinates), and the estimate is read from the right singular
+#'       vector \eqn{\mathbf{v}_3} belonging to the smallest singular value:
+#'       \deqn{(a, b)^T = -\frac{1}{v_{33}}(v_{31}, v_{32})^T}
+#'       Because the perturbation is applied to the whole of \eqn{\mathbf{M}},
+#'       error in the source coordinates is accounted for, which reduces the
+#'       attenuation (regression-dilution) bias that OLS incurs when the source
+#'       coordinates are themselves measured with error.
+#'     \item `"procrustes"`: scaled orthogonal Procrustes (Umeyama) via SVD of the
+#'       cross-product matrix. \strong{For this 4-parameter conformal model it
+#'       minimises the same objective over the same parameter set as OLS and so
+#'       returns the same estimate to machine precision}; it is provided for
+#'       completeness and for comparison, not as an errors-in-variables method.
+#'   }
+#'
+#'   Standard errors, `sigma0` and `df` are derived under the OLS error model.
+#'   For `"tls"` they should be read as approximate.
 #'
 #' @references
 #' \itemize{
@@ -31,8 +51,9 @@
 #' @param source_y Numeric vector of approximate ('from') y coordinates.
 #' @param target_x Numeric vector of actual ('to') x coordinates.
 #' @param target_y Numeric vector of actual ('to') y coordinates.
-#' @param method Estimation method: `"ols"` (Ordinary Least Squares, default) or
-#'   `"tls"` (Total Least Squares / SVD Procrustes).
+#' @param method Estimation method: `"ols"` (Ordinary Least Squares, default),
+#'   `"tls"` (Total Least Squares, errors-in-variables), or `"procrustes"`
+#'   (scaled orthogonal Procrustes, which coincides with `"ols"` for this model).
 #'
 #' @return An object of class `helmert` containing:
 #'   \item{coefficients}{Calculated coefficients \eqn{a} and \eqn{b}.}
@@ -43,7 +64,7 @@
 #'   \item{sigma0}{Reference standard deviation (standard error of unit weight).}
 #'   \item{df}{Degrees of freedom (\eqn{2n - 4}).}
 #'   \item{residuals}{Data frame of coordinate residuals \eqn{(r_x, r_y)}.}
-#'   \item{method}{Estimation method used (`"ols"` or `"tls"`).}
+#'   \item{method}{Estimation method used (`"ols"`, `"tls"`, or `"procrustes"`).}
 #'
 #' @export
 #' @examples
@@ -62,7 +83,8 @@
 #'   method = "ols"
 #' )
 #' print(helmert_model)
-helmert <- function(source_x, source_y, target_x, target_y, method = c("ols", "tls")) {
+helmert <- function(source_x, source_y, target_x, target_y,
+                    method = c("ols", "tls", "procrustes")) {
 
   # ---  Input Validation ---
   input_validation(source_x, source_y, target_x, target_y)
@@ -105,24 +127,61 @@ helmert <- function(source_x, source_y, target_x, target_y, method = c("ols", "t
     # Standard OLS least-squares solution for similarity transformation
     a <- (sum(u_i * x_i) + sum(v_i * y_i)) / denominator
     b <- (sum(u_i * y_i) - sum(v_i * x_i)) / denominator
-  } else {
-    # Total Least Squares (TLS) / SVD Procrustes solution
+
+  } else if (method == "procrustes") {
+    # Scaled orthogonal Procrustes (Umeyama). NOTE: for the 4-parameter
+    # conformal model this minimises the same objective over the same parameter
+    # set as OLS and therefore returns the same estimate to machine precision.
+    # It is retained because it generalises, not because it differs here.
     X <- cbind(u_i, v_i)
     Y <- cbind(x_i, y_i)
     M <- crossprod(X, Y)
     svd_m <- svd(M)
     R <- tcrossprod(svd_m$v, svd_m$u)
 
-    # Reflection check (ensure proper rotation)
-    if (det(R) < 0) {
+    # Reflection check (ensure proper rotation). When the unconstrained solution
+    # is a reflection, the SO(2)-constrained maximiser flips the last singular
+    # vector, and the optimal scale becomes (d1 - d2)/D rather than (d1 + d2)/D.
+    reflected <- det(R) < 0
+    if (reflected) {
       v_mod <- svd_m$v
       v_mod[, 2] <- -v_mod[, 2]
       R <- tcrossprod(v_mod, svd_m$u)
     }
 
-    scale_tls <- (svd_m$d[1] + svd_m$d[2]) / denominator
-    a <- scale_tls * R[1, 1]
-    b <- scale_tls * R[2, 1]
+    scale_pro <- if (reflected) {
+      (svd_m$d[1] - svd_m$d[2]) / denominator
+    } else {
+      (svd_m$d[1] + svd_m$d[2]) / denominator
+    }
+    a <- scale_pro * R[1, 1]
+    b <- scale_pro * R[2, 1]
+
+  } else {
+    # Classical Total Least Squares (errors-in-variables).
+    #
+    # Stacking the centred conformal model gives the 2n x 2 design matrix
+    #   A = [ u  -v ;  v   u ]   and observation vector  d = [ x ; y ],
+    # so that A %*% c(a, b) = d. TLS minimises the squared Frobenius norm of the
+    # perturbation to the FULL augmented matrix [A | d], i.e. it attributes error
+    # to the source coordinates as well as the target ones. The solution is the
+    # right singular vector of [A | d] belonging to the smallest singular value:
+    #   (a, b)^T = -(1 / v_33) * (v_31, v_32)^T
+    aug <- rbind(
+      cbind(u_i, -v_i, x_i),
+      cbind(v_i,  u_i, y_i)
+    )
+    svd_aug <- svd(aug)
+    v3 <- svd_aug$v[, 3]
+
+    if (abs(v3[3]) < .Machine$double.eps^0.5) {
+      stop("Cannot solve Helmert transformation by TLS: the augmented system is ",
+           "degenerate (non-generic TLS problem). Use method = \"ols\".",
+           call. = FALSE)
+    }
+
+    a <- -v3[1] / v3[3]
+    b <- -v3[2] / v3[3]
   }
 
   # Physical geodetic parameters
@@ -197,7 +256,10 @@ helmert <- function(source_x, source_y, target_x, target_y, method = c("ols", "t
 #' @param ... Additional arguments (not used).
 #' @export
 print.helmert <- function(x, ...) {
-  method_str <- if (!is.null(x$method) && x$method == "tls") "TLS / Procrustes" else "OLS"
+  method_str <- switch(if (is.null(x$method)) "ols" else x$method,
+                       tls = "TLS (errors-in-variables)",
+                       procrustes = "Scaled orthogonal Procrustes",
+                       "OLS")
   cat(sprintf("--- Helmert Transformation Model (%s) ---\n\n", method_str))
   cat("Helmert Transformation Parameters:\n")
   print(round(x$coefficients, 6))

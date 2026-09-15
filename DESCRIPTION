@@ -10,7 +10,8 @@ Authors@R:
 Description: A statistically rigorous, computationally efficient framework for
     Positional Accuracy Improvement (PAI) and differential distortion analysis
     of geospatial vector and raster datasets. Implements conformal similarity
-    (Helmert via Ordinary and Total Least Squares), general affine, Thin Plate
+    (Helmert via Ordinary Least Squares, Total Least Squares, or scaled
+    orthogonal Procrustes), general affine, Thin Plate
     Splines (TPS), bivariate Generalized Additive Models (GAM) with thin plate
     regression splines and adaptive basis dimensions, piecewise affine Delaunay
     triangulation (TIN), Akima C1 triangulated bivariate splines, two-stage
@@ -18,9 +19,9 @@ Description: A statistically rigorous, computationally efficient framework for
     and an extensible plugin architecture for custom machine learning algorithms.
     Features integrated spatial cross-validation (random, spatial clustered,
     spatial block, spatial buffered block, probability, and stratified) to
-    prevent spatial autocorrelation data leakage. Supports topology-preserving
+    reduce spatial autocorrelation data leakage. Supports topology-preserving
     vector transformation across all standard simple feature geometries with
-    automated repair, in-memory raster rectification via damped Picard-Mann
+    automated repair, in-memory raster rectification via damped Krasnoselskii-Mann
     iterative coordinate inversion, and differential deformation diagnostics
     including Tissot's indicatrices, Cauchy-Green metric tensor invariants, and
     signed Jacobian topological inversion screening and facet analysis.
@@ -36,12 +37,12 @@ Suggests:
     fields,
     mgcv,
     withr,
-    dplyr,
     e1071,
     nnet,
     testthat (>= 3.0.0)
 Config/testthat/edition: 3
-Imports: 
+Imports:
+    dplyr,
     interp,
     rlang,
     sf,

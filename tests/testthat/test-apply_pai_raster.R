@@ -220,9 +220,9 @@ test_that("analyze_distortion() works with in-memory SpatRaster input", {
   dist_rast <- analyze_distortion(gam_model, newdata = r_cont)
 
   expect_s4_class(dist_rast, "SpatRaster")
-  expect_equal(terra::nlyr(dist_rast), 11)
+  expect_equal(terra::nlyr(dist_rast), 10)  # max_shear removed: it duplicated max_angular_distortion
   expect_true(all(c("a", "b", "area_scale", "signed_area_scale", "det_J", "is_inverted",
-                    "log2_area_scale", "max_shear", "max_angular_distortion",
+                    "log2_area_scale", "max_angular_distortion",
                     "airy_kavrayskiy", "theta_a") %in% names(dist_rast)))
 })
 
@@ -256,14 +256,25 @@ test_that("apply_pai_raster() supports ext = 'auto' and custom ext", {
   expect_s4_class(corr_auto, "SpatRaster")
   expect_false(identical(as.vector(terra::ext(corr_auto)), as.vector(terra::ext(r_cont))))
 
-  # Custom SpatExtent
+  # Custom SpatExtent. Cells are whole, so with the source resolution preserved
+  # the realised extent COVERS the request, expanded by at most one cell on the
+  # upper edges. It must never be smaller than requested.
   cust_ext <- terra::ext(-10, 110, -10, 110)
-  corr_cust <- apply_pai_raster(gam_model, r_cont, ext = cust_ext)
-  expect_equal(as.vector(terra::ext(corr_cust)), as.vector(cust_ext))
+  corr_cust <- suppressWarnings(apply_pai_raster(gam_model, r_cont, ext = cust_ext))
+  ec <- unname(as.vector(terra::ext(corr_cust)))   # xmin, xmax, ymin, ymax
+  expect_equal(ec[c(1, 3)], c(-10, -10))
+  expect_gte(ec[2], 110)
+  expect_gte(ec[4], 110)
+  expect_lt(ec[2] - 110, terra::res(r_cont)[1])
+  expect_lt(ec[4] - 110, terra::res(r_cont)[2])
+  expect_equal(terra::res(corr_cust), terra::res(r_cont), tolerance = 1e-9)
 
   # Numeric vector of length 4
-  corr_vec <- apply_pai_raster(gam_model, r_cont, ext = c(-5, 105, -5, 105))
-  expect_equal(unname(as.vector(terra::ext(corr_vec))), c(-5, 105, -5, 105))
+  corr_vec <- suppressWarnings(apply_pai_raster(gam_model, r_cont, ext = c(-5, 105, -5, 105)))
+  ev <- unname(as.vector(terra::ext(corr_vec)))
+  expect_equal(ev[c(1, 3)], c(-5, -5))
+  expect_gte(ev[2], 105)
+  expect_gte(ev[4], 105)
 
   # Error handling for invalid ext, max_iter, tol
   expect_error(
@@ -281,3 +292,99 @@ test_that("apply_pai_raster() supports ext = 'auto' and custom ext", {
 })
 
 
+
+
+#### Regression tests for the corrected raster engine ####
+
+test_that("mesh_step does not silently lose cells for any step size", {
+  r_cont <- create_test_rast(nrows = 40, ncols = 40, type = "continuous")
+  gam_model <- train_pai_model(test_gcps, method = "gam_biv")
+
+  exact <- suppressWarnings(
+    apply_pai_raster(gam_model, r_cont, ext = "auto", mesh_step = NULL))
+  na_exact <- sum(is.na(terra::values(exact)[, 1]))
+
+  # Steps that do not divide the raster dimensions evenly used to shift the
+  # coarse extent; and even an exact divisor lost the outer half-cell ring
+  # because resample() interpolates between coarse cell centres.
+  for (ms in c(2, 3, 5, 7, 9, 10)) {
+    mesh <- suppressWarnings(
+      apply_pai_raster(gam_model, r_cont, ext = "auto", mesh_step = ms))
+    na_mesh <- sum(is.na(terra::values(mesh)[, 1]))
+    expect_lt(na_mesh - na_exact, 5, label = paste("mesh_step =", ms))
+    expect_equal(dim(mesh), dim(exact))
+  }
+})
+
+test_that("an explicit ext preserves the source resolution when res is NULL", {
+  r_cont <- create_test_rast(type = "continuous")
+  gam_model <- train_pai_model(test_gcps, method = "gam_biv")
+
+  e <- terra::ext(r_cont)
+  wider <- c(e$xmin - 5, e$xmax + 5, e$ymin - 5, e$ymax + 5)
+
+  corr <- suppressWarnings(apply_pai_raster(gam_model, r_cont, ext = wider))
+
+  # ext<- keeps nrow/ncol and rescales the cell size, so this used to change the
+  # pixel size (and square off a non-square aspect ratio) without saying so.
+  expect_equal(terra::res(corr), terra::res(r_cont), tolerance = 1e-9)
+})
+
+test_that("non-convergent coordinate inversion warns instead of returning quietly", {
+  r_cont <- create_test_rast(nrows = 20, ncols = 20, type = "continuous")
+  gam_model <- train_pai_model(test_gcps, method = "gam_biv")
+
+  expect_warning(
+    apply_pai_raster(gam_model, r_cont, ext = "auto", max_iter = 1, tol = 1e-12),
+    "did not converge"
+  )
+
+  # A generous budget must NOT warn.
+  expect_no_warning(
+    apply_pai_raster(gam_model, r_cont, ext = "auto", max_iter = 50, tol = 1e-4)
+  )
+})
+
+test_that("lambda is validated and exposed", {
+  r_cont <- create_test_rast(nrows = 10, ncols = 10, type = "continuous")
+  gam_model <- train_pai_model(test_gcps, method = "gam_biv")
+
+  expect_error(
+    apply_pai_raster(gam_model, r_cont, lambda = 0),
+    "`lambda` must be a single number"
+  )
+  expect_error(
+    apply_pai_raster(gam_model, r_cont, lambda = 3),
+    "`lambda` must be a single number"
+  )
+  expect_s4_class(
+    suppressWarnings(apply_pai_raster(gam_model, r_cont, lambda = 1)),
+    "SpatRaster"
+  )
+})
+
+test_that("ext = 'auto' bounds a locally sharp warp, not just a smooth one", {
+  # A narrow bump between perimeter samples used to be clipped: the old code
+  # probed only 10 points per edge and nothing in the interior.
+  bump_model <- list(
+    label = "Narrow Bump", modelType = "bivariate", library = NULL,
+    fit = function(dat, ...) list(),
+    predict = function(modelFit, newdata, ...) {
+      cx <- mean(range(test_gcps$source_x))
+      cy <- min(test_gcps$source_y)
+      s <- 0.02 * diff(range(test_gcps$source_x))
+      g <- exp(-((newdata$source_x - cx)^2 + (newdata$source_y - cy)^2) /
+                 (2 * s^2))
+      data.frame(dx = rep(0, nrow(newdata)),
+                 dy = -30 * g)
+    }
+  )
+  mod <- train_pai_model(test_gcps, method = bump_model)
+  r_cont <- create_test_rast(nrows = 60, ncols = 60, type = "continuous")
+
+  corr <- suppressWarnings(apply_pai_raster(mod, r_cont, ext = "auto"))
+
+  # The warped image reaches ~30 units below the source ymin; the auto extent
+  # must cover it.
+  expect_lt(terra::ext(corr)$ymin, terra::ext(r_cont)$ymin - 25)
+})

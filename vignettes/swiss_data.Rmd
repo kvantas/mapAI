@@ -7,7 +7,7 @@ vignette: >
   %\VignetteEncoding{UTF-8}
 ---
 
-This vignette demonstrates a  workflow for analyzing and correcting a historical map with complex, non-linear distortions, focusing on a real-world scenario using the `swiss_cps` dataset (The 1798 Map data of the Basel and Frickthal Region).
+This vignette demonstrates a  workflow for analyzing and correcting a historical map with complex, non-linear distortions, focusing on a real-world scenario using the `basel_frickthal` dataset (W. Haas's 1798 map of the Basel and Frickthal region).
 
 The key feature of this dataset is that the gross, linear distortions have already been removed with a Helmert transformation. The remaining errors are subtle, non-linear, and spatially variable. Our goal is to assess different validation techniques, train a robust model for these non-linear residuals, and conduct an in-depth analysis of the spatial distortion.
 
@@ -26,7 +26,7 @@ library(knitr)
 
 ### Initial Data Analysis
 
-We begin by loading the `swiss_cps` dataset. This `sf` object contains 343 control points where the `source` coordinates have been pre-aligned, so we can focus on the residual `dx` and `dy` errors.
+We begin by loading the `basel_frickthal` dataset and taking its `gcp` element (assigned below to `swiss_cps`). It is a `gcp` object -- a data frame, not an `sf` object -- holding 343 control points whose `source` coordinates have been pre-aligned, so we can focus on the residual `dx` and `dy` errors.
 
 ```{r load_data}
 # Load the built-in Swiss control points dataset
@@ -56,8 +56,8 @@ To evaluate model generalizability rigorously, `mapAI` implements six distinct v
 1. **Standard Random CV (`"random"`):** Traditional $k$-fold cross-validation with randomly partitioned points.
 2. **Spatial Clustered CV (`"spatial"`):** $k$-means clustering of coordinates to ensure folds form distinct geographic clusters.
 3. **Spatial Block CV (`"spatial_block"`):** Rectangular grid partitioning of the geographic bounding box into independent spatial blocks.
-4. **Spatial Buffered Block CV (`"spatial_buffered"`):** Imposes an exclusion dead-zone buffer around each test block, discarding nearby training points to eliminate spatial autocorrelation data leakage.
-5. **Design-Based Sampling (`"probability"`):** Single train/validation split using simple random sampling.
+4. **Spatial Buffered Block CV (`"spatial_buffered"`):** Imposes an exclusion dead-zone buffer around each test block, discarding nearby training points to reduce spatial autocorrelation data leakage. The buffer removes leakage only if it exceeds the range of residual spatial autocorrelation.
+5. **Single Holdout (`"probability"`):** One train/validation split by simple random sampling. Not cross-validation: no replication and no dispersion estimate.
 6. **Stratified Sampling (`"stratified"`):** $k$-fold cross-validation binned across distortion magnitude quantiles.
 
 ```{r assess_model, message=FALSE}
@@ -82,7 +82,7 @@ validation_df$Strategy <- c(
   "Spatial Clustered 5-fold CV",
   "Spatial Block 5-fold CV",
   "Spatial Buffered Block 5-fold CV",
-  "Design-Based 80/20 Split",
+  "Single 80/20 Holdout (not CV)",
   "Stratified 5-fold CV"
 )
 
@@ -90,7 +90,7 @@ kable(validation_df[, c("Strategy", "Model_Method", "Mean_2D_RMSE_m", "Std_Devia
       caption = "Table: Predictive performance comparison across six validation strategies.")
 ```
 
-Notice how spatial block and buffered cross-validation produce slightly higher, more realistic RMSE estimates than random cross-validation. This difference reflects the true spatial generalization error when extrapolating into unsampled regions, free from autocorrelation optimism.
+The spatial schemes report higher errors than random cross-validation because each fold is evaluated on held-out geographic regions rather than on points surrounded by their own neighbours. The spread across schemes is itself the result: it measures how sensitive the accuracy estimate is to the partitioning, and no single row is the one "true" out-of-sample number. Report the scheme matching the intended use, state `block_size` and `buffer_dist`, and bear in mind that these schemes reduce autocorrelation optimism without removing it. The 80/20 row is a single holdout with no replication, so its `NA` dispersion is not comparable with the k-fold rows.
 
 ### Training with Integrated Spatial Cross-Validation
 
@@ -138,9 +138,18 @@ The plot shows how the regular grid (dashed grey) is warped by the model into th
 After applying the correction, we should examine the remaining errors, or residuals. This helps us confirm that our model has captured the systematic distortion patterns and that the remaining errors are small and random.
 
 ```{r residuals}
-# Plot the residuals after applying the final GAM model
+# In-sample residuals: the model evaluated on its own training points.
 residuals(final_gam_model)
+
+# Out-of-fold residuals: the honest picture of predictive error. Available
+# because the model was trained with `cv`.
+residuals(final_gam_model, out_of_sample = TRUE)
 ```
+
+The two plots answer different questions. The first shows what the model failed
+to absorb on the points it was fitted to; for an exact interpolator such as
+`tin_linear` it would be empty by construction. The second shows the error at
+points the model never saw, and is the one to judge predictive accuracy by.
 
 The residual vectors are much smaller and show no obvious spatial pattern, indicating a successful model fit.
 
@@ -148,7 +157,7 @@ The residual vectors are much smaller and show no obvious spatial pattern, indic
 
 ### Advanced Distortion Analysis
 
-To quantify the nature of the distortion, we use the `analyze_distortion` function on a dense grid of points. This allows us to map out different distortion metrics across the entire area. We will visualize three key metrics:
+To quantify the nature of the distortion, we evaluate `analyze_distortion()` at the 343 control point locations. (Pass a `terra::SpatRaster` instead to obtain a continuous, gridded distortion surface.) We will visualize three key metrics:
 
   * **Area Scale**: Shows how much areas are stretched or compressed. A value of 1 means no distortion.
   * **Maximum Angular Distortion**: Measures the maximum change in angle at any point.
@@ -156,12 +165,12 @@ To quantify the nature of the distortion, we use the `analyze_distortion` functi
 
 
 ```{r distortions}
-# Create a dense grid of points for a high-resolution analysis
+# Evaluate the distortion metrics at the control point locations
 distortion_results <- analyze_distortion(final_gam_model, swiss_cps)
 
 # Plot 1: Area scale distortion
 plot(distortion_results, "area_scale", diverging = TRUE) +
-  labs(title = "Area Scale Distortion", subtitle = "", x = "X (m)", y = "Y (m)", fill = 'σ')
+  labs(title = "Area Scale Distortion", subtitle = "", x = "X (m)", y = "Y (m)", fill = expression(a %*% b))
 
 # Plot 2: Maximum angular distortion
 plot(distortion_results, "max_angular_distortion", palette = "magma") +
@@ -209,7 +218,9 @@ cat(sprintf("Topological fold-overs detected: %d (min det(J) = %.4f)\n",
             n_inverted, min(distortion_results$det_J, na.rm = TRUE)))
 ```
 
-Because $\min \det(\mathbf{J}) > 0$, the learned transformation is strictly orientation-preserving and topologically diffeomorphism-stable everywhere across the study area.
+Two caveats on how far this screening reaches. First, $\det(\mathbf{J})$ was evaluated **at the 343 control point locations only**, not continuously: a fold-over between control points would go undetected. Pass a `SpatRaster` to `analyze_distortion()` to screen the domain on a grid.
+
+Second, even a uniformly positive Jacobian determinant establishes only that the map is a **local** diffeomorphism. It does not imply global injectivity — a map can have $\det(\mathbf{J}) > 0$ everywhere and still fold onto itself globally (the standard counterexample being $z \mapsto e^z$ in the complex plane). So a positive determinant at every sampled point is reassuring evidence against local fold-over, not a guarantee of global invertibility.
 
 ---
 

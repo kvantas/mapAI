@@ -14,6 +14,7 @@ apply_pai_raster(
   ext = NULL,
   max_iter = 15,
   tol = 1e-04,
+  lambda = 0.7,
   ...
 )
 }
@@ -47,7 +48,14 @@ a numeric vector of length 4 \code{c(xmin, xmax, ymin, ymax)}.}
 iterative coordinate inversion. Defaults to 15.}
 
 \item{tol}{Convergence tolerance in coordinate units (e.g., meters) for
-the iterative coordinate inversion. Defaults to 1e-4.}
+the iterative coordinate inversion, applied to the fixed-point residual as a
+maximum over all evaluated points. Defaults to 1e-4. Failure to reach it
+raises a warning.}
+
+\item{lambda}{Damping parameter \eqn{\lambda} of the fixed-point iteration, in
+(0, 2]. Defaults to 0.7. Damping stabilises the iteration near fold-over;
+\code{lambda = 1} (undamped) converges faster for well-behaved displacement
+fields.}
 
 \item{...}{Additional arguments passed on to \code{predict.pai_model()}.}
 }
@@ -83,17 +91,36 @@ interpolation method.
 
 \strong{Model Inversion Handling:}
 \itemize{
-\item \strong{Models trained with \code{direction = "inverse"}:} Directly evaluate
-the displacement from target to source coordinates in a single step.
-\item \strong{Helmert models (\code{direction = "forward"}):} Uses the exact
-closed-form analytical inverse of the 4-parameter conformal similarity transformation.
-\item \strong{Non-linear models (\code{gam_biv}, \code{tps}, \code{lm}, and custom models):}
-Employs a damped fixed-point (Picard-Mann) iterative coordinate inversion solver:
+\item \strong{Helmert models:} Uses the exact closed-form analytical inverse
+of the 4-parameter conformal similarity transformation.
+\item \strong{All other models (\code{gam_biv}, \code{tps}, \code{lm}, the TIN and hybrid
+families, and custom models):} Employs a damped fixed-point
+(Krasnosel'skii-Mann averaged) iterative coordinate inversion solver:
 \deqn{\mathbf{s}^{(k+1)} = \mathbf{s}^{(k)} - \lambda \left(\mathbf{s}^{(k)} + \mathbf{d}\left(\mathbf{s}^{(k)}\right) - \mathbf{t}\right)}
-where \eqn{\mathbf{t}} is the target cell center, \eqn{\mathbf{d}} is the forward displacement
-field, \eqn{\lambda = 0.7} is the damping parameter ensuring contraction stability, and
-iteration halts when \eqn{\|\mathbf{s}^{(k)} + \mathbf{d}(\mathbf{s}^{(k)}) - \mathbf{t}\| < \epsilon}
-(\code{tol = 1e-4}) or \code{max_iter} is reached.
+where \eqn{\mathbf{t}} is the target cell center, \eqn{\mathbf{d}} is the
+forward displacement field, and \eqn{\lambda} (\code{lambda}, default 0.7) is the
+damping parameter. Writing the update as
+\eqn{\mathbf{s}^{(k+1)} = (1 - \lambda)\mathbf{s}^{(k)} + \lambda T(\mathbf{s}^{(k)})}
+with \eqn{T(\mathbf{s}) = \mathbf{t} - \mathbf{d}(\mathbf{s})} shows it to be
+the averaged (Krasnosel'skii-Mann) iteration; it converges linearly when the
+eigenvalues of \eqn{\mathbf{J} = \mathbf{I} + \partial\mathbf{d}/\partial\mathbf{s}}
+lie in \eqn{(0, 2/\lambda)}. Damping only helps near fold-over; for the usual
+case \eqn{\|\partial\mathbf{d}/\partial\mathbf{s}\| \ll 1}, \code{lambda = 1}
+converges faster.
+
+\if{html}{\out{<div class="sourceCode">}}\preformatted{Iteration halts when the fixed-point \\emph\{residual\}
+\eqn{\|\mathbf{s}^{(k)} + \mathbf{d}(\mathbf{s}^{(k)}) - \mathbf{t}\|} falls
+below `tol`, taken as a maximum over all evaluated points, or when
+`max_iter` is reached. Note this is the residual, not the step size (the
+step is \eqn{\lambda} times the residual). If the tolerance is not met, or
+if the iteration diverges, a warning is issued reporting the residual
+actually achieved -- the result is \\strong\{not\} silently returned as
+converged.
+
+`lm` is included here for uniformity; it is affine and analytically
+invertible, so iterating is merely wasteful, not inaccurate.
+}\if{html}{\out{</div>}}
+
 }
 }
 \examples{
@@ -141,7 +168,14 @@ can be computationally demanding. By setting \code{mesh_step} (e.g., 10 or 20),
 \code{apply_pai_raster} computes exact displacements on a regular subsampled grid mesh
 and uses high-performance C++ bilinear interpolation (\code{terra::resample}) to
 reconstruct the continuous displacement field across the full raster grid.
-This provides orders-of-magnitude speedups while maintaining sub-pixel accuracy.
+This trades accuracy for speed. The displacement field is reconstructed by
+bilinear interpolation between mesh nodes spaced \eqn{h = \code{mesh_step} \times \code{res}}
+apart, so the error is \eqn{O(h^2 \|D^2 \mathbf{d}\|)}: it grows with the square
+of the step and with the curvature of the displacement field. For the smooth,
+gently varying fields typical of map rectification a modest \code{mesh_step} stays
+well below one pixel, but a strongly curved TPS or GAM field with a large
+\code{mesh_step} can depart from the exact solution by several pixels. Verify
+against \code{mesh_step = NULL} on a representative subset before relying on it.
 
 All operations are strictly conducted in memory and return an in-memory
 \code{terra::SpatRaster} object without creating temporary files or directories.

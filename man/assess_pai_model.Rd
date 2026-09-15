@@ -13,6 +13,7 @@ assess_pai_model(
   train_split_ratio = 0.8,
   n_strata = 4,
   buffer_dist = NULL,
+  block_size = NULL,
   seed = 123,
   pai_method = NULL,
   ...
@@ -26,6 +27,7 @@ cv_pai_model(
   train_split_ratio = 0.8,
   n_strata = 4,
   buffer_dist = NULL,
+  block_size = NULL,
   seed = 123,
   pai_method = NULL,
   ...
@@ -48,10 +50,22 @@ Defaults to \code{"random"}.}
 
 \item{n_strata}{Number of strata for stratified CV. Defaults to 4.}
 
-\item{buffer_dist}{Numeric buffer distance for \code{"spatial_buffered"}. If \code{NULL}
-(default), an automatic distance based on spatial extent is applied.}
+\item{buffer_dist}{Numeric buffer distance for \code{"spatial_buffered"}, in the
+coordinate units of the GCPs. If \code{NULL} (default), 5\\% of the larger map
+span is used. This geometric default is a convenience, not an estimate of the
+autocorrelation range. Distances are Euclidean, so the GCPs must be in a
+projected CRS.}
 
-\item{seed}{An integer for reproducibility.}
+\item{block_size}{Edge length of the spatial blocks, in coordinate units, used
+by \code{"spatial_block"} and \code{"spatial_buffered"}. If \code{NULL} (default), a grid is
+chosen that yields roughly four blocks per fold, so each fold receives
+several spatially disjoint tiles. Set this from the range of residual spatial
+autocorrelation when you have estimated it. Note that block size is
+independent of \code{k_folds}: raising \code{k_folds} alone does not make the blocks
+smaller.}
+
+\item{seed}{An integer for reproducibility. The caller's global RNG state is
+restored on exit.}
 
 \item{pai_method}{Alias for \code{method} for backward compatibility.}
 
@@ -76,18 +90,47 @@ across both non-spatial and spatial cross-validation strategies.
 \item \strong{\code{random}}: Standard k-fold cross-validation with random fold assignment.
 \item \strong{\code{spatial}}: Spatial k-fold cross-validation clustering coordinates via k-means.
 \item \strong{\code{spatial_block}}: Regular geographic grid block cross-validation,
-partitioning space into independent rectangular spatial tiles.
+partitioning space into contiguous rectangular tiles and assigning whole
+tiles to folds. Block \emph{size} is controlled by \code{block_size},
+independently of \code{k_folds}.
 \item \strong{\code{spatial_buffered}}: Buffered spatial cross-validation. Partitions
 space into blocks and enforces a spatial exclusion dead-zone buffer \eqn{d_{\text{buffer}}}:
 training observations satisfying \eqn{\min \|\mathbf{s}_{\text{train}} - \mathbf{s}_{\text{test}}\| \le d_{\text{buffer}}}
-are omitted from the training set for each fold to eliminate spatial autocorrelation data leakage (Roberts et al., 2017).
-\item \strong{\code{probability}}: Design-based single train/test split using simple random sampling.
+are omitted from the training set for each fold, which \emph{reduces}
+spatial autocorrelation data leakage (Roberts et al., 2017). It removes
+leakage only if \eqn{d_{\text{buffer}}} exceeds the range of residual
+spatial autocorrelation; \code{mapAI} does not estimate that range, so the
+default is a geometric 5\\% of the map extent and should be replaced by a
+variogram-derived value where one is available.
+\item \strong{\code{probability}}: A single train/test split drawn by simple random
+sampling without replacement. This is a holdout, \strong{not}
+cross-validation: there is no replication and no dispersion estimate, and
+it carries no design-based inferential guarantee (that would require a
+probability sample of the map domain with known inclusion probabilities
+and a Horvitz-Thompson-type estimator, neither of which applies to an
+opportunistic GCP set).
 \item \strong{\code{stratified}}: Stratified k-fold cross-validation binned by displacement vector magnitude.
+Note that the strata are defined on a function of the response, so every
+fold carries the same displacement-magnitude distribution. This
+mechanically deflates \code{SD_RMSE_2D} and makes that dispersion figure
+non-comparable with the other schemes.
 }
 
 \strong{Performance Metrics Formulation}:
-Out-of-sample predictive accuracy is evaluated using 2D Root Mean Square Error:
+Out-of-sample predictive accuracy is evaluated using 2D Root Mean Square Error,
+pooled over every out-of-fold point:
 \deqn{\operatorname{RMSE}_{2D} = \sqrt{\frac{1}{n_{\text{val}}} \sum_{i=1}^{n_{\text{val}}} \left( (dx_i - \widehat{dx}_i)^2 + (dy_i - \widehat{dy}_i)^2 \right)}}
+The sum runs over \emph{points}, not folds. Averaging the per-fold RMSEs is a
+different estimator: it mis-weights folds of unequal size and, because
+\eqn{\sqrt{\cdot}} is concave, sits below the pooled value. The spatial schemes
+produce markedly unequal folds, so the two can differ by tens of percent.
+Per-fold RMSEs are still returned in \code{details$fold_rmse} as a diagnostic.
+
+\strong{On \code{SD_RMSE_2D}}: this is the spread of the per-fold RMSEs. It has
+\eqn{k - 1} degrees of freedom and, because the folds share training data, it
+is \emph{not} a standard error of the cross-validation estimate; no unbiased
+estimator of k-fold CV variance exists (Bengio & Grandvalet, 2004). Do not
+construct confidence intervals from it.
 }
 \examples{
 \dontrun{
@@ -104,8 +147,11 @@ assess_pai_model(gcp_data, method = "lm", validation_type = "spatial_buffered", 
 }
 \references{
 \itemize{
-\item Roberts et al. (2017). Cross-validation strategies for data with spatial,
-temporal, or phylogenetic dependence. \emph{Ecography}, 40(8), 913-929.
+\item Roberts, D. R., et al. (2017). Cross-validation strategies for data with
+spatial, temporal, hierarchical, or phylogenetic structure.
+\emph{Ecography}, 40(8), 913-929.
+\item Bengio, Y., & Grandvalet, Y. (2004). No unbiased estimator of the variance
+of k-fold cross-validation. \emph{Journal of Machine Learning Research}, 5, 1089-1105.
 \item Valavi, R., Elith, J., Lahoz-Monfort, J. J., & Guillera-Arroita, G. (2019). blockCV: An R package for generating spatially or environmentally separated folds for k-fold cross-validation of species distribution models. \emph{Methods in Ecology and Evolution}, 10(2), 225-232.
 \item Vantas, K., & Mirkopoulou, E. (2025). \emph{mapAI: An R Package for Positional Accuracy Improvement of Vector Maps}.
 }

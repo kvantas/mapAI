@@ -53,7 +53,11 @@ consistent spatial alignments.
     |                                                                                   |
     |   2. Model Training & Spatial Validation (Integrated)                             |
     |      train_pai_model(gcp, method = ..., cv = list(...))                           |
-    |      * Methods: "helmert" (OLS / TLS), "lm", "tps", "gam_biv", Custom ML          |
+    |      * Global:  "helmert" (OLS / TLS / Procrustes), "lm"                          |
+    |      * Smooth:  "tps", "gam_biv"                                                  |
+    |      * TIN:     "tin_linear", "tin_akima"                                         |
+    |      * Hybrid:  "hybrid_helmert_tin", "hybrid_affine_tin"                         |
+    |      * Custom ML plugins via method = list(...)                                   |
     |      * CV: random, spatial (k-means), spatial_block, spatial_buffered, etc.       |
     |                                                                                   |
     |   3. Dual-Engine Spatial Rectification                                            |
@@ -83,12 +87,21 @@ $$\begin{pmatrix} x \\ y \end{pmatrix} = \begin{pmatrix} t_x \\ t_y \end{pmatrix
 
 Parameters include scale factor $s = \sqrt{a^2 + b^2}$, rotation angle
 $\theta = \operatorname{atan2}(b, a)$, and translation vector
-$(t_x, t_y)^T$. `mapAI` implements both: - **Ordinary Least Squares
-(`method = "ols"`):** Assumes measurement errors reside solely in target
-coordinates. - **Total Least Squares / SVD Procrustes
-(`method = "tls"`):** Minimizes orthogonal Euclidean errors in both
-source and target coordinates simultaneously, eliminating attenuation
-bias (regression dilution) (Wolf & Ghilani, 2006).
+$(t_x, t_y)^T$. `mapAI` implements three estimators:
+
+- **Ordinary Least Squares (`method = "ols"`):** Assumes measurement
+  errors reside solely in the target coordinates.
+- **Total Least Squares (`method = "tls"`):** Applies the perturbation
+  to the full augmented matrix $[\mathbf{A} \mid \mathbf{d}]$, so error
+  in the *source* coordinates is accounted for as well. This reduces the
+  attenuation (regression-dilution) bias that OLS incurs when the source
+  coordinates are themselves measured with error (Golub & Van Loan,
+  2013).
+- **Scaled orthogonal Procrustes (`method = "procrustes"`):** For this
+  4-parameter conformal model, Procrustes minimises the same objective
+  over the same parameter set as OLS and therefore returns the same
+  estimate to machine precision. It is offered for comparison, not as an
+  errors-in-variables method.
 
 ### 2. First-Order Polynomial Affine (`"lm"`)
 
@@ -111,12 +124,31 @@ Gaussian family (Wood, 2017):
 
 $$\begin{pmatrix} d_x \\ d_y \end{pmatrix} \sim \mathcal{N}_2\left(\begin{pmatrix} \mu_x(u, v) \\ \mu_y(u, v) \end{pmatrix}, \boldsymbol{\Sigma}\right)$$
 
-`mapAI` incorporates an **adaptive basis dimension formula**:
+Smoothing parameters are selected by REML. `mapAI` incorporates an
+**adaptive basis dimension formula**:
 
-$$k = \max\left(3, \min\left(29, \lfloor 0.6 \cdot n_{\text{unique}} \rfloor\right)\right)$$
+$$k = \max\left(3, \min\left(k_{\max}, \lfloor 0.6 \cdot n_{\text{unique}} \rfloor\right)\right)$$
 
-which prevents rank deficiency when training with small sample sizes
-while maximizing flexibility on dense control point networks.
+The lower bound prevents rank deficiency on small control point sets.
+The upper bound $k_{\max}$ (default 29) caps flexibility and binds for
+any network of 49 or more distinct points; if `mgcv::k.check()` shows
+the effective degrees of freedom approaching $k - 1$, pass a larger `k`
+or `k_max` to relax it.
+
+### 5. Triangulated and Hybrid Models
+
+- **`"tin_linear"`** — piecewise affine Delaunay triangulation with
+  barycentric interpolation; exact at control points, with a global
+  Helmert fallback outside the convex hull.
+- **`"tin_akima"`** — smooth $C^1$ triangulated interpolation (Akima,
+  1996), avoiding the derivative kinks of `tin_linear`.
+- **`"hybrid_helmert_tin"` / `"hybrid_affine_tin"`** — a global
+  conformal or affine trend with triangulated residuals.
+
+Note that *inside* the convex hull all three hybrid/TIN variants reduce
+to the same piecewise-affine map: for any affine base the base cancels
+against the barycentric weights. They differ only in how they
+extrapolate beyond the hull.
 
 ------------------------------------------------------------------------
 
@@ -138,8 +170,11 @@ into `train_pai_model()` and exports `cv_pai_model()` /
 
     $$\min_{\mathbf{s}_i \in \text{Test}} \|\mathbf{s}_j - \mathbf{s}_i\| > d_{\text{buffer}} \quad \forall \mathbf{s}_j \in \text{Train}$$
 
-    Training points within the exclusion dead zone are pruned,
-    eliminating autocorrelation leakage.
+    Training points within the exclusion dead zone are pruned, which
+    *reduces* autocorrelation leakage. It removes leakage only if
+    $d_{\text{buffer}}$ exceeds the range of residual spatial
+    autocorrelation; `mapAI` does not estimate that range, so the
+    default is a geometric 5% of the map extent.
 
 3.  **`"spatial"`:** Spatial clustering of coordinates via $k$-means.
 
@@ -185,21 +220,21 @@ summary(gcp_data)
 #> Number of points: 225 
 #> Source Coordinates Range:
 #>   X: -0.3737642 102.7303 
-#>   Y: -4.996873 115.3157 
+#>   Y: -4.996308 116.476 
 #> Target Coordinates Range:
 #>   X: 0 100 
 #>   Y: 0 100 
 #> Displacement Vectors Range:
-#>   dx: -4.534515 7.080819 
-#>   dy: -15.31573 4.996873 
+#>   dx: -4.53484 7.080819 
+#>   dy: -16.47595 4.996308 
 #> Mean Displacement:
-#>   Mean dx: 0.5565597 
-#>   Mean dy: -2.282656 
+#>   Mean dx: 0.5565594 
+#>   Mean dy: -2.479469 
 #> Standard Deviation of Displacement:
-#>   SD dx: 2.307457 
-#>   SD dy: 4.248035 
+#>   SD dx: 2.307458 
+#>   SD dy: 4.48589 
 #> 2D RMSE of Displacement:
-#>   RMSE: 5.365312
+#>   RMSE: 5.63844
 plot(gcp_data, title = "Ground Control Point Displacements")
 ```
 
@@ -229,35 +264,38 @@ print(gam_model)
 #> 
 #> Formula:
 #> dx ~ s(source_x, source_y, k = 29)
-#> <environment: 0x000001ddd8706388>
+#> <environment: 0x000001b21922b1c0>
 #> dy ~ s(source_x, source_y, k = 29)
-#> <environment: 0x000001ddd8706388>
+#> <environment: 0x000001b21922b1c0>
 #> 
 #> Parametric coefficients:
 #>               Estimate Std. Error z value Pr(>|z|)    
-#> (Intercept)    0.55656    0.03260   17.07   <2e-16 ***
-#> (Intercept).1 -2.28266    0.03085  -74.00   <2e-16 ***
+#> (Intercept)    0.55656    0.03261   17.07   <2e-16 ***
+#> (Intercept).1 -2.47947    0.03069  -80.78   <2e-16 ***
 #> ---
 #> Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1
 #> 
 #> Approximate significance of smooth terms:
 #>                          edf Ref.df Chi.sq p-value    
-#> s(source_x,source_y)   19.65  24.17   4733  <2e-16 ***
-#> s.1(source_x,source_y) 22.73  26.34  18620  <2e-16 ***
+#> s(source_x,source_y)   19.60  24.12   4731  <2e-16 ***
+#> s.1(source_x,source_y) 23.21  26.61  21003  <2e-16 ***
 #> ---
 #> Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1
 #> 
-#> Deviance explained = 97.8%
-#> -REML = -24.261  Scale est. = 1         n = 225
+#> Deviance explained =   98%
+#> -REML = -23.939  Scale est. = 1         n = 225
 #> 
 #> --- Cross-Validation Assessment (spatial_block) ---
-#>   Mean 2D RMSE: 1.0462
-#>   SD of RMSE:   0.2812 (across folds)
+#>   Mean 2D RMSE: 0.8298
+#>   SD of RMSE:   0.1153 (across folds)
 ```
 
-The out-of-sample cross-validation results (`cv_rmse_2d`) are stored
-directly in `gam_model$cv$summary`, providing a realistic estimate of
-predictive accuracy without data leakage.
+The headline out-of-sample metric is stored at `gam_model$cv_rmse_2d`,
+with the full assessment (including `Mean_RMSE_2D`, `SD_RMSE_2D` and the
+per-fold predictions) in `gam_model$cv`. It pools the squared residuals
+of every out-of-fold point, giving a more realistic estimate of
+predictive accuracy than in-sample residuals. Spatial schemes reduce,
+but do not eliminate, optimism from spatial autocorrelation.
 
 ### 3. Vector Map Transformation with Topology Validation
 
@@ -303,6 +341,11 @@ $$\mathbf{s}^{(k+1)} = \mathbf{s}^{(k)} - \lambda \left(\mathbf{s}^{(k)} + \math
 with damping factor $\lambda = 0.7$ and convergence tolerance
 $\epsilon = 10^{-4}$.
 
+The interpolation method must match the data type: `"bilinear"` for
+continuous rasters (imagery, elevation models, scanned map tones), and
+`"near"` for discrete or categorical rasters, which relocates cells
+without altering their values.
+
 ``` r
 library(terra)
 
@@ -310,18 +353,24 @@ library(terra)
 demo_raster_data <- create_demo_data(type = "complex", seed = 42, raster = TRUE)
 distorted_raster <- demo_raster_data$raster
 
-# Rectify raster using bilinear interpolation and automatic target extent calculation
+# Rectify raster using nearest-neighbour resampling and automatic target extent
+# calculation. The demo raster is a binary mask (0 = background, 1 = grid line),
+# so an interpolating method such as "bilinear" would average neighbouring
+# classes and introduce intermediate values absent from the source. "near"
+# relocates cells without altering their values.
 corrected_raster <- apply_pai_raster(
   gam_model,
   distorted_raster,
-  method = "bilinear",
+  method = "near",
   ext = "auto"
 )
 
-# Visualize original vs. rectified raster side-by-side
+# Visualize original vs. rectified raster side-by-side on an identical scale
 par(mfrow = c(1, 2))
-terra::plot(distorted_raster, main = "Original (Distorted) Raster", col = terrain.colors(50))
-terra::plot(corrected_raster, main = "Rectified Raster (mapAI)", col = terrain.colors(50))
+terra::plot(distorted_raster, main = "Original (Distorted) Raster",
+            col = c("grey90", "steelblue4"), range = c(0, 1))
+terra::plot(corrected_raster, main = "Rectified Raster (mapAI)",
+            col = c("grey90", "steelblue4"), range = c(0, 1))
 par(mfrow = c(1, 1))
 ```
 
@@ -352,36 +401,36 @@ fold-over** or singular collapse. `mapAI` flags these conditions
 automatically via `is_inverted` and issues diagnostic warnings. -
 **Maximum Angular Distortion:**
 $2 \arcsin\left(\frac{a - b}{a + b}\right)$ - **Airy-Kavrayskiy
-Criterion:** $\frac{1}{2}\left((\ln a)^2 + (\ln b)^2\right)$
+Criterion:**
+$\sqrt{\frac{1}{2}\left(\left(\ln \frac{a}{s_{\text{ref}}}\right)^2 + \left(\ln \frac{b}{s_{\text{ref}}}\right)^2\right)}$,
+where $s_{\text{ref}}$ is the reference linear scale (`reference_scale`)
 
 ``` r
 # Evaluate distortion metrics across the training points
 distortion_field <- analyze_distortion(gam_model, gcp_data)
 summary(distortion_field)
-#>                                Mean       Median           SD           Min
-#> a                       1.039837121  1.030184760  0.029233391  9.823135e-01
-#> b                       0.904517598  0.899478905  0.035140534  8.400142e-01
-#> area_scale              0.940467735  0.942917624  0.043110605  8.639429e-01
-#> signed_area_scale       0.940467735  0.942917624  0.043110605  8.639429e-01
-#> det_J                   0.940467735  0.942917624  0.043110605  8.639429e-01
-#> is_inverted             0.000000000  0.000000000  0.000000000  0.000000e+00
-#> log2_area_scale        -0.090061373 -0.084796357  0.066223913 -2.109922e-01
-#> max_shear               3.999757354  4.331540333  1.412336347  1.293299e+00
-#> max_angular_distortion  0.139617870  0.151199281  0.049299839  4.514464e-02
-#> airy_kavrayskiy         0.006990655  0.007137686  0.004010886  5.210556e-04
-#> theta_a                -0.807958551 -1.282925063 10.230238005 -2.552826e+01
+#>                               Mean       Median          SD          Min
+#> a                       1.04037035   1.03017316  0.02993641   0.98234485
+#> b                       0.89936371   0.89423101  0.03801500   0.83128929
+#> area_scale              0.93552411   0.93496461  0.04466957   0.85518344
+#> signed_area_scale       0.93552411   0.93496461  0.04466957   0.85518344
+#> det_J                   0.93552411   0.93496461  0.04466957   0.85518344
+#> is_inverted             0.00000000   0.00000000  0.00000000   0.00000000
+#> log2_area_scale        -0.09779065  -0.09701634  0.06889209  -0.22569418
+#> max_angular_distortion  8.36160873   8.96289474  3.07399486   2.65804897
+#> airy_kavrayskiy         0.08311419   0.08796347  0.02949809   0.02344264
+#> theta_a                -8.26106480 -10.17307706 12.18389080 -31.46301116
 #>                                Max
-#> a                       1.10085878
-#> b                       0.98099388
-#> area_scale              1.01466082
-#> signed_area_scale       1.01466082
-#> det_J                   1.01466082
+#> a                       1.10355309
+#> b                       0.98037555
+#> area_scale              1.01493368
+#> signed_area_scale       1.01493368
+#> det_J                   1.01493368
 #> is_inverted             0.00000000
-#> log2_area_scale         0.02099754
-#> max_shear               6.81247811
-#> max_angular_distortion  0.23780035
-#> airy_kavrayskiy         0.01559106
-#> theta_a                20.92916327
+#> log2_area_scale         0.02138546
+#> max_angular_distortion 14.54969308
+#> airy_kavrayskiy         0.13368873
+#> theta_a                23.00735408
 
 # Plot continuous areal distortion surface
 plot(distortion_field, metric = "area_scale", diverging = TRUE) +
@@ -409,8 +458,8 @@ indicatrices(distortion_field)
   Guillera-Arroita, G., Hauenstein, S., Lahoz-Monfort, J. J., Schröder,
   B., Thuiller, W., Warton, D. I., Wintle, B. A., Hartig, F., &
   Dormann, C. F. (2017). Cross-validation strategies for data with
-  spatial, temporal, or phylogenetic dependence. *Ecography*, 40(8),
-  913-929. <https://doi.org/10.1111/ecog.02881>
+  spatial, temporal, hierarchical, or phylogenetic structure.
+  *Ecography*, 40(8), 913-929. <https://doi.org/10.1111/ecog.02881>
 - Snyder, J. P. (1987). *Map Projections: A Working Manual*. U.S.
   Geological Survey Professional Paper 1395.
 - Tissot, A. (1881). *Mémoire sur la représentation des surfaces et les
@@ -442,11 +491,11 @@ detailing theoretical foundations, mathematical formulations, spatial
 cross-validation schemes, vector/raster transformation engines, and
 differential distortion diagnostics. \* [Advanced Analysis with Basel
 and Frickthal Data](docs/articles/swiss_data.md): Case study on
-historical map georeferencing and residual error modeling using the 1798
-Meyer-Weiss map series. \* [Custom Model Training with
-mapAI](docs/articles/custom_model_training.md): Tutorial on integrating
-custom machine learning regression models (SVR, Random Forest, Neural
-Networks) into `mapAI`.
+historical map georeferencing and residual error modeling using W.
+Haas’s 1798 map of the Basel and Frickthal region. \* [Custom Model
+Training with mapAI](docs/articles/custom_model_training.md): Tutorial
+on integrating custom machine learning regression models (SVR, Random
+Forest, Neural Networks) into `mapAI`.
 
 ------------------------------------------------------------------------
 

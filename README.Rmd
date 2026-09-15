@@ -47,7 +47,11 @@ Once trained, the model predicts continuous displacement vectors across space, a
 |                                                                                   |
 |   2. Model Training & Spatial Validation (Integrated)                             |
 |      train_pai_model(gcp, method = ..., cv = list(...))                           |
-|      * Methods: "helmert" (OLS / TLS), "lm", "tps", "gam_biv", Custom ML          |
+|      * Global:  "helmert" (OLS / TLS / Procrustes), "lm"                          |
+|      * Smooth:  "tps", "gam_biv"                                                  |
+|      * TIN:     "tin_linear", "tin_akima"                                         |
+|      * Hybrid:  "hybrid_helmert_tin", "hybrid_affine_tin"                         |
+|      * Custom ML plugins via method = list(...)                                   |
 |      * CV: random, spatial (k-means), spatial_block, spatial_buffered, etc.       |
 |                                                                                   |
 |   3. Dual-Engine Spatial Rectification                                            |
@@ -72,9 +76,11 @@ A 4-parameter conformal transformation preserving local shape and angles:
 
 $$\begin{pmatrix} x \\ y \end{pmatrix} = \begin{pmatrix} t_x \\ t_y \end{pmatrix} + \begin{pmatrix} a & -b \\ b & a \end{pmatrix} \begin{pmatrix} u \\ v \end{pmatrix}$$
 
-Parameters include scale factor $s = \sqrt{a^2 + b^2}$, rotation angle $\theta = \operatorname{atan2}(b, a)$, and translation vector $(t_x, t_y)^T$. `mapAI` implements both:
-- **Ordinary Least Squares (`method = "ols"`):** Assumes measurement errors reside solely in target coordinates.
-- **Total Least Squares / SVD Procrustes (`method = "tls"`):** Minimizes orthogonal Euclidean errors in both source and target coordinates simultaneously, eliminating attenuation bias (regression dilution) (Wolf & Ghilani, 2006).
+Parameters include scale factor $s = \sqrt{a^2 + b^2}$, rotation angle $\theta = \operatorname{atan2}(b, a)$, and translation vector $(t_x, t_y)^T$. `mapAI` implements three estimators:
+
+- **Ordinary Least Squares (`method = "ols"`):** Assumes measurement errors reside solely in the target coordinates.
+- **Total Least Squares (`method = "tls"`):** Applies the perturbation to the full augmented matrix $[\mathbf{A} \mid \mathbf{d}]$, so error in the *source* coordinates is accounted for as well. This reduces the attenuation (regression-dilution) bias that OLS incurs when the source coordinates are themselves measured with error (Golub & Van Loan, 2013).
+- **Scaled orthogonal Procrustes (`method = "procrustes"`):** For this 4-parameter conformal model, Procrustes minimises the same objective over the same parameter set as OLS and therefore returns the same estimate to machine precision. It is offered for comparison, not as an errors-in-variables method.
 
 ### 2. First-Order Polynomial Affine (`"lm"`)
 Captures differential scale, uniform rotation, and linear affine shear along non-orthogonal axes:
@@ -91,11 +97,19 @@ A bivariate thin plate regression spline fitted via a multivariate Gaussian fami
 
 $$\begin{pmatrix} d_x \\ d_y \end{pmatrix} \sim \mathcal{N}_2\left(\begin{pmatrix} \mu_x(u, v) \\ \mu_y(u, v) \end{pmatrix}, \boldsymbol{\Sigma}\right)$$
 
-`mapAI` incorporates an **adaptive basis dimension formula**:
+Smoothing parameters are selected by REML. `mapAI` incorporates an **adaptive basis dimension formula**:
 
-$$k = \max\left(3, \min\left(29, \lfloor 0.6 \cdot n_{\text{unique}} \rfloor\right)\right)$$
+$$k = \max\left(3, \min\left(k_{\max}, \lfloor 0.6 \cdot n_{\text{unique}} \rfloor\right)\right)$$
 
-which prevents rank deficiency when training with small sample sizes while maximizing flexibility on dense control point networks.
+The lower bound prevents rank deficiency on small control point sets. The upper bound $k_{\max}$ (default 29) caps flexibility and binds for any network of 49 or more distinct points; if `mgcv::k.check()` shows the effective degrees of freedom approaching $k - 1$, pass a larger `k` or `k_max` to relax it.
+
+### 5. Triangulated and Hybrid Models
+
+- **`"tin_linear"`** — piecewise affine Delaunay triangulation with barycentric interpolation; exact at control points, with a global Helmert fallback outside the convex hull.
+- **`"tin_akima"`** — smooth $C^1$ triangulated interpolation (Akima, 1996), avoiding the derivative kinks of `tin_linear`.
+- **`"hybrid_helmert_tin"` / `"hybrid_affine_tin"`** — a global conformal or affine trend with triangulated residuals.
+
+Note that *inside* the convex hull all three hybrid/TIN variants reduce to the same piecewise-affine map: for any affine base the base cancels against the barycentric weights. They differ only in how they extrapolate beyond the hull.
 
 ---
 
@@ -108,7 +122,7 @@ Standard random $k$-fold cross-validation suffers from **optimism bias** when ap
 
    $$\min_{\mathbf{s}_i \in \text{Test}} \|\mathbf{s}_j - \mathbf{s}_i\| > d_{\text{buffer}} \quad \forall \mathbf{s}_j \in \text{Train}$$
 
-   Training points within the exclusion dead zone are pruned, eliminating autocorrelation leakage.
+   Training points within the exclusion dead zone are pruned, which *reduces* autocorrelation leakage. It removes leakage only if $d_{\text{buffer}}$ exceeds the range of residual spatial autocorrelation; `mapAI` does not estimate that range, so the default is a geometric 5% of the map extent.
 3. **`"spatial"`:** Spatial clustering of coordinates via $k$-means.
 4. **`"random"`:** Standard random $k$-fold cross-validation.
 5. **`"probability"`:** Single design-based train/test split.
@@ -164,7 +178,7 @@ gam_model <- train_pai_model(
 print(gam_model)
 ```
 
-The out-of-sample cross-validation results (`cv_rmse_2d`) are stored directly in `gam_model$cv$summary`, providing a realistic estimate of predictive accuracy without data leakage.
+The headline out-of-sample metric is stored at `gam_model$cv_rmse_2d`, with the full assessment (including `Mean_RMSE_2D`, `SD_RMSE_2D` and the per-fold predictions) in `gam_model$cv`. It pools the squared residuals of every out-of-fold point, giving a more realistic estimate of predictive accuracy than in-sample residuals. Spatial schemes reduce, but do not eliminate, optimism from spatial autocorrelation.
 
 ### 3. Vector Map Transformation with Topology Validation
 
@@ -199,6 +213,8 @@ $$\mathbf{s}^{(k+1)} = \mathbf{s}^{(k)} - \lambda \left(\mathbf{s}^{(k)} + \math
 
 with damping factor $\lambda = 0.7$ and convergence tolerance $\epsilon = 10^{-4}$.
 
+The interpolation method must match the data type: `"bilinear"` for continuous rasters (imagery, elevation models, scanned map tones), and `"near"` for discrete or categorical rasters, which relocates cells without altering their values.
+
 ```{r raster-rectification, message=FALSE, warning=FALSE, fig.show='hold'}
 library(terra)
 
@@ -206,18 +222,24 @@ library(terra)
 demo_raster_data <- create_demo_data(type = "complex", seed = 42, raster = TRUE)
 distorted_raster <- demo_raster_data$raster
 
-# Rectify raster using bilinear interpolation and automatic target extent calculation
+# Rectify raster using nearest-neighbour resampling and automatic target extent
+# calculation. The demo raster is a binary mask (0 = background, 1 = grid line),
+# so an interpolating method such as "bilinear" would average neighbouring
+# classes and introduce intermediate values absent from the source. "near"
+# relocates cells without altering their values.
 corrected_raster <- apply_pai_raster(
   gam_model,
   distorted_raster,
-  method = "bilinear",
+  method = "near",
   ext = "auto"
 )
 
-# Visualize original vs. rectified raster side-by-side
+# Visualize original vs. rectified raster side-by-side on an identical scale
 par(mfrow = c(1, 2))
-terra::plot(distorted_raster, main = "Original (Distorted) Raster", col = terrain.colors(50))
-terra::plot(corrected_raster, main = "Rectified Raster (mapAI)", col = terrain.colors(50))
+terra::plot(distorted_raster, main = "Original (Distorted) Raster",
+            col = c("grey90", "steelblue4"), range = c(0, 1))
+terra::plot(corrected_raster, main = "Rectified Raster (mapAI)",
+            col = c("grey90", "steelblue4"), range = c(0, 1))
 par(mfrow = c(1, 1))
 ```
 
@@ -239,7 +261,7 @@ $$\mathbf{J} = \begin{pmatrix} \frac{\partial f_x}{\partial x} & \frac{\partial 
 
   When $\det(\mathbf{J}) \le 0$, the mapping experiences **topological fold-over** or singular collapse. `mapAI` flags these conditions automatically via `is_inverted` and issues diagnostic warnings.
 - **Maximum Angular Distortion:** $2 \arcsin\left(\frac{a - b}{a + b}\right)$
-- **Airy-Kavrayskiy Criterion:** $\frac{1}{2}\left((\ln a)^2 + (\ln b)^2\right)$
+- **Airy-Kavrayskiy Criterion:** $\sqrt{\frac{1}{2}\left(\left(\ln \frac{a}{s_{\text{ref}}}\right)^2 + \left(\ln \frac{b}{s_{\text{ref}}}\right)^2\right)}$, where $s_{\text{ref}}$ is the reference linear scale (`reference_scale`)
 
 ```{r distortion-analysis, message=FALSE, warning=FALSE}
 # Evaluate distortion metrics across the training points
@@ -259,7 +281,7 @@ indicatrices(distortion_field)
 ## References
 
 - Pebesma, E. (2018). Simple Features for R: Standardized Support for Spatial Vector Data. *The R Journal*, 10(1), 439-446. https://doi.org/10.32614/RJ-2018-009
-- Roberts, D. R., Bahn, V., Ciuti, S., Boyce, M. S., Elith, J., Guillera-Arroita, G., Hauenstein, S., Lahoz-Monfort, J. J., Schröder, B., Thuiller, W., Warton, D. I., Wintle, B. A., Hartig, F., & Dormann, C. F. (2017). Cross-validation strategies for data with spatial, temporal, or phylogenetic dependence. *Ecography*, 40(8), 913-929. https://doi.org/10.1111/ecog.02881
+- Roberts, D. R., Bahn, V., Ciuti, S., Boyce, M. S., Elith, J., Guillera-Arroita, G., Hauenstein, S., Lahoz-Monfort, J. J., Schröder, B., Thuiller, W., Warton, D. I., Wintle, B. A., Hartig, F., & Dormann, C. F. (2017). Cross-validation strategies for data with spatial, temporal, hierarchical, or phylogenetic structure. *Ecography*, 40(8), 913-929. https://doi.org/10.1111/ecog.02881
 - Snyder, J. P. (1987). *Map Projections: A Working Manual*. U.S. Geological Survey Professional Paper 1395.
 - Tissot, A. (1881). *Mémoire sur la représentation des surfaces et les projections des cartes géographiques*. Gauthier-Villars.
 - Valavi, R., Elith, J., Lahoz-Monfort, J. J., & Guillera-Arroita, G. (2019). blockCV: An R package for generating spatially or environmentally separated folds for k-fold cross-validation of species distribution models. *Methods in Ecology and Evolution*, 10(2), 225-232. https://doi.org/10.1111/2041-210X.13107
@@ -275,7 +297,7 @@ indicatrices(distortion_field)
 
 Comprehensive guides and articles are available:
 * [A Rigorous Methodological and Computational Framework for Positional Accuracy Improvement](docs/articles/mapAI_capabilities.md): In-depth treatise detailing theoretical foundations, mathematical formulations, spatial cross-validation schemes, vector/raster transformation engines, and differential distortion diagnostics.
-* [Advanced Analysis with Basel and Frickthal Data](docs/articles/swiss_data.md): Case study on historical map georeferencing and residual error modeling using the 1798 Meyer-Weiss map series.
+* [Advanced Analysis with Basel and Frickthal Data](docs/articles/swiss_data.md): Case study on historical map georeferencing and residual error modeling using W. Haas's 1798 map of the Basel and Frickthal region.
 * [Custom Model Training with mapAI](docs/articles/custom_model_training.md): Tutorial on integrating custom machine learning regression models (SVR, Random Forest, Neural Networks) into `mapAI`.
 
 ---

@@ -33,10 +33,21 @@
 #'
 #' **Angular and Total Distortion Criteria:**
 #' \itemize{
-#'   \item Maximum Angular Distortion: \eqn{2 \arcsin\left(\frac{a - b}{a + b}\right)}
-#'   \item Airy-Kavrayskiy Measure: \eqn{\frac{1}{2}\left((\ln a)^2 + (\ln b)^2\right)}
-#'   \item Principal Axis Orientation: \eqn{\theta_a}
+#'   \item Maximum Angular Distortion \eqn{2\Omega = 2 \arcsin\left(\frac{a - b}{a + b}\right)},
+#'     reported in \strong{degrees}.
+#'   \item Airy-Kavrayskiy Measure, with both semi-axes normalised by
+#'     \code{reference_scale} \eqn{s_{\text{ref}}}:
+#'     \deqn{E_{AK} = \sqrt{\frac{1}{2}\left(\left(\ln \frac{a}{s_{\text{ref}}}\right)^2 + \left(\ln \frac{b}{s_{\text{ref}}}\right)^2\right)}}
+#'   \item Principal Axis Orientation \eqn{\theta_a}, in \strong{degrees}. Writing
+#'     \eqn{\alpha = \frac{1}{2}\arctan_2(2F,\, E - G)} for the principal direction
+#'     in the source plane (the eigenvector angle of the metric tensor), the
+#'     reported orientation is that direction carried through the transformation:
+#'     \deqn{\theta_a = \arctan_2\left(\frac{\partial f_y}{\partial x}\cos\alpha + \frac{\partial f_y}{\partial y}\sin\alpha,\; \frac{\partial f_x}{\partial x}\cos\alpha + \frac{\partial f_x}{\partial y}\sin\alpha\right)}
+#'     This is the major-axis orientation of the indicatrix in the target plane,
+#'     equal to the angle of the first left singular vector of \eqn{\mathbf{J}}.
 #' }
+#'
+#' All three angular quantities are returned in degrees.
 #'
 #' @references
 #' \itemize{
@@ -50,14 +61,22 @@
 #'   `terra` `SpatRaster` object. If `NULL` (default), the GCPs used to train
 #'   the model will be used. If a `SpatRaster` is provided, distortion metrics
 #'   are evaluated at each cell center and returned as a multi-layer `SpatRaster`.
-#' @param reference_scale A single numeric value to normalize area scale.
+#' @param reference_scale A single positive number giving the reference
+#'   \strong{linear} scale \eqn{s_{\text{ref}}} against which distortion is
+#'   measured (for example the scale factor of a global Helmert fit, or `1` for
+#'   none). `log2_area_scale` is normalised by \eqn{s_{\text{ref}}^2} and
+#'   `airy_kavrayskiy` by \eqn{s_{\text{ref}}}. Supply a linear scale, not an
+#'   area scale.
 #'
 #' @return A `distortion` object (a data frame) or a `terra::SpatRaster` object
-#'   with all calculated distortion metrics (`a`, `b`, `area_scale`,
-#'   `signed_area_scale`, `det_J`, `is_inverted`, `log2_area_scale`,
-#'   `max_shear`, `max_angular_distortion`, `airy_kavrayskiy`, `theta_a`).
+#'   with all calculated distortion metrics: `a`, `b` (principal semi-axes),
+#'   `area_scale` (\eqn{= a \cdot b = |\det \mathbf{J}|}), `signed_area_scale`,
+#'   `det_J`, `is_inverted`, `log2_area_scale`, `max_angular_distortion`
+#'   (degrees), `airy_kavrayskiy`, and `theta_a` (degrees). For a `SpatRaster`
+#'   input the layers carry these names and the `NA` mask of the input is
+#'   preserved.
 #'
-#' @importFrom terra crds rast values<-
+#' @importFrom terra crds rast values<- ncell hasValues mask
 #' @export
 #' @examples
 #'   # Create data and train a model
@@ -85,7 +104,10 @@ analyze_distortion <- function(pai_model,
 
   if (is_raster) {
     orig_raster <- newdata
-    coords_mat <- terra::crds(newdata)
+    # na.rm = FALSE is essential: terra::crds() defaults to dropping NA cells,
+    # which would return fewer coordinates than the raster has cells and cause
+    # the metrics matrix to be silently recycled into the wrong cells.
+    coords_mat <- terra::crds(newdata, na.rm = FALSE)
     newdata <- data.frame(source_x = coords_mat[, 1],
                           source_y = coords_mat[, 2])
   } else if (!is.null(newdata)) {
@@ -99,10 +121,25 @@ analyze_distortion <- function(pai_model,
 
   # ---  Numerical Derivatives Calculation ---
 
-  # Determine a small step size h
-  coord_range <- max(c(diff(range(newdata$source_x)),
-                       diff(range(newdata$source_y))),
-                     na.rm = TRUE)
+  # Determine a small step size h for the central differences. The span of
+  # `newdata` is degenerate for a single evaluation point or a collinear set, so
+  # fall back to the span of the GCPs the model was trained on, and finally to an
+  # absolute floor. Without this, h = 0 and every metric silently becomes NaN.
+  span_of <- function(x, y) {
+    if (is.null(x) || is.null(y)) return(0)
+    s <- max(c(diff(range(x, na.rm = TRUE)), diff(range(y, na.rm = TRUE))),
+             na.rm = TRUE)
+    if (!is.finite(s)) 0 else s
+  }
+
+  coord_range <- span_of(newdata$source_x, newdata$source_y)
+  if (coord_range <= 0) {
+    coord_range <- span_of(pai_model$gcp$source_x, pai_model$gcp$source_y)
+  }
+  if (coord_range <= 0) {
+    coord_range <- max(1, mean(abs(c(newdata$source_x, newdata$source_y)),
+                               na.rm = TRUE))
+  }
   h <- coord_range * 1e-6
 
   # --- Step 1: Compute partial derivatives with respect to x ---
@@ -168,13 +205,30 @@ analyze_distortion <- function(pai_model,
   diff_ab <- a - b
   ratio_ab <- ifelse(sum_ab > 0, diff_ab / sum_ab, 0)
   ratio_ab <- pmin(1, pmax(-1, ratio_ab))
-  max_shear <- asin(ratio_ab) * 180 / pi
-  max_angular_distortion <- 2 * asin(ratio_ab)
-  airy_kavrayskiy <- 0.5 * (log(pmax(1e-12, a))^2 + log(pmax(1e-12, b))^2)
 
-  theta_xp <- atan2(dfy_dx, dfx_dx)
+  # Maximum angular distortion 2*Omega, reported in degrees like every other
+  # angular column of the result.
+  max_angular_distortion <- 2 * asin(ratio_ab) * 180 / pi
+
+  # Airy-Kavrayskiy criterion. Both semi-axes are normalised by reference_scale
+  # before the logarithm, and the outer square root is part of the standard
+  # definition; without them the value is dominated by the global map scale.
+  a_ref <- pmax(1e-12, a / reference_scale)
+  b_ref <- pmax(1e-12, b / reference_scale)
+  airy_kavrayskiy <- sqrt(0.5 * (log(a_ref)^2 + log(b_ref)^2))
+
+  # Orientation of the major semi-axis of Tissot's indicatrix, in degrees.
+  #
+  # alpha_p is the principal direction in the SOURCE plane: the eigenvector angle
+  # of the metric tensor [[E, F], [F, G]], satisfying tan(2*alpha) = 2F/(E - G).
+  # The reported orientation is that direction carried through the transformation,
+  # i.e. the angle of J %*% (cos alpha_p, sin alpha_p), which is the major-axis
+  # orientation in the TARGET plane and matches the first left singular vector of
+  # J. Do not subtract alpha_p from atan2(dfy_dx, dfx_dx): that mixes a source
+  # angle with a target angle and is only correct when F = 0.
   alpha_p <- atan2(2 * F_metric, E - G) / 2
-  theta_a <- (theta_xp - alpha_p) * 180 / pi
+  theta_a <- atan2(dfy_dx * cos(alpha_p) + dfy_dy * sin(alpha_p),
+                   dfx_dx * cos(alpha_p) + dfx_dy * sin(alpha_p)) * 180 / pi
 
   if (is_raster) {
     metrics_mat <- cbind(
@@ -185,14 +239,22 @@ analyze_distortion <- function(pai_model,
       det_J = det_J,
       is_inverted = as.numeric(is_inverted),
       log2_area_scale = log2(pmax(1e-12, area_scale) / (reference_scale^2)),
-      max_shear = max_shear,
       max_angular_distortion = max_angular_distortion,
       airy_kavrayskiy = airy_kavrayskiy,
       theta_a = theta_a
     )
+    if (nrow(metrics_mat) != terra::ncell(orig_raster)) {
+      stop("Internal error: computed ", nrow(metrics_mat), " metric rows for a ",
+           terra::ncell(orig_raster), "-cell raster.", call. = FALSE)
+    }
     out_rast <- terra::rast(orig_raster, nlyrs = ncol(metrics_mat))
     names(out_rast) <- colnames(metrics_mat)
     terra::values(out_rast) <- metrics_mat
+    # Carry the input's NA mask through, so cells that held no data do not come
+    # back populated with distortion values.
+    if (terra::hasValues(orig_raster)) {
+      out_rast <- terra::mask(out_rast, orig_raster[[1]])
+    }
     message("Distortion analysis complete.")
     return(out_rast)
   } else {
@@ -205,7 +267,6 @@ analyze_distortion <- function(pai_model,
     results$det_J <- det_J
     results$is_inverted <- is_inverted
     results$log2_area_scale <- log2(pmax(1e-12, area_scale) / (reference_scale^2))
-    results$max_shear <- max_shear
     results$max_angular_distortion <- max_angular_distortion
     results$airy_kavrayskiy <- airy_kavrayskiy
     results$theta_a <- theta_a
@@ -239,7 +300,6 @@ print.distortion <- function(x, ...) {
   cat(" - det_J: Jacobian determinant\n")
   cat(" - is_inverted: Topological fold-over indicator (det_J <= 0)\n")
   cat(" - log2_area_scale: Log2 area distortion relative to reference scale\n")
-  cat(" - max_shear: Maximum shear distortion (degrees)\n")
   cat(" - max_angular_distortion: Maximum angular distortion (radians)\n")
   cat(" - airy_kavrayskiy: Airy-Kavrayskiy distortion measure\n")
   cat(" - theta_a: Orientation of maximum distortion (degrees)\n")
@@ -270,7 +330,7 @@ summary.distortion <- function(object, ...) {
   }
 
   metrics <- c("a", "b", "area_scale", "signed_area_scale", "det_J", "is_inverted",
-               "log2_area_scale", "max_shear", "max_angular_distortion",
+               "log2_area_scale", "max_angular_distortion",
                "airy_kavrayskiy", "theta_a")
 
   summary_list <- lapply(metrics, function(metric) {

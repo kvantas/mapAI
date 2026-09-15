@@ -5,9 +5,10 @@
 \alias{basel_frickthal}
 \title{The 1798 Map data of the Basel and Frickthal Region}
 \format{
-An list with one \code{gcp} object (gcp) and one \code{sf} object (grid):
+A list with one \code{gcp} object (gcp) and one \code{sf} object (grid):
 \describe{
-\item{gcp}{An \code{sf} object with 343 features and 6 variables:
+\item{gcp}{A \code{gcp} object (a data frame, not an \code{sf} object: it carries no
+geometry column and no CRS) with 343 rows and 6 variables:
 \describe{
 \item{source_x}{Numeric. The X-coordinate on the source map
 (already globally aligned).}
@@ -33,7 +34,7 @@ basel_frickthal
 }
 \description{
 A dataset of 343 Control Points (CPs) based on the sample
-datasetfrom the MapAnalyst distortion analysis software. It's ideal for
+dataset from the MapAnalyst distortion analysis software. It is well suited to
 analyzing complex, non-linear distortions.
 }
 \details{
@@ -49,9 +50,9 @@ An old map to analyze, named "Die Landschaft Basel und das Frickthal -
 entworfen und mit beweglichen Typen gesetzt von W. Haas". It shows part of
 northern Switzerland and was produced in 1798 by W. Haas.
 
-previous analysis revealed: (a) a west-toeast scale variation from
+Previous analysis revealed: (a) a west-to-east scale variation from
 approximately 1:175,000 to 1:190,000; and (b) significant distortions in the
-south-eastern and northwestern corners
+south-eastern and north-western corners.
 
 This makes the dataset an excellent test case for evaluating the ability of
 non linear models like \code{gam} to model and correct these challenging error
@@ -68,7 +69,7 @@ data(basel_frickthal)
 basel_frickthal$gcp
 basel_frickthal$grid
 
-# plot old map distrortions
+# plot old map distortions
 plot(basel_frickthal$gcp)
 
 }

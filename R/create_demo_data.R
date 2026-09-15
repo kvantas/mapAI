@@ -15,10 +15,22 @@
 #'     warp with a localized Gaussian deformation, simulating a complex mix of
 #'     global, regional, and local errors.
 #'   }
-#'   Finally, random noise is added to the distorted coordinates. The function
-#'   outputs a shapefile representing the distorted grid (as a set of grid
-#'   lines) and a CSV file of homologous points ready for use with
-#'   `read_correction_data()`.
+#'   Finally, independent Gaussian noise with standard deviation `noise_sd` is
+#'   added to each distorted coordinate. Everything is returned in memory as a
+#'   list; nothing is written to disk.
+#'
+#'   \strong{On the achievable error floor.} The per-axis noise implies a 2D RMSE
+#'   floor of \eqn{\sqrt{2} \times} `noise_sd` for a model that recovers the
+#'   deformation exactly. For `type = "complex"` the true floor is higher, because
+#'   the localized Gaussian term is a radial field
+#'   \eqn{A e^{-r^2 / 2\sigma^2}\hat{\mathbf{r}}} whose magnitude tends to `A` as
+#'   \eqn{r \to 0} while its direction depends on the angle of approach: the field
+#'   is discontinuous at its centre and no smooth model (GAM, TPS, Helmert) can
+#'   reproduce it. With the defaults that centre also sits on the lower edge of
+#'   the grid (`Nc = 0`), so only half the feature lies inside the domain, and
+#'   \eqn{\sigma \approx 4.5} is resolved by roughly one grid interval. Treat
+#'   `"complex"` as a stress test rather than as data with a clean, known error
+#'   floor; use `"nonlinear"` when you need a smooth target.
 #'
 #' @param type A character string specifying the distortion type. One of
 #'  "helmert", "nonlinear", or "complex". Defaults to "complex".
@@ -35,8 +47,10 @@
 #'   `s` (scale), `angle_deg` (rotation in degrees), `tx` (translation in x),
 #'   and `ty` (translation in y). Defaults to
 #'    `list(s = 1.005, angle_deg = 1, tx = 2, ty = -3)`.
-#' @param poly_params A list of coefficients (`cE1`, `cE2`, `cN1`, `cN2`) for
-#'  the polynomial warp. Defaults to
+#' @param poly_params A list of coefficients (`cE1`, `cE2`, `cN1`, `cN2`) for the
+#'  second-order polynomial warp, applied simultaneously to both axes:
+#'  \eqn{x' = x + c_{E1}x^2 + c_{E2}xy} and \eqn{y' = y + c_{N1}y^2 + c_{N2}xy}.
+#'  Defaults to `list(cE1 = 0.00002, cE2 = -0.0008, cN1 = 0.0002, cN2 = 0.0015)`.
 #' @param gauss_params A list of parameters for the Gaussian warp: `A`
 #'  (amplitude), `Ec`, `Nc` (center coordinates), and `sigma2` (variance).
 #'  Defaults to `list(A = 4, Ec = 50, Nc = 0, sigma2 = 20)`.
@@ -81,6 +95,14 @@ create_demo_data <- function(type = "complex",
     helmert_params, poly_params, gauss_params
   )
 
+  # Restore the caller's global RNG state on exit.
+  if (exists(".Random.seed", envir = globalenv(), inherits = FALSE)) {
+    .old_seed <- get(".Random.seed", envir = globalenv(), inherits = FALSE)
+    on.exit(assign(".Random.seed", .old_seed, envir = globalenv()), add = TRUE)
+  } else {
+    on.exit(suppressWarnings(rm(".Random.seed", envir = globalenv())), add = TRUE)
+  }
+
   # --- Internal Helper Functions ---
   set.seed(seed)
 
@@ -110,10 +132,17 @@ create_demo_data <- function(type = "complex",
     cE1 <- params$cE1; cE2 <- params$cE2
     cN1 <- params$cN1; cN2 <- params$cN2
 
-    data$x_distorted <- data$x_distorted +
-      (cE1 * data$x_distorted^2 + cE2 * data$x_distorted * data$y_distorted)
-    data$y_distorted <- data$y_distorted +
-      (cN1 * data$y_distorted^2 + cN2 * data$x_distorted * data$y_distorted)
+    # Snapshot the inputs. Updating x in place and then reading it back when
+    # computing y makes the warp sequential rather than simultaneous, which
+    # injects a spurious third-order term cN2 * (cE1*x^2 + cE2*x*y) * y. With the
+    # default coefficients that term reaches 1.17 units, over twice the default
+    # noise_sd, so the data would not follow the second-order polynomial family
+    # this function documents.
+    x0 <- data$x_distorted
+    y0 <- data$y_distorted
+
+    data$x_distorted <- x0 + (cE1 * x0^2 + cE2 * x0 * y0)
+    data$y_distorted <- y0 + (cN1 * y0^2 + cN2 * x0 * y0)
     return(data)
   }
 

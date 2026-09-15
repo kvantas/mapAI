@@ -6,20 +6,23 @@
 \usage{
 \method{residuals}{pai_model}(
   object,
-  title = "Model Residual Error Vectors",
-  subtitle = "Arrows point from predicted to true target locations",
+  title = NULL,
+  subtitle = NULL,
   arrow_color = "darkblue",
   point_color = "blue",
   exaggeration_factor = 1,
+  out_of_sample = FALSE,
   ...
 )
 }
 \arguments{
 \item{object}{An object of class \code{pai_model}.}
 
-\item{title}{A character string for the plot's main title.}
+\item{title}{A character string for the plot's main title. If \code{NULL} (default),
+a title stating whether the residuals are in-sample or out-of-sample is used.}
 
-\item{subtitle}{A character string for the plot's subtitle.}
+\item{subtitle}{A character string for the plot's subtitle. If \code{NULL}
+(default), an explanatory subtitle is generated.}
 
 \item{arrow_color}{A character string specifying the color of the residual
 arrows.}
@@ -32,6 +35,10 @@ residual vectors. A value of 2, for instance, will double their
 plotted length, making subtle residuals more visible. Defaults to 1
 (no exaggeration).}
 
+\item{out_of_sample}{Logical. If \code{TRUE}, plot out-of-fold residuals from the
+model's stored cross-validation instead of in-sample residuals. Requires a
+model trained with \code{cv}. Defaults to \code{FALSE}.}
+
 \item{...}{Additional arguments (not used).}
 }
 \value{
@@ -41,6 +48,17 @@ can be further customized.
 \description{
 Visualizes the residual errors of a trained \code{pai_model}
 as arrows pointing from predicted to actual target locations.
+}
+\details{
+By default this plots \strong{in-sample} residuals: the model is evaluated on
+the very control points it was fitted to. For the exact interpolators
+(\code{tin_linear}, \code{tin_akima}, \code{hybrid_helmert_tin}, \code{hybrid_affine_tin}) those
+residuals are zero by construction, so the plot is empty and carries no
+information about predictive accuracy.
+
+Set \code{out_of_sample = TRUE} to plot the out-of-fold residuals instead, which is
+the honest picture of predictive performance. This requires a model trained
+with cross-validation (see the \code{cv} argument of \code{\link[=train_pai_model]{train_pai_model()}}).
 }
 \examples{
 # See ?train_pai_model for a complete, runnable example.

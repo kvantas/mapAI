@@ -41,15 +41,19 @@ state.
 # This example demonstrates a full workflow with POINT geometry.
 
 # --- 1. Load Data and Train Model ---
-data(gcps) # gcps is an sf object with POINT geometry
-gam_model <- train_pai_model(gcps, pai_method = "gam")
+demo_data <- create_demo_data()
+gam_model <- train_pai_model(demo_data$gcp, method = "gam_biv")
 
-# --- 2. Apply the Model to Correct the Points ---
-corrected_points <- apply_pai_model(gam_model, gcps)
+# --- 2. Build an sf POINT layer in the model's source space ---
+pts <- sf::st_as_sf(demo_data$gcp, coords = "source",
+                    crs = sf::st_crs(demo_data$map))
 
-# --- 3. Inspect  ---
+# --- 3. Apply the Model to Correct the Points ---
+corrected_points <- apply_pai_model(gam_model, pts)
+
+# --- 4. Inspect ---
 # The coordinates of the corrected points should be different.
-head(sf::st_coordinates(gcps))
+head(sf::st_coordinates(pts))
 head(sf::st_coordinates(corrected_points))
 
 }

@@ -418,7 +418,9 @@ validate_map_transform <- function(pai_model, map, aoi){
     if (!inherits(aoi, "sf") || !any(sf::st_geometry_type(aoi) %in% c("POLYGON", "MULTIPOLYGON"))) {
       stop("`aoi` must be a valid `sf` object with POLYGON or MULTIPOLYGON geometry.", call. = FALSE)
     }
-    # Ensure AOI has the same CRS as the map
+    # Ensure AOI has the same CRS as the map. Reprojecting here would only update
+    # a local copy that the caller never sees, so return the transformed AOI and
+    # let the caller substitute it.
     if (sf::st_crs(aoi) != sf::st_crs(map)) {
       aoi <- sf::st_transform(aoi, sf::st_crs(map))
       message("Transformed `aoi` CRS to match `map` CRS.")
@@ -426,8 +428,8 @@ validate_map_transform <- function(pai_model, map, aoi){
     assert_projected_crs(aoi, name = "aoi")
   }
 
-  # If all checks pass, return invisibly
-  invisible(NULL)
+  # Return the (possibly reprojected) AOI so the caller can use it.
+  invisible(aoi)
 
 }
 

@@ -44,7 +44,6 @@ export(surface)
 export(train_pai_model)
 export(transform_map)
 export(write_map)
-import(dplyr)
 import(ggplot2)
 import(sf)
 importFrom(ggforce,geom_ellipse)
@@ -98,7 +97,9 @@ importFrom(terra,
   crs,
   ext,
   extract,
+  hasValues,
   mask,
+  ncell,
   nlyr,
   project,
   rast,
@@ -111,5 +112,8 @@ importFrom(terra,
 )
 importFrom(tools,file_ext)
 importFrom(units,set_units)
-importFrom(utils,read.csv)
+importFrom(utils,
+  head,
+  read.csv
+)
 importFrom(viridis,scale_fill_viridis)

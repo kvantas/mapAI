@@ -27,7 +27,7 @@ test_that("output has the correct structure and class", {
   expect_equal(nrow(res), nrow(gcp))
 
   expected_cols <- c("source_x", "source_y", "a", "b", "area_scale",
-                     "max_shear", "theta_a")
+                     "theta_a")
   expect_true(all(expected_cols %in% names(res)))
   expect_true(all(is.numeric(res$a)))
 })
@@ -106,8 +106,8 @@ test_that("numerical derivatives match analytical derivatives", {
 
 test_that("Correctly identifies an identity transformation (no distortion)", {
 
-  # An identity transformation should yield a=1, b=1, area_scale=1, max_shear=0
-  # everywhere.
+  # An identity transformation should yield a=1, b=1, area_scale=1, and zero
+  # angular distortion everywhere.
   identity_model <- list(
     label = "Identity Transformation",
     modelType = "bivariate",
@@ -138,7 +138,6 @@ test_that("Correctly identifies an identity transformation (no distortion)", {
   expect_equal(res$a, rep(1, n), tolerance = TOLERANCE)
   expect_equal(res$b, rep(1, n), tolerance = TOLERANCE)
   expect_equal(res$area_scale, rep(1, n), tolerance = TOLERANCE)
-  expect_equal(res$max_shear, rep(0, n), tolerance = TOLERANCE)
 })
 
 #### distortion object methods unit tests ####
@@ -166,7 +165,7 @@ test_that("summary.distortion handles invalid input", {
 
   expect_equal(rownames(summary(res)), c("a", "b", "area_scale", "signed_area_scale",
                                          "det_J", "is_inverted",
-                                         "log2_area_scale", "max_shear",
+                                         "log2_area_scale",
                                          "max_angular_distortion",
                                          "airy_kavrayskiy", "theta_a"))
 })
@@ -305,4 +304,126 @@ test_that("static aesthetics (colors) are mapped correctly", {
 
   expect_equal(unique(built_data$fill), fill)
   expect_equal(unique(built_data$colour), border)
+})
+
+
+#### Regression tests for corrected distortion mathematics ####
+
+test_that("theta_a matches the major-axis orientation from the SVD of J", {
+  # theta_a must equal the angle of the first LEFT singular vector of J, i.e.
+  # the major-axis orientation of Tissot's indicatrix in the target plane.
+  # Angles are defined modulo 180 degrees.
+  norm180 <- function(d) ((d + 90) %% 180) - 90
+
+  make_affine_model <- function(J) {
+    list(
+      label = "Fixed Affine", modelType = "bivariate", library = NULL,
+      fit = function(gcp_data, ...) list(),
+      predict = function(model, newdata, ...) {
+        tx <- J[1, 1] * newdata$source_x + J[1, 2] * newdata$source_y
+        ty <- J[2, 1] * newdata$source_x + J[2, 2] * newdata$source_y
+        cbind(tx - newdata$source_x, ty - newdata$source_y)
+      }
+    )
+  }
+
+  set.seed(42)
+  for (i in 1:15) {
+    J <- matrix(rnorm(4, sd = 2), 2, 2)
+    if (abs(det(J)) < 1e-3) next
+
+    mod <- suppressWarnings(
+      train_pai_model(create_dummy_gcp_data(8), method = make_affine_model(J))
+    )
+    res <- suppressWarnings(
+      suppressMessages(analyze_distortion(mod, create_dummy_gcp_data(8)))
+    )
+
+    s <- svd(J)
+    truth <- atan2(s$u[2, 1], s$u[1, 1]) * 180 / pi
+
+    expect_equal(norm180(res$theta_a[1]), norm180(truth), tolerance = 1e-5)
+    expect_equal(res$a[1], s$d[1], tolerance = 1e-5)
+    expect_equal(res$b[1], s$d[2], tolerance = 1e-5)
+  }
+})
+
+test_that("max_angular_distortion is reported in degrees", {
+  # A pure scaling by (2, 1) gives a = 2, b = 1, so 2*Omega = 2*asin(1/3).
+  scale_model <- list(
+    label = "Anisotropic Scale", modelType = "bivariate", library = NULL,
+    fit = function(gcp_data, ...) list(),
+    predict = function(model, newdata, ...) {
+      cbind(newdata$source_x, rep(0, nrow(newdata)))
+    }
+  )
+  mod <- train_pai_model(create_dummy_gcp_data(10), method = scale_model)
+  res <- suppressMessages(analyze_distortion(mod, create_dummy_gcp_data(10)))
+
+  expect_equal(res$a[1], 2, tolerance = 1e-5)
+  expect_equal(res$b[1], 1, tolerance = 1e-5)
+  expect_equal(res$max_angular_distortion[1],
+               2 * asin(1 / 3) * 180 / pi, tolerance = 1e-5)
+  # Guard against a silent reversion to radians.
+  expect_gt(res$max_angular_distortion[1], 10)
+})
+
+test_that("airy_kavrayskiy responds to reference_scale and takes the outer root", {
+  model <- train_pai_model(create_dummy_gcp_data(30), method = "lm")
+  gcp <- create_dummy_gcp_data(30)
+
+  d1 <- suppressMessages(analyze_distortion(model, gcp, reference_scale = 1))
+  d2 <- suppressMessages(analyze_distortion(model, gcp, reference_scale = 2))
+
+  expect_false(isTRUE(all.equal(d1$airy_kavrayskiy, d2$airy_kavrayskiy)))
+
+  expected <- sqrt(0.5 * (log(d1$a / 2)^2 + log(d1$b / 2)^2))
+  expect_equal(d2$airy_kavrayskiy, expected, tolerance = 1e-9)
+
+  # log2_area_scale must shift by exactly -2 when the linear reference doubles.
+  expect_equal(d2$log2_area_scale, d1$log2_area_scale - 2, tolerance = 1e-9)
+})
+
+test_that("a degenerate newdata does not silently produce NaN metrics", {
+  model <- train_pai_model(create_dummy_gcp_data(40), method = "lm")
+
+  one_point <- data.frame(source_x = 500, source_y = 500)
+  res <- suppressMessages(analyze_distortion(model, one_point))
+  expect_false(any(is.nan(c(res$a, res$b, res$det_J, res$theta_a))))
+  expect_true(all(is.finite(c(res$a, res$b, res$det_J))))
+
+  # A collinear set is degenerate in one axis only, which was also fatal before.
+  collinear <- data.frame(source_x = rep(500, 5), source_y = seq(0, 400, 100))
+  res2 <- suppressMessages(analyze_distortion(model, collinear))
+  expect_true(all(is.finite(res2$a)))
+})
+
+test_that("raster distortion metrics stay aligned when the input has NA cells", {
+  skip_if_not_installed("terra")
+
+  gcp <- create_dummy_gcp_data(60)
+  model <- train_pai_model(gcp, method = "lm")
+
+  r <- terra::rast(
+    terra::ext(min(gcp$source_x), max(gcp$source_x),
+               min(gcp$source_y), max(gcp$source_y)),
+    nrows = 10, ncols = 10
+  )
+  terra::values(r) <- seq_len(terra::ncell(r))
+  na_idx <- 1:40
+  terra::values(r)[na_idx] <- NA
+
+  out <- suppressMessages(analyze_distortion(model, r))
+
+  expect_equal(terra::ncell(out), terra::ncell(r))
+  # The input NA mask must be carried through, not filled with recycled values.
+  expect_equal(sum(is.na(terra::values(out)[, "a"])), length(na_idx))
+
+  # Values on the surviving cells must match a direct point-wise evaluation.
+  xy <- terra::crds(r, na.rm = FALSE)
+  pts <- data.frame(source_x = xy[, 1], source_y = xy[, 2])
+  direct <- suppressMessages(analyze_distortion(model, pts))
+  keep <- !is.na(terra::values(r)[, 1])
+  expect_equal(terra::values(out)[keep, "a"], direct$a[keep],
+               tolerance = 1e-8, ignore_attr = TRUE)
 })

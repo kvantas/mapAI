@@ -142,7 +142,72 @@ test_that("helmert model supports TLS and returns geodetic parameters and diagno
   expect_equal(unname(model_tls$parameters["theta_deg"]), 30, tolerance = 1e-6)
 
   # Check print for TLS
-  expect_output(print(model_tls), "TLS / Procrustes")
+  expect_output(print(model_tls), "TLS", fixed = TRUE)
   expect_output(print(model_tls), "Scale Factor")
 })
 
+
+
+test_that("tls is a genuinely distinct estimator from ols, and procrustes is not", {
+  # Regression test for the case where "tls" was implemented as scaled orthogonal
+  # Procrustes, which is algebraically identical to OLS for this 4-parameter
+  # conformal model. Under errors-in-variables the three must separate as:
+  #   procrustes == ols   (same objective, same feasible set)
+  #   tls        != ols   (error attributed to the source coordinates too)
+  set.seed(11)
+  n <- 80
+  u <- runif(n, 0, 1000); v <- runif(n, 0, 1000)
+  a_true <- 1.05; b_true <- 0.08
+  x <- a_true * u - b_true * v + 20
+  y <- b_true * u + a_true * v - 15
+
+  # Noise in BOTH coordinate systems.
+  uo <- u + rnorm(n, 0, 40); vo <- v + rnorm(n, 0, 40)
+  xo <- x + rnorm(n, 0, 40); yo <- y + rnorm(n, 0, 40)
+
+  m_ols <- helmert(uo, vo, xo, yo, method = "ols")
+  m_pro <- helmert(uo, vo, xo, yo, method = "procrustes")
+  m_tls <- helmert(uo, vo, xo, yo, method = "tls")
+
+  expect_equal(unname(m_pro$coefficients), unname(m_ols$coefficients),
+               tolerance = 1e-10)
+  expect_false(isTRUE(all.equal(unname(m_tls$coefficients),
+                                unname(m_ols$coefficients),
+                                tolerance = 1e-6)))
+
+  # TLS reduces attenuation of the scale factor IN EXPECTATION. A single draw is
+  # noisy (OLS can be luckier on any one sample), so average over replicates and
+  # compare the mean signed bias: OLS should attenuate downward more than TLS.
+  s_true <- sqrt(a_true^2 + b_true^2)
+  set.seed(202)
+  bias <- replicate(150, {
+    ur <- u + rnorm(n, 0, 40); vr <- v + rnorm(n, 0, 40)
+    xr <- x + rnorm(n, 0, 40); yr <- y + rnorm(n, 0, 40)
+    c(ols = unname(helmert(ur, vr, xr, yr, method = "ols")$parameters["scale"]),
+      tls = unname(helmert(ur, vr, xr, yr, method = "tls")$parameters["scale"]))
+  })
+  bias_ols <- mean(bias["ols", ]) - s_true
+  bias_tls <- mean(bias["tls", ]) - s_true
+  expect_lt(bias_ols, 0)                      # OLS attenuates
+  expect_lt(abs(bias_tls), abs(bias_ols))     # TLS attenuates less
+
+  expect_equal(m_tls$method, "tls")
+  expect_equal(m_pro$method, "procrustes")
+})
+
+test_that("procrustes matches ols even when the pairing is reflected", {
+  # OLS ranges over all scaled rotations, which is exactly the Procrustes
+  # feasible set, so the two must agree on ANY data. This pins the scale used by
+  # the reflection branch: (d1 - d2)/D, not (d1 + d2)/D.
+  set.seed(3)
+  n <- 50
+  u <- runif(n, 0, 100); v <- runif(n, 0, 100)
+  x <- 1.05 * u - 0.08 * v + 20
+  y <- 0.08 * u + 1.05 * v - 15
+
+  for (tgt in list(list(x, y), list(-x, y), list(y, x))) {
+    o <- helmert(u, v, tgt[[1]], tgt[[2]], method = "ols")$coefficients
+    p <- helmert(u, v, tgt[[1]], tgt[[2]], method = "procrustes")$coefficients
+    expect_equal(unname(p), unname(o), tolerance = 1e-9)
+  }
+})
