@@ -60,6 +60,11 @@ tps_model <- list(
   }
 )
 
+#' **Performance note**: `interp::interp()` is called at predict time, not fit time.
+#' The Delaunay triangulation and Akima C1 spline coefficients are rebuilt from
+#' scratch on every `predict()` call. This gives O(M·n log n) prediction complexity
+#' vs O(M log n) for `tin_linear`. For n > 200 GCPs, this becomes a significant
+#' bottleneck. Fit is O(n) — just stores data and fits a linear fallback.
 #' @noRd
 tin_akima_model <- list(
   label = "Akima C1 Triangulated Spline",
@@ -272,6 +277,14 @@ tin_linear_model <- list(
   }
 )
 
+#' **Mathematical equivalence**: Inside the convex hull, this model produces results
+#' identical to `tin_linear` (with `fallback = "helmert"`) to machine precision (~1e-14).
+#' This is because barycentric weights satisfy Σλ_i = 1 and Σλ_i·p_i = p, so for any
+#' affine base h the trend cancels exactly in the residual interpolation. The Helmert
+#' base is affine, so the two-stage decomposition adds no accuracy inside the hull.
+#' The model differs from `tin_linear` **only in extrapolation** outside the convex
+#' hull: residuals default to zero, giving pure Helmert extrapolation, whereas
+#' `tin_linear` uses its fallback model directly.
 #' @noRd
 hybrid_helmert_tin_model <- list(
   label = "Hybrid Helmert-TIN Model",
@@ -331,6 +344,9 @@ hybrid_helmert_tin_model <- list(
   }
 )
 
+#' **Mathematical equivalence**: Same identity as `hybrid_helmert_tin` — identical
+#' to `tin_linear` (with `fallback = "affine"`) inside the hull.
+#' Outside the hull: residuals default to zero, giving pure affine extrapolation.
 #' @noRd
 hybrid_affine_tin_model <- list(
   label = "Hybrid Affine-TIN Model",
@@ -391,6 +407,287 @@ hybrid_affine_tin_model <- list(
 )
 
 
+# ---- Moving Least Squares 2D Models (Schaefer et al., 2006) ------------------
+
+#' 2D Moving Least Squares Deformation Solver
+#' @noRd
+predict_mls_2d <- function(P, Q, newdata, mode = c("similarity", "rigid", "affine"), alpha = 1.0) {
+  mode <- match.arg(mode)
+  M <- nrow(newdata)
+  out_dx <- numeric(M)
+  out_dy <- numeric(M)
+
+  vx <- newdata$source_x
+  vy <- newdata$source_y
+  px <- P[, 1]
+  py <- P[, 2]
+  qx <- Q[, 1]
+  qy <- Q[, 2]
+
+  for (k in seq_len(M)) {
+    vk_x <- vx[k]
+    vk_y <- vy[k]
+
+    diff_x <- px - vk_x
+    diff_y <- py - vk_y
+    d2 <- diff_x^2 + diff_y^2
+
+    min_idx <- which.min(d2)
+    if (d2[min_idx] < 1e-12) {
+      out_dx[k] <- qx[min_idx] - vk_x
+      out_dy[k] <- qy[min_idx] - vk_y
+      next
+    }
+
+    w <- 1.0 / (d2^alpha)
+    w_sum <- sum(w)
+    if (w_sum < 1e-15) {
+      out_dx[k] <- 0
+      out_dy[k] <- 0
+      next
+    }
+
+    p_star_x <- sum(w * px) / w_sum
+    p_star_y <- sum(w * py) / w_sum
+    q_star_x <- sum(w * qx) / w_sum
+    q_star_y <- sum(w * qy) / w_sum
+
+    p_hat_x <- px - p_star_x
+    p_hat_y <- py - p_star_y
+    q_hat_x <- qx - q_star_x
+    q_hat_y <- qy - q_star_y
+    v_hat_x <- vk_x - p_star_x
+    v_hat_y <- vk_y - p_star_y
+
+    if (mode == "affine") {
+      p11 <- sum(w * p_hat_x * p_hat_x)
+      p12 <- sum(w * p_hat_x * p_hat_y)
+      p22 <- sum(w * p_hat_y * p_hat_y)
+      det_p <- p11 * p22 - p12 * p12
+      if (abs(det_p) < 1e-12) {
+        out_dx[k] <- q_star_x - p_star_x
+        out_dy[k] <- q_star_y - p_star_y
+        next
+      }
+      inv11 <-  p22 / det_p
+      inv12 <- -p12 / det_p
+      inv22 <-  p11 / det_p
+
+      q11 <- sum(w * p_hat_x * q_hat_x)
+      q12 <- sum(w * p_hat_x * q_hat_y)
+      q21 <- sum(w * p_hat_y * q_hat_x)
+      q22 <- sum(w * p_hat_y * q_hat_y)
+
+      m11 <- inv11 * q11 + inv12 * q21
+      m12 <- inv11 * q12 + inv12 * q22
+      m21 <- inv12 * q11 + inv22 * q21
+      m22 <- inv12 * q12 + inv22 * q22
+
+      pred_x <- v_hat_x * m11 + v_hat_y * m21 + q_star_x
+      pred_y <- v_hat_x * m12 + v_hat_y * m22 + q_star_y
+
+    } else {
+      # Similarity and Rigid modes
+      mu <- sum(w * (p_hat_x^2 + p_hat_y^2))
+      if (abs(mu) < 1e-14) {
+        out_dx[k] <- q_star_x - p_star_x
+        out_dy[k] <- q_star_y - p_star_y
+        next
+      }
+
+      dot1 <- v_hat_x * p_hat_x + v_hat_y * p_hat_y
+      dot2 <- -v_hat_x * p_hat_y + v_hat_y * p_hat_x
+
+      fx <- sum(w * (dot1 * q_hat_x - dot2 * q_hat_y)) / mu
+      fy <- sum(w * (dot2 * q_hat_x + dot1 * q_hat_y)) / mu
+
+      if (mode == "similarity") {
+        pred_x <- fx + q_star_x
+        pred_y <- fy + q_star_y
+      } else { # rigid
+        norm_f <- sqrt(fx^2 + fy^2)
+        norm_v <- sqrt(v_hat_x^2 + v_hat_y^2)
+        if (norm_f < 1e-12 || norm_v < 1e-12) {
+          pred_x <- fx + q_star_x
+          pred_y <- fy + q_star_y
+        } else {
+          pred_x <- norm_v * (fx / norm_f) + q_star_x
+          pred_y <- norm_v * (fy / norm_f) + q_star_y
+        }
+      }
+    }
+
+    out_dx[k] <- pred_x - vk_x
+    out_dy[k] <- pred_y - vk_y
+  }
+
+  return(data.frame(dx = out_dx, dy = out_dy, row.names = row.names(newdata)))
+}
+
+#' @noRd
+mls_similarity_model <- list(
+  label = "Moving Least Squares (Similarity)",
+  library = NULL,
+  modelType = "bivariate",
+  fit = function(dat, alpha = 1.0, ...) {
+    list(
+      P = as.matrix(dat[, c("source_x", "source_y")]),
+      Q = as.matrix(dat[, c("target_x", "target_y")]),
+      alpha = alpha
+    )
+  },
+  predict = function(modelFit, newdata, ...) {
+    predict_mls_2d(modelFit$P, modelFit$Q, newdata, mode = "similarity", alpha = modelFit$alpha)
+  }
+)
+
+#' @noRd
+mls_rigid_model <- list(
+  label = "Moving Least Squares (Rigid)",
+  library = NULL,
+  modelType = "bivariate",
+  fit = function(dat, alpha = 1.0, ...) {
+    list(
+      P = as.matrix(dat[, c("source_x", "source_y")]),
+      Q = as.matrix(dat[, c("target_x", "target_y")]),
+      alpha = alpha
+    )
+  },
+  predict = function(modelFit, newdata, ...) {
+    predict_mls_2d(modelFit$P, modelFit$Q, newdata, mode = "rigid", alpha = modelFit$alpha)
+  }
+)
+
+#' @noRd
+mls_affine_model <- list(
+  label = "Moving Least Squares (Affine)",
+  library = NULL,
+  modelType = "bivariate",
+  fit = function(dat, alpha = 1.0, ...) {
+    list(
+      P = as.matrix(dat[, c("source_x", "source_y")]),
+      Q = as.matrix(dat[, c("target_x", "target_y")]),
+      alpha = alpha
+    )
+  },
+  predict = function(modelFit, newdata, ...) {
+    predict_mls_2d(modelFit$P, modelFit$Q, newdata, mode = "affine", alpha = modelFit$alpha)
+  }
+)
+
+
+# ---- Radial Basis Function (RBF) Models (Hardy, 1971) ------------------------
+
+#' @noRd
+rbf_multiquadric_model <- list(
+  label = "Radial Basis Function (Multiquadric)",
+  library = NULL,
+  modelType = "bivariate",
+  fit = function(dat, epsilon = NULL, regularization = 0.0, ...) {
+    P <- as.matrix(dat[, c("source_x", "source_y")])
+    Q <- as.matrix(dat[, c("target_x", "target_y")])
+    N <- nrow(P)
+
+    # Automatic epsilon scale: inverse mean nearest-neighbor distance
+    D <- compute_pairwise_distances(P, P)
+    if (is.null(epsilon)) {
+      diag_D <- D
+      diag(diag_D) <- Inf
+      mean_nn <- mean(apply(diag_D, 1, min))
+      epsilon <- if (mean_nn > 1e-12) 1.0 / mean_nn else 1.0
+    }
+
+    Phi <- sqrt((epsilon * D)^2 + 1)
+    if (regularization > 0) {
+      Phi <- Phi + regularization * diag(N)
+    }
+
+    P_aug <- cbind(1, P)
+    L <- rbind(
+      cbind(Phi, P_aug),
+      cbind(t(P_aug), matrix(0, nrow = 3, ncol = 3))
+    )
+    Y <- rbind(Q, matrix(0, nrow = 3, ncol = 2))
+
+    sol <- tryCatch(
+      solve(L, Y),
+      error = function(e) qr.solve(L, Y)
+    )
+
+    fit_obj <- list(
+      W = sol[1:N, , drop = FALSE],
+      A = sol[(N + 1):(N + 3), , drop = FALSE],
+      source_pts = P,
+      epsilon = epsilon,
+      regularization = regularization
+    )
+    class(fit_obj) <- "rbf_fit"
+    return(fit_obj)
+  },
+  predict = function(modelFit, newdata, ...) {
+    M_pts <- as.matrix(newdata[, c("source_x", "source_y")])
+    D_eval <- compute_pairwise_distances(M_pts, modelFit$source_pts)
+    Phi_eval <- sqrt((modelFit$epsilon * D_eval)^2 + 1)
+    P_eval <- cbind(1, M_pts)
+
+    pred_tgt <- Phi_eval %*% modelFit$W + P_eval %*% modelFit$A
+    pred_dx <- pred_tgt[, 1] - newdata$source_x
+    pred_dy <- pred_tgt[, 2] - newdata$source_y
+
+    return(data.frame(dx = pred_dx, dy = pred_dy, row.names = row.names(newdata)))
+  }
+)
+
+
+# ---- Global Projective / Homography Model (DLT) ------------------------------
+
+#' @noRd
+projective_model <- list(
+  label = "Global Projective (Homography)",
+  library = NULL,
+  modelType = "bivariate",
+  fit = function(dat, ...) {
+    P <- as.matrix(dat[, c("source_x", "source_y")])
+    Q <- as.matrix(dat[, c("target_x", "target_y")])
+    N <- nrow(P)
+
+    A_mat <- matrix(0, nrow = 2 * N, ncol = 9)
+    for (i in seq_len(N)) {
+      x <- P[i, 1]; y <- P[i, 2]
+      u <- Q[i, 1]; v <- Q[i, 2]
+      A_mat[2 * i - 1, ] <- c(-x, -y, -1,  0,  0,  0,  x * u, y * u, u)
+      A_mat[2 * i, ]     <- c( 0,  0,  0, -x, -y, -1,  x * v, y * v, v)
+    }
+
+    ev <- eigen(crossprod(A_mat), symmetric = TRUE)
+    h <- ev$vectors[, 9]
+    if (abs(h[9]) > 1e-12) {
+      h <- h / h[9]
+    }
+    H <- matrix(h, nrow = 3, byrow = TRUE)
+
+    fit_obj <- list(H = H)
+    class(fit_obj) <- "projective_fit"
+    return(fit_obj)
+  },
+  predict = function(modelFit, newdata, ...) {
+    P <- as.matrix(newdata[, c("source_x", "source_y")])
+    homog <- cbind(P, 1)
+    pred_homog <- tcrossprod(homog, modelFit$H)
+    w <- pred_homog[, 3]
+    w[abs(w) < 1e-12] <- 1e-12
+
+    pred_tgt_x <- pred_homog[, 1] / w
+    pred_tgt_y <- pred_homog[, 2] / w
+
+    pred_dx <- pred_tgt_x - newdata$source_x
+    pred_dy <- pred_tgt_y - newdata$source_y
+
+    return(data.frame(dx = pred_dx, dy = pred_dy, row.names = row.names(newdata)))
+  }
+)
+
+
 # ---- Registry ----------------------------------------------------------------
 
 #' @rdname pai_model_list
@@ -401,6 +698,11 @@ pai_model_list <- list(
   hybrid_affine_tin = hybrid_affine_tin_model,
   hybrid_helmert_tin = hybrid_helmert_tin_model,
   lm = lm_model,
+  mls_affine = mls_affine_model,
+  mls_rigid = mls_rigid_model,
+  mls_similarity = mls_similarity_model,
+  projective = projective_model,
+  rbf_multiquadric = rbf_multiquadric_model,
   tin_akima = tin_akima_model,
   tin_linear = tin_linear_model,
   tps = tps_model
